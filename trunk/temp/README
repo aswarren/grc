@@ -1,0 +1,1 @@
+This folder will serve as a temp directory for intermediate results obtained from the various components of GRC.  The contents of this directory will be overwritten on each successive run of the GRC. 

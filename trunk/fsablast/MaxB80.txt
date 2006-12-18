@@ -1,0 +1,19 @@
+TTT 6      TCT 5      TAT 7      TGT 9  
+TTC 6      TCC 5      TAC 7      TGC 9  
+TTA 4      TCA 5      TAA 1      TGA 1  
+TTG 4      TCG 5      TAG 1      TGG 11  
+
+CTT 4      CCT 8      CAT 8      CGT 6  
+CTC 4      CCC 8      CAC 8      CGC 6  
+CTA 4      CCA 8      CAA 6      CGA 6  
+CTG 4      CCG 8      CAG 6      CGG 6  
+
+ATT 5      ACT 5      AAT 6      AGT 5  
+ATC 5      ACC 5      AAC 6      AGC 5  
+ATA 5      ACA 5      AAA 5      AGA 6  
+ATG 6      ACG 5      AAG 5      AGG 6  
+
+GTT 4      GCT 5      GAT 6      GGT 6  
+GTC 4      GCC 5      GAC 6      GGC 6
+GTA 4      GCA 5      GAA 6      GGA 6
+GTG 4      GCG 5      GAG 6      GGG 6

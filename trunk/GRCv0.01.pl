@@ -94,7 +94,7 @@ if(defined $opt_k){#if the user desires to keep the blast and reference files
 
 
 $DBFile="$opt_d";
-if (-d $opt_d){#if option d is a directory then merge all ptt and faa files therein
+if (-d $opt_d){#if option d is a directory then merge all sequence and annotation files therein
 	chdir("$opt_d");
 	$DBDir=getcwd;
 	opendir Direc, "./";
@@ -126,15 +126,40 @@ if (-d $opt_d){#if option d is a directory then merge all ptt and faa files ther
 }#close if directory
 
 
-else {#else its not a directory
+else {#else its not a directory  NOTE Must specify a sequence file *.faa or *.fasta
 	$DBDir=$DBFile;
 	@DBTerms=split(/\//, $DBDir); #split the path for db
-	$DBName=$DBTerms[-1]; #set the bin name to be the db name
+	$DBName=$DBTerms[-1]; #set the name of the db file specified
+	unless(-e "$DBFile" && ($DBFile=~/faa$/i || $DBFile=~/fasta$/i)){ #if its the right format and it exists
+		die "DB file specified is not compatible or does not exist\n";
+	} 
+	my $MergeCommand ="$BinDir"."/scripts/mergeseqannot.pl $DBName";
+	$FirstName=$DBName;#get name of the file
+	$FirstName =~s/.faa$|.fasta$//;#remove extension
+	$AnnotFile;#Name of the annotation file (if it exists)
+	if($DBName=~/faa$/i){
+		$AnnotFile=$FirstName.".ptt";
+	}
+	else {#else the file has to be fasta
+		$AnnotFile=$Firstname.".goa";
+	}
+		
 	$DBDir=~ s/$DBName//g; #remove text
 	$DBDir=~ s/\/$//;#remove trailing /
 	chomp($DBDir);
 	chdir("$DBDir");
 	$DBDir=getcwd;#get absolute db directory
+	#Check for file pair (*.faa, *.ptt) OR (*.fasta, *.goa)
+	if (-e "./$AnnotFile"){
+		unless(-d "./$AnnotFile"){#if its not a directory
+			$MergeCommand="$MergeCommand"." $AnnotFile";#add filename to merge command
+			$MergeCommand="$MergeCommand"." AutoMerge.faa";
+			$status=system("$MergeCommand");#run merge
+			$DBName="AutoMerge.faa";
+		}
+	}
+	
+			
 	chdir("$CDir");
 	$DBFile="$DBDir"."/$DBName";#create absolute file name
 }

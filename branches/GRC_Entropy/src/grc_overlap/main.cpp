@@ -42,13 +42,14 @@ void DisplayKO(ostream& Out, CompeteMap& KOMap);
 int LowerTheCase(string& Seq);
 int AdjustStart1(long& St, const long& Sp, const long& QAS, const bool& Reverse, const string& Genome);
 bool AdjustStart2(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, const string& Genome);
-bool ReverseStart(const string& Codon);
+bool ReverseStart(const string& Forward);
 bool ForwardStart(const string& Codon);
 double CalcSS(const string& Codon, const double& Travel);
 string ReverseComp(const string& Codon);//returns the reverse complement of a codon
 char Complement(const char& Base);//returns the complement of a nucl.base
 int InitCodes(double& Lambda, double& K, const string& Matrix, map <string,int>& ConsValue);
 double CalcMaxBit(const long& LB, const long& HB, const string& Genome, map <string,int>& ConsValue, const bool& Reverse, const double& Lambda, const double& K);
+double GetEntropy(const long& LB, const long& HB, const string& Genome, const bool& Reverse);
 
 //run as GRC_overlap -i BlastResults.txt
 int main (int argc, char* argv[]) {   //  Main is open
@@ -732,12 +733,12 @@ char Complement(const char& Base){//open definition
 	}
 }//close definition
 
-//This function returns the reverse complement of a given codon
-string ReverseComp(const string& Codon){
+//This function returns the reverse complement of a given sequence
+string ReverseComp(const string& Forward){
 
 	string Comp="";
-	for(int s= int(Codon.length())-1; s>=0; s--){
-		Comp+=Complement(Codon[s]);
+	for(int s= int(Forward.length())-1; s>=0; s--){
+		Comp+=Complement(Forward[s]);
 	}
 	return Comp;
 }//close definition
@@ -855,18 +856,37 @@ int AdjustStart1(long& St, const long& Sp, const long& QAS, const bool& Reverse,
 }//close defintion
 
 
+//This function calculates the entropy for the section of the genome specified
+double GetEntropy(const long& LB, const long& HB, const string& Genome, const bool& Reverse){//open definition
+	long Length=HB-LB+1;
+	long Begin=LB-1;
+	string Run="./entropy/entropy-score ";
+	
+	if(Reverse){//if the pGene is reversed
+		Run=Run+ReverseComp(Genome.substr(Begin, Length));
+		return system(Run.c_str());//get entropy reverse complement
+	}
+	else{//not reverse complement
+		Run=Run+ReverseComp(Genome.substr(Begin, Length));
+		return system(Run.c_str());
+	}
+}
+	
+
+
 	//This function calculates the maximum possible bit score for a given segment of the genome
 	//Takes parameters LowBase, HighBase, Genome, Map of conservation values, lambda, and K blast values
-	double CalcMaxBit(const long& LB, const long& HB, const string& Genome, map <string,int>& ConsValue, const bool& Reverse, const double & Lambda, const double & K){
+	//Need to clean up this coordinate to string conversion +1 -1 stuff
+double CalcMaxBit(const long& LB, const long& HB, const string& Genome, map <string,int>& ConsValue, const bool& Reverse, const double & Lambda, const double & K){
 		double MaxBit=0;
 		double RawBit=0;
-		long StartSearch=LB-1;
+		long StartSearch=LB-1;//Subtract one to convert to string coordinates
 		long Length=HB-LB;
 		string Codon;
 		map<string,int>::iterator FindIt;
-		
+		//even though its in reverse go forward through the sequence and get reverse complement
 		if(Reverse){
-			for (long s=0; s<Length+1; s++){//calc max possible score
+			for (long s=0; s<Length+1; s=s+3){//calc max possible score
 				if(s%3==0){//if its the next codon
 					Codon=ReverseComp(Genome.substr(StartSearch+s, 3));//get reverse complement
 					FindIt=ConsValue.find(Codon);//find the score of this codon
@@ -878,7 +898,7 @@ int AdjustStart1(long& St, const long& Sp, const long& QAS, const bool& Reverse,
 		}//close if Reverse
 
 		else {
-			for (long s=0; s<Length+1; s++){//calc max possible score
+			for (long s=0; s<Length+1; s=s+3){//calc max possible score
 				if(s%3==0){//if its the next codon
 					Codon=Genome.substr(StartSearch+s, 3);//codon
 					FindIt=ConsValue.find(Codon);//find the score of this codon

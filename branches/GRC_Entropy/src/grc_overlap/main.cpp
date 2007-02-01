@@ -870,7 +870,7 @@ double GetEntropy(const long& LB, const long& HB, const string& Genome, const bo
 		Run=Run+ReverseComp(Genome.substr(Begin, Length));
 		return system(Run.c_str());
 	}
-}
+}//close function
 	
 
 

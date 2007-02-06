@@ -74,6 +74,7 @@ public:
 	bool RefMatched;//boolean to keep track if the reference has been used in a match aka it keeps track of whether this reference gene has been predicted by any of the orfs generated
 	FunctionMap GOTerms;//GOTerms,EvidenceCodes assigned to this prediction
 	bool HasGO;
+	double Entropy;//entropy distance ratio
 	
 //public:
 	result Evaluation;//is this orf a TP,FP,FN,TN??
@@ -106,6 +107,7 @@ public:
 		DBID="none";
 		DBOrg="none";
 		RefMatched=false;
+		Entropy=9999;
 	}
 
 

@@ -112,7 +112,7 @@ public:
 
 
 	//parameterized constructor
-	AARecord(string TID="unassigned", long St=0, long Sp=0, string H="No_hits", bool R=false, double B=0, string ES="none", long L=0, double QP=0, double HP=0, string DID= "none", string DOrg="none"){ // parameterized constructor1
+	AARecord(string TID="unassigned", long St=0, long Sp=0, string H="No_hits", double Ent=9999, bool R=false, double B=0, string ES="none", long L=0, double QP=0, double HP=0, string DID= "none", string DOrg="none"){ // parameterized constructor1
 		ID=TID;
 		Start=St;
 		Stop=Sp;
@@ -128,6 +128,7 @@ public:
 		OLength=labs(Start-Stop)+1;
 		RefMatched=false;
 		HasGO=false;
+		Entropy=Ent;//set entropy
 		if(Bit==0){
 			EValue=999999;
 		}
@@ -193,6 +194,7 @@ public:
 		RefMatched=Source.RefMatched;
 		GOTerms=Source.GOTerms;
 		HasGO=Source.HasGO;
+		Entropy=Source.Entropy;
 		
 	}// close definition
 
@@ -236,6 +238,7 @@ public:
 		RefMatched=Source.RefMatched;
 		GOTerms=Source.GOTerms;
 		HasGO=Source.HasGO;
+		Entropy=Source.Entropy;
 		}// close self assignment
 		return *this;
 	}// close definition
@@ -399,7 +402,7 @@ public:
 			Out<<'\n';
 		}
 		else{
-			Out<<"GRC"<<'\t'<<ID<<'\t'<<Start<<'\t'<<Stop<<'\t'<<OLength<<'\t'<<Strand<<'\t';
+			Out<<"GRC"<<'\t'<<ID<<'\t'<<Start<<'\t'<<Stop<<'\t'<<OLength<<'\t'<<Strand<<'\t'<<Entropy<<'\t';
 			PrintDescription(Out);
 			Out<<'\t'<<Bit<<"\t"<<EScore<<"\t"<<HLength<<'\t'<<DBID<<'\t'<<DBOrg<<'\n';
 		}

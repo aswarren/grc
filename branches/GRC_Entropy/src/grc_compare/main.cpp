@@ -32,7 +32,7 @@ int PrintCompare(list<Match>& ML);//function for printing out comparison chart o
 int LenVSOLap(list<Match>& ML); //function for printing out data for sequence overlap with respect to length of ORF
 int PrintSeqMatch(list<Match>& ML, char* RInput);//function for printing distribution chart of combined sequence statistic over reference annotations
 int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, GO* GOAccess);//fuction for printing summary statistics based on FP, TP, FN, TN
-int GetKnock(DirectHash<AARecord*>& Putatives, list<Match>& MList);//function to get data for analysis
+int GetKnock(DirectHash<AARecord*>& Putatives, list<Match>& MList, char* KnockFile);//function to get data for analysis
 int KnockAnalysis(list<Match>& KML);//function to perform Knockout Analysis
 int CountGOStat(Match& TempM, int& GR, int& R, int& G, int& N);//update the total number of cases for all the grc,ref pairs
 
@@ -43,15 +43,18 @@ int main (int argc, char* argv[]) {   //  Main is open
 	char* InFile2; //get the name of the parsed test results files
 	char* RetroIn;// the negatives from grc
 	char* GOFile="none"; //the name of the obo file if there is one
+	char* KnockFile="none";//specifies the name of the knocklist file that records who knocked out what
 	
-	if(argc<4){cout<<"Need to specify at least three parameters 1.Reference and 2.GRC_positves 3.GRC_negatives\n";
+	if(argc<5){cout<<"Need to specify at least four parameters 1.Reference and 2.GRC_positves 3.GRC_negatives 4.KnockOut list\n";
 	return -1;}
 
 	InFile = argv[1]; //get the reference annotation
 	InFile2 = argv[2]; //get the name of the parsed test results files
 	RetroIn=argv[3];// the negatives from grc
-	if(argc==5){//if GO.obo specified
-		GOFile=argv[4];
+	KnockFile=argv[4];
+
+	if(argc==6){//if GO.obo specified
+		GOFile=argv[5];
 	}
 
 	ifstream In; //input for the setubal results
@@ -86,6 +89,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	double HPercent=0; //the HSP percent aligned
 	string DBID;
 	string DBOrg;
+	double Entropy=0;
 
 	while (In){//read in the Reference input file
 		string Hit;
@@ -111,7 +115,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 		getline(In,Hit,'\t');//skip next tab
 		getline(In,Hit,'\n');//get the function
 
-		orfRefList.push_back(AARecord(ID, Start, Stop, Hit, true)); //add a hit record
+		orfRefList.push_back(AARecord(ID, Start, Stop, Hit, 9999, true)); //add a hit record
 		RefList.push_back(&(orfRefList.back()));//add pointer to the record
 	}// close read input
 	In.close();
@@ -133,19 +137,20 @@ int main (int argc, char* argv[]) {   //  Main is open
 		string Hit;
 		ID=ES="nothing";
 		Stop=Start=Length=ALength=0;
-		Bit=QPercent=HPercent=0;
+		Entropy=Bit=QPercent=HPercent=0;
 		//In2>>Tag;
 	
 		In2>>ID; //read in id
 		In2>>Start; //read in start
 		In2>>Stop; //read in stop
-		In2>>Tag; //read in length  WHAT'S GOING ON WITH THESE VARIABLES WHY ARE THEY MESSED UP?
+		In2>>Tag; //read in length  
 		In2>>Tag; //read in orientation
+		In2 >>Entropy;//Read in the entropy distance ratio dist(PosEntropy)/dist(NegEntropy)
 		In2>>Tag;//read in description first term
 	
 		if(Tag=="No_hits"){//no hit
 			getline(In2,Hit,'\n');
-			PositiveList.push_back(AARecord(ID, Start, Stop, Tag, false)); //add a hit record
+			PositiveList.push_back(AARecord(ID, Start, Stop, Tag, Entropy, false)); //add a no-hit record
 			PosList.push_back(&(PositiveList.back()));//add pointer to the record
 		}//end of no hit
 
@@ -161,7 +166,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 			In2>>QPercent;
 			In2>>HPercent; //read in hsp percent
 			
-			PositiveList.push_back(AARecord(ID, Start, Stop, Hit, false, Bit, ES, Length, QPercent, HPercent,DBID,DBOrg)); //add a hit record
+			PositiveList.push_back(AARecord(ID, Start, Stop, Hit, Entropy, false, Bit, ES, Length, QPercent, HPercent,DBID,DBOrg)); //add a hit record
 			PosList.push_back(&(PositiveList.back()));//add pointer to the record
 		}
 		//add a pointer to hash table that uses ID to generate key
@@ -183,7 +188,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 		string Hit;
 		ID=ES="nothing";
 		Stop=Start=Length=ALength=0;
-		Bit=QPercent=HPercent=0;
+		Entropy=Bit=QPercent=HPercent=0;
 		
 
 		In3>>ID; //read in id
@@ -191,13 +196,14 @@ int main (int argc, char* argv[]) {   //  Main is open
 		In3>>Stop; //read in stop
 		In3>>Tag; //read in length
 		In3>>Tag; //read in orientation
+		In3 >>Entropy;//Read in the entropy distance ratio dist(PosEntropy)/dist(NegEntropy)
 		In3>>Tag; //Read in first hit term
 		
 
 
 		if(Tag=="No_hits"){//no hit
 			getline(In3,Hit,'\n');
-			NegativeList.push_back(AARecord(ID, Start, Stop, Tag, false)); //add a hit record
+			NegativeList.push_back(AARecord(ID, Start, Stop, Tag, Entropy, false)); //add a hit record
 			NegList.push_back(&(NegativeList.back()));//add pointer to the record
 			unsigned int Position = IDHash.HashingKey(ID);
 			IDHash.InsertKey(Position,&(NegativeList.back()));
@@ -214,7 +220,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 			In3>>Length;//read in HSP length
 			In3>>QPercent;
 			In3>>HPercent; //read in hsp percent
-			NegativeList.push_back(AARecord(ID, Start, Stop, Hit, false, Bit, ES, Length, QPercent, HPercent,DBID,DBOrg)); //add a hit record
+			NegativeList.push_back(AARecord(ID, Start, Stop, Hit, Entropy, false, Bit, ES, Length, QPercent, HPercent,DBID,DBOrg)); //add a hit record
 			NegList.push_back(&(NegativeList.back()));//add pointer to the record
 			unsigned int Position = IDHash.HashingKey(ID);
 			IDHash.InsertKey(Position,&(NegativeList.back()));
@@ -334,7 +340,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	//PrintCompare(MList);
 	//PrintSeqMatch(MList, RetroIn);//print out distribution chart based on combined statistic
 	
-	GetKnock(IDHash,FNMList); //read in the knock out mistakes
+	GetKnock(IDHash,FNMList, KnockFile); //read in the knock out list of who did what to whom
 	KnockAnalysis(FNMList);
 
 	PrintPositive(MList, NumNO, orfRefList.size(), GOAccess);//Print Summary Statistics
@@ -626,6 +632,7 @@ int Compare(list<AARecord*>& GList, list<AARecord*>& RList, list<AARecord*>& NLi
 	double MaxPercent=0;
 	double HighSS;
 	double HighGS;
+	double NRPEntropy=0;//Temp variable for outputing average no reference entropy
 	double HighOLap;
 	int NumSmall;//for keeping track of the number of Ref orfs <300bp that a GRC orf overlaps with
 	AARecord* HighFP=NULL;//for keeping track of the highest overlapping false positive
@@ -675,12 +682,14 @@ int Compare(list<AARecord*>& GList, list<AARecord*>& RList, list<AARecord*>& NLi
 				}
 				else {//else the positive doesn't overlap anything
 					(*It1)->Evaluation=NRP;
+					NRPEntropy+=(*It1)->Entropy;
 					NumNO++;
 				}
 			}
 		}//close initial It1 Null check
 	}//close outer loop
 
+	cout<<"NRP AVERAGE ENTROPY:\t"<<NRPEntropy/double(NumNO)<<"\n";
 	bool FalseNeg=false;
 	AARecord* HighTN=NULL;
 	//for finding the True and false Negatives
@@ -1005,6 +1014,12 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, GO* GOAccess){//o
 	double TPAvgConDepth=0;//for GRC annotations what is the average confirmed depth
 	double TPAvgComDist=0;
 	double TPAvgComDepth=0;//for GRC annotations what is the average confirmed depth
+	double FNEntropy=0;
+	double FPEntropy=0;
+	double TPEntropy=0;
+	double TNEntropy=0;
+	double HitPEntropy=0;
+	double NumHitPos=0;
 
 	ofstream WordOut;
 	//WordOut.open("TPnoterm.txt");//the ofstream operator for records with terms not equivalent
@@ -1025,10 +1040,12 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, GO* GOAccess){//o
 		switch(RefCompare){//depending on Result add to statistic map
 			case TN:
 				NumTN++;
+				TNEntropy+=It1->GRCRecord->Entropy;
 				break;
 			case FN:
 				NumFN++;
 				StartDif=(It1->GRCRecord->Start-It1->RefRecord->Start);
+				FNEntropy+=It1->GRCRecord->Entropy;;
 				if(!It1->GRCRecord->Reverse){StartDif=StartDif*-1;}
 				if(StartDif>0){
 					FNNumPosStart++;
@@ -1067,8 +1084,9 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, GO* GOAccess){//o
 						TPTotalNotCompat=TPTotalNotCompat+It1->GONotCompat();
 					}
 				}//close if GO Analysis
-
+				
 				NumTP++;
+				TPEntropy+=It1->GRCRecord->Entropy;
 				StartDif=(It1->GRCRecord->Start-It1->RefRecord->Start);
 				if(!It1->GRCRecord->Reverse){StartDif=StartDif*-1;}
 				if(StartDif>0){
@@ -1094,12 +1112,21 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, GO* GOAccess){//o
 				if(It1->GRCWordMatchPercent>.50){
 					NumTPMatch50++;
 				}
+				if(!It1->GRCRecord->Blank){
+					HitPEntropy+=It1->GRCRecord->Entropy;
+					NumHitPos++;
+				}
 				break;
 			case FP:
 				NumFP++;
+				FPEntropy+=It1->GRCRecord->Entropy;
 				if(It1->SmallRef>0){//if the reference overlaps an orf less than 300
 					//NumSmallFP=NumSmallFP+It1->SmallRef;
 					NumSmallFP++;
+				}
+				if(!It1->GRCRecord->Blank){
+					HitPEntropy+=It1->GRCRecord->Entropy;
+					NumHitPos++;
 				}
 				break;
 			default: break;
@@ -1153,6 +1180,29 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, GO* GOAccess){//o
 	
 	cout<<"ExactlyRight\t"<<FNExactStart<<"\n\n\n";
 
+	double AvgHitEntropy=HitPEntropy/NumHitPos;
+	double Variance=0;
+	for (list<Match>::iterator EntIt =ML.begin(); EntIt!=ML.end(); EntIt++ ){
+		if((EntIt->StatScore==TP || EntIt->StatScore==FP) && !EntIt->GRCRecord->Blank){
+			double Diff=EntIt->GRCRecord->Entropy-AvgHitEntropy;
+			Variance+=(Diff*Diff);//square the difference of average and actual and add to total variance
+		}
+	}
+	double EntropyDev=sqrt((Variance/(NumHitPos-1)));//calculate std deviation
+
+	cout<<"Entropy Statistics:\n";
+	cout<<"Avg. Entropy\n";
+	//cout<<"AllPositives\t"<<(TPEntropy+FPEntropy+NRPEntropy)/double((NumTP+NumFP+NumNO))<<"\n";
+	cout<<"RefPositives\t"<<(TPEntropy+FPEntropy)/double((NumTP+NumFP))<<"\n";
+	cout<<"HitPositives\t"<<AvgHitEntropy<<"\n";
+	cout<<"StdDevHitPos:\t"<<EntropyDev<<"\n";
+	cout<<"TP\t"<<TPEntropy/double(NumTP)<<"\n";
+	cout<<"FP\t"<<FPEntropy/double(NumFP)<<"\n";
+	cout<<"Negatives\t"<<(TNEntropy+FNEntropy)/double((NumFN+NumTN))<<"\n";
+	cout<<"TN\t"<<TNEntropy/double(NumTN)<<"\n";
+	cout<<"FN\t"<<FNEntropy/double(NumFN)<<"\n\n\n";
+
+
 	cout<<"Annotation Statistics:\n";
 	cout<<"TP with a matching term\t"<<NumTPMatchTerm<<"\n";
 	//cout<<"TP >.50 matching terms\t"<<NumTPMatch50<<"\n\n\n";
@@ -1187,11 +1237,11 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, GO* GOAccess){//o
 //Knock Analysis function reads in the KnockList from GRC_Overlap that
 //specifies who knocked out who and does analysis find
 //the characteristics of what caused the elimination
-int GetKnock(DirectHash<AARecord*>& Putatives, list<Match>& MList){//open def.
+int GetKnock(DirectHash<AARecord*>& Putatives, list<Match>& MList, char* KnockFile){//open def.
 	ifstream GetK;
 	string Tyson="nothing";//the ID of the one doing the knocking out
 	string Target="nothing";//the ID of the thing knocked out
-	GetK.open("KnockList.txt");
+	GetK.open(KnockFile);
 	GetK>>Tyson;//read in the delimiter
 	unsigned int Ty=0;
 	unsigned int Tg=0;
@@ -1205,28 +1255,34 @@ int GetKnock(DirectHash<AARecord*>& Putatives, list<Match>& MList){//open def.
 	getline(GetK,Header,'\n');
 	while(GetK){//get the knocklist
 		GetK>>Tyson;//set KOer
+
 		Ty=Putatives.HashingKey(Tyson);
 		string Line;
 		getline(GetK,Line);//get the target that has been knocked out
-		stringstream ss(Line);
-		while(ss>>Target){//read in the rest of the line until delimeter
-			Tg=Putatives.HashingKey(Target);//hash target
-			TarPP=(Putatives.FindKey(Tg));//find the putative in the hash
-			if(TarPP!=NULL){//if it exists
-				TarP=*TarPP;
-				if((TarP->Evaluation)==FN){//a putative got knocked out that was not supposed to
-					OLapLen=0;
-					TyPP=(Putatives.FindKey(Ty));//get pointer to knock out'er
-					if(TyPP!=NULL){//if the two orfs in the knockout relationship are found
-						TyP=*TyPP;
-						TarP->JustOverlap(*TyP,SameDirec,OLapLen);
-						MList.push_back(Match(TyP, TarP, OLapLen, false));//add to match list
-					}
-					else{cerr<<Ty<<"does not exist in hashTable\n";}
-				}//close putative knocked out
-			}//close if TarP exists
-			else{cerr<<Tg<<"does not exist in hashTable\n";}
-		}//close read in rest of line
+		if(Tyson!="Entropy"){//if not entropy knockout
+			stringstream ss(Line);
+			while(ss>>Target){//read in the rest of the line until delimeter
+				Tg=Putatives.HashingKey(Target);//hash target
+				TarPP=(Putatives.FindKey(Tg));//find the putative in the hash
+				if(TarPP!=NULL){//if it exists
+					TarP=*TarPP;
+					if((TarP->Evaluation)==FN){//a putative got knocked out that was not supposed to
+						OLapLen=0;
+						TyPP=(Putatives.FindKey(Ty));//get pointer to knock out'er
+						if(TyPP!=NULL){//if the two orfs in the knockout relationship are found
+							TyP=*TyPP;
+							TarP->JustOverlap(*TyP,SameDirec,OLapLen);
+							MList.push_back(Match(TyP, TarP, OLapLen, false));//add to match list
+						}
+						else{
+							//Eliminated by entropy
+							cerr<<Ty<<" does not exist in hashTable\n";
+						}
+					}//close putative knocked out
+				}//close if TarP exists
+				else{cerr<<Tg<<" does not exist in hashTable\n";}
+			}//close read in rest of line
+		}//close if not entropy
 	}//close get the knocklist
 
 	return 0;

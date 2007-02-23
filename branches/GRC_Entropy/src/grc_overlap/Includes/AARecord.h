@@ -58,9 +58,16 @@ public:
 	int SID;//identifier of subject that is current rep
 	list<Subject> PrimaryHits;//other blast hits for this query orf
 	list<Subject> SecondaryHits;//other blast hits for this query orf
+	//There are two Queues because there can be different bit scores
+	//for alignments of the same region to a different subject
+	//The primary queue stores all of those start site/subject pairs that
+	//are closest to the alignment and as a result should have higher Bit/MaxBit
+	//The secondary queue stores those start site/subject pairs that are farther
+	//away from the alignment
 	priority_queue<Subject*,vector<Subject*>,MoreBit> PrimaryQ;
 	priority_queue<Subject*,vector<Subject*>,MoreBit> SecondaryQ;
-	double LowComplexity;
+
+	double Entropy;
 //public:
 	
 	AARecord(){//default constructor
@@ -87,7 +94,7 @@ public:
 		HitID="none";
 		HitOrg="none";
 		SID=0;
-		LowComplexity=0;
+		Entropy=0;
 	}
 
 	//parameterized constructor
@@ -108,7 +115,7 @@ public:
 		HitID=HID;
 		HitOrg=HOrg;
 		SID=0;
-		LowComplexity=LC;
+		Entropy=LC;
 
 		Blank=(B==0); //if the bit score is 0 then blank is true
 		if (Start>Stop){ 
@@ -169,7 +176,7 @@ public:
 		PrimaryHits=Source.PrimaryHits;
 		SecondaryHits=Source.SecondaryHits;
 		SID=Source.SID;
-		LowComplexity=Source.LowComplexity;
+		Entropy=Source.Entropy;
 		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
 			PrimaryQ.push(&(*It));
 		}
@@ -177,6 +184,52 @@ public:
 			SecondaryQ.push(&(*It));
 		}
 	}// close definition
+
+	 //Assignment Operator
+	 AARecord& operator =(const AARecord &Source){// open defintion
+		if (this!= &Source){// open non-self assignment consq.
+		 Sequence=Source.Sequence;
+		 ID=Source.ID; //unique for each record
+		 Hit=Source.Hit;
+		 Start=Source.Start; // the start position for the orf
+		 Stop=Source.Stop; // the stop position for the orf
+		 HighBase=Source.HighBase;
+		 RelBit=Source.RelBit;
+		 Hypot=Source.Hypot;
+		 Defeated=Source.Defeated;
+		 LowBase=Source.LowBase;
+		 MaxBit=Source.MaxBit;
+		 Bit=Source.Bit; // the bit score for the hit
+		 EScore=Source.EScore; //the E-score for the hit
+		 HLength=Source.HLength; //the length of the hit sequence
+		 Reverse=Source.Reverse; //Is it in a - frame
+		 Blank=Source.Blank;	
+		 EValue=Source.EValue;
+		QLength=Source.QLength;//Orf length
+		ALength=Source.ALength;//alignment length
+		QAlignStart=Source.QAlignStart;
+		QAlignStop=Source.QAlignStop;
+		HitOrg=Source.HitOrg;
+		HitID=Source.HitID;
+		PrimaryHits=Source.PrimaryHits;
+		SecondaryHits=Source.SecondaryHits;
+		SID=Source.SID;
+		Entropy=Source.Entropy;
+		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
+			PrimaryQ.push(&(*It));
+		}
+		for(list<Subject>::iterator It=SecondaryHits.begin(); It!=SecondaryHits.end(); It++){
+			SecondaryQ.push(&(*It));
+		}
+		}// close self assignment
+		return *this;
+	}// close definition
+	
+	 //destructor
+	 ~AARecord(){
+		 PrimaryQ.empty();
+		 SecondaryQ.empty();
+	 }
 
 	 	//> OPERATOR overload
 		//adding e-score evaluation and inverting signs 04/04/06
@@ -221,51 +274,7 @@ public:
 		//return(EValue>RHS.EValue);
 	}
 	
-	 //Assignment Operator
-	 AARecord& operator =(const AARecord &Source){// open defintion
-		if (this!= &Source){// open non-self assignment consq.
-		 Sequence=Source.Sequence;
-		 ID=Source.ID; //unique for each record
-		 Hit=Source.Hit;
-		 Start=Source.Start; // the start position for the orf
-		 Stop=Source.Stop; // the stop position for the orf
-		 HighBase=Source.HighBase;
-		 RelBit=Source.RelBit;
-		 Hypot=Source.Hypot;
-		 Defeated=Source.Defeated;
-		 LowBase=Source.LowBase;
-		 MaxBit=Source.MaxBit;
-		 Bit=Source.Bit; // the bit score for the hit
-		 EScore=Source.EScore; //the E-score for the hit
-		 HLength=Source.HLength; //the length of the hit sequence
-		 Reverse=Source.Reverse; //Is it in a - frame
-		 Blank=Source.Blank;	
-		 EValue=Source.EValue;
-		QLength=Source.QLength;//Orf length
-		ALength=Source.ALength;//alignment length
-		QAlignStart=Source.QAlignStart;
-		QAlignStop=Source.QAlignStop;
-		HitOrg=Source.HitOrg;
-		HitID=Source.HitID;
-		PrimaryHits=Source.PrimaryHits;
-		SecondaryHits=Source.SecondaryHits;
-		SID=Source.SID;
-		LowComplexity=Source.LowComplexity;
-		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
-			PrimaryQ.push(&(*It));
-		}
-		for(list<Subject>::iterator It=SecondaryHits.begin(); It!=SecondaryHits.end(); It++){
-			SecondaryQ.push(&(*It));
-		}
-		}// close self assignment
-		return *this;
-	}// close definition
-	
-	 //destructor
-	 ~AARecord(){
-		 PrimaryQ.empty();
-		 SecondaryQ.empty();
-	 }
+
 
 
 
@@ -360,7 +369,8 @@ public:
 			if(OverLen>0){return true;}
 			else{//else the overlap is negative which is distance between two no_hit orfs Possible intergenic region
 				int Distance=OverLen*-1;
-				return(LowComplexity>0.90||RHS.LowComplexity>0.90||QLength<300||RHS.QLength<300);
+				//return(Entropy>0.90||RHS.Entropy>0.90||QLength<300||RHS.QLength<300);
+				return false;
 			}
 		}
 
@@ -375,11 +385,37 @@ public:
 		
 		
 
-	//If there is no hit information for either ORF evaluate the fraction of LowComplexity X's/Length
+	//If there is no hit information for either ORF evaluate the entropy and length
+	//LHS BetterThan RHS
+	//Checks to see which is a more powerful discriminator length or entropy
+	//and evaluates the LHS BetterThan RHS based on that discriminator
 	bool operator ^(const AARecord& RHS)const{//open definition
-		return (QLength>RHS.QLength);
-		//return (LowComplexity<RHS.LowComplexity);
+		//return (Entropy<RHS.Entropy);
+		//return (QLength>RHS.QLength);//LHS.QueryLength>RHS.QueryLength
+		//return (Entropy<RHS.Entropy);
+		double LengthFrac=0;
+		double EntropyFrac=0;
+		//create discriminator fractions by using (difference/Min(value1, value2))
+		if(QLength>RHS.QLength){
+			LengthFrac=double(QLength-RHS.QLength)/double(RHS.QLength);
+		}
+		else{
+			LengthFrac=double(RHS.QLength-QLength)/double(QLength);
+		}
+		if(Entropy>RHS.Entropy){
+			EntropyFrac=double(Entropy-RHS.Entropy)/double(RHS.Entropy);
+		}
+		else{
+			EntropyFrac=double(RHS.Entropy-Entropy)/double(Entropy);
+		}
+		if (EntropyFrac>LengthFrac){
+			return (Entropy<RHS.Entropy); //LHS is better than RHS if entropy is lower
+		}
+		else return (QLength>RHS.QLength); //LHS is better than RHS if length is greater
+			
 	}// close definition
+
+
 
 	bool ReportHit() const{//open defintion
 		return !Blank;
@@ -481,6 +517,7 @@ public:
 		priority_queue<Subject*,vector<Subject*>,MoreBit> CopyQ=PrimaryQ;//copy for refreshing PrimaryQ
 		bool ToKO=true;
 		//For each
+
 		PrimaryQ.pop();//get rid of top hit
 		while(!PrimaryQ.empty() && ToKO){//open while loop
 			SwitchRep();//switch this Records Rep. hit
@@ -506,6 +543,7 @@ public:
 				else{//else check if compatible
 					ToKO=KnockOut(Winner,OverL);//check compatability
 				}
+			
 				SecondaryQ.pop();//get rid of top hit
 			}//close while loop
 		}

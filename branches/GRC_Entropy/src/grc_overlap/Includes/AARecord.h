@@ -52,6 +52,7 @@ public:
 	long QAlignStop;//offset to stop alignment from Start
 	double MaxBit;//the maximum possible bit score
 	double RelBit;//bit score adjusted by bit/maxbit
+	double BitFrac;//bit Fraction Bit/MaxBit
 	bool Hypot;//bool to tell whether description contains hypothetical
 	string HitID;//id of the hit in db
 	string HitOrg;//name of the organism in the db hit
@@ -141,6 +142,7 @@ public:
 			ss.str(EScore);
 			ss>>EValue;
 			//EValue=(double(HLength))*(double(QLength))*(1.0/pow(2.0,Bit));
+			BitFrac=Bit/MaxBit;
 			RelBit=(Bit*Bit)/MaxBit;
 		}//assign the E-value
 		//This is a lazy addition. ToDo: Modify AArecord to use the values at the top of the BitQueue
@@ -177,6 +179,7 @@ public:
 		SecondaryHits=Source.SecondaryHits;
 		SID=Source.SID;
 		Entropy=Source.Entropy;
+		BitFrac=Source.BitFrac;
 		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
 			PrimaryQ.push(&(*It));
 		}
@@ -215,6 +218,7 @@ public:
 		SecondaryHits=Source.SecondaryHits;
 		SID=Source.SID;
 		Entropy=Source.Entropy;
+		BitFrac=Source.BitFrac;
 		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
 			PrimaryQ.push(&(*It));
 		}

@@ -184,16 +184,16 @@ int main (int argc, char* argv[]) {   //  Main is open
 		if (HitID =="No_hits"){//open consq.
 			//In>>ES; //read in the delimiter
 			//Insert Record into Initial RecordMap
-			//BlastIn>>LowComplexity;
+			BlastIn>>LowComplexity;
 			Entropy=GetEntropy(LowBase, HighBase, Genome, Rev, ECommand);
 			RecordList.push_back(AARecord(ID, Start, Stop, HitID, Entropy));//add record to the list
 			//EditList.push_back(&((MapIt.first)->second));//add a pointer to the location of the record
 		}//close consq.
 		else {//there is a hit
-			string TempHack=HitID;//SWITCHED TO ACCOMODATE INVERSED ID AND DESCRIPTION IN OLD OUTPUT********
+			//string TempHack=HitID;//SWITCHED TO ACCOMODATE INVERSED ID AND DESCRIPTION IN OLD OUTPUT********
 			getline(BlastIn,Hit,'\t'); //get line for hit description 
-			HitID=Hit;//SWITCHED TO ACCOMODATE INVERSED ID AND DESCRIPTION IN OLD OUTPUT********
-			Hit=TempHack;//SWITCHED TO ACCOMODATE INVERSED ID AND DESCRIPTION IN OLD OUTPUT********
+			//HitID=Hit;//SWITCHED TO ACCOMODATE INVERSED ID AND DESCRIPTION IN OLD OUTPUT********
+			//Hit=TempHack;//SWITCHED TO ACCOMODATE INVERSED ID AND DESCRIPTION IN OLD OUTPUT********
 
 			getline(BlastIn,HitOrg,'\t'); //organism from which the hit comes
 			BlastIn>>PercentIdent;
@@ -207,7 +207,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 			BlastIn>>SAlignStop;
 			BlastIn>>ES;
 			BlastIn>>Bit;
-			//BlastIn>>LowComplexity;//ONLY needs to be entered once per query ID since all is query sequence dependent
+			BlastIn>>LowComplexity;//ONLY needs to be entered once per query ID since all is query sequence dependent
 			long OrigStart=Start;//for start searching purposes
 			//boolean value to determine whether any new information is being contributed
 			//TO DO: Add org and HitID check to bool Old and update structure for storing
@@ -336,28 +336,34 @@ int main (int argc, char* argv[]) {   //  Main is open
 	
 	//tally the number of winners with hits and
 	//calculate avg. entropy of winners with hits
+	double ConservCutoff=.90;//Bit fraction cutoff for creating the entropy cutoff
 	double AvgEntropy=0;//The average entropy
 	int NumWinHits=0;
 	for (list<AARecord*>::iterator AvgIt =WinnerList.begin(); AvgIt!=WinnerList.end(); AvgIt++ ){
 		if((*AvgIt)->ReportHit()){//if this orf has a hit
-			AvgEntropy+=(*AvgIt)->Entropy;
 			NumWinHits++;
+			if((*AvgIt)->BitFrac>ConservCutoff){
+				AvgEntropy+=(*AvgIt)->Entropy;
+			}
 		}
 	}
 	AvgEntropy=AvgEntropy/double(NumWinHits);//finish avg entropy calc. by dividing by number of orfs with hits
-	
+
 	//Calculate the std deviation
 	double Variance=0;
 	for (list<AARecord*>::iterator EntIt =WinnerList.begin(); EntIt!=WinnerList.end(); EntIt++ ){
-		double Diff=(*EntIt)->Entropy-AvgEntropy;//get difference between mean and current
-		Variance+=(Diff*Diff);//square the difference of mean and current and add to total variance
+		if((*EntIt)->ReportHit() && (*EntIt)->BitFrac>ConservCutoff){//if this orf has a hit
+			double Diff=(*EntIt)->Entropy-AvgEntropy;//get difference between mean and current
+			Variance+=(Diff*Diff);//square the difference of mean and current and add to total variance
+		}
 	}
 	double EntropyDev=sqrt((Variance/(NumWinHits-1)));//calculate std deviation
 
-	EntropyFilter(WinnerList, LoserList, KOMap, AvgEntropy+EntropyDev);//filter the orfs based on entropy
+	int NumFiltered=EntropyFilter(WinnerList, LoserList, KOMap, AvgEntropy+EntropyDev);//filter the orfs based on entropy
 	//Tally results
 	cout<<"Average entropy is\t"<<AvgEntropy<<"\n";
 	cout<<"Std Dev of entropy is\t"<<EntropyDev<<"\n";
+	cout<<"Number of orfs filtered from entroy\t"<<NumFiltered<<"\n";
 
 	cout<<"******************GRC v0.01******************"<<"\n";
 	cout<<"Total # of initial ORFS created:   "<<PositionMap.size()<<"\n";
@@ -943,20 +949,28 @@ double GetEntropy(const long& LB, const long& HB, const string& Genome, const bo
 //it also creates a KO record that the orf was removed due to entropy
  int EntropyFilter(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CompeteMap& KOMap, double EntCutoff){
 	list<AARecord*> NuWinners;
+	int OrigSize=WinnerList.size();
 	//check each winner with no hit for high entropy
 	for (list<AARecord*>::iterator CheckIt=WinnerList.begin(); CheckIt!=WinnerList.end(); CheckIt++){
 		if((*CheckIt)->ReportHit()||(*CheckIt)->Entropy<=EntCutoff){//if the record has a hit OR its entropy is under cutoff
 			NuWinners.push_back((*CheckIt));//add it to the final list
 		}
 		else{
+			CompeteMap::iterator TempC=KOMap.find("Entropy");//look for the entropy entry in the KOMap
+			if(TempC!=KOMap.end()){//if its found add another loser
+				(TempC->second).AddLoser(*CheckIt);
+			}
+			else{//if not found add a new entry
+				KOMap.insert(CompeteMap::value_type("Entropy", Compete(NULL,(*CheckIt))));
+			}
 			LoserList.push_back((*CheckIt));//add to the loser list
-			KOMap.insert(CompeteMap::value_type("Entropy", Compete(NULL,(*CheckIt))));
+			
 		}
 		*CheckIt=NULL;
 	}
 	WinnerList=NuWinners;
 	NuWinners.clear();
-	return 1;
+	return OrigSize-WinnerList.size();//return number of orfs removed
 }
 
 			

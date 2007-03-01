@@ -243,7 +243,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 					LowBase=Start;
 				}
 				
-				//Add the original start site
+				//create Hash for MaxBit value to avoid multiple calc. for same seq. segment
 				string LowHigh=ltos(LowBase)+","+ltos(HighBase)+","+btos(Rev);
 				FindMB=MaxBitMap.find(LowHigh);//see if the maxbit has been previously calc.
 				if(FindMB==MaxBitMap.end()){
@@ -286,11 +286,12 @@ int main (int argc, char* argv[]) {   //  Main is open
 					FindID=HitList.find(ID);
 					if(FindID!=HitList.end()){//if the orf already has a hit
 						//Add Subject orf to Record
-						FindID->second->AddSecondary(Start, Stop, Hit, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, MaxBit, HitID, HitOrg);
+						FindID->second->AddPrimary(Start, Stop, Hit, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, MaxBit, HitID, HitOrg);
 					}
 					else{//else there has not been a hit for this orf so far
-						RecordList.push_back(AARecord(ID, Start, Stop, Hit, Entropy, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, MaxBit, HitID, HitOrg));
-						HitList.insert(IDMap::value_type(ID,&RecordList.back()));//add pointer to the record to the hit list
+						cerr<<"Logic error in grc_overlap adjust start: record should already be created.\n";
+						//RecordList.push_back(AARecord(ID, Start, Stop, Hit, Entropy, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, MaxBit, HitID, HitOrg));
+						//HitList.insert(IDMap::value_type(ID,&RecordList.back()));//add pointer to the record to the hit list
 					}
 				}//close find start sites
 			}//close if not Old

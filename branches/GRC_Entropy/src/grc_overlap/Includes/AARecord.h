@@ -50,9 +50,10 @@ public:
 	bool Defeated; //marks whether this record has been knocked out(tombstone method)
 	long QAlignStart;//offset to start alignment from Start
 	long QAlignStop;//offset to stop alignment from Start
-	double MaxBit;//the maximum possible bit score
-	double RelBit;//bit score adjusted by bit/maxbit
+	double MaxBit;//the maximum possible bit score for the query sequence
+	double RelBit;//bit score * bit/maxbit
 	double BitFrac;//bit Fraction Bit/MaxBit
+	double HighScore;//the highest bit score out of all alignmnets for this query
 	bool Hypot;//bool to tell whether description contains hypothetical
 	string HitID;//id of the hit in db
 	string HitOrg;//name of the organism in the db hit
@@ -99,16 +100,16 @@ public:
 	}
 
 	//parameterized constructor
-	AARecord(string TID="unassigned", long St=0, long Sp=0, string H="None", double LC=0, double B=0, string ES="none", long L=0, long A=0, long QASt=0, long QASp=0, double MxBit=0, string HID="none", string HOrg="none"){ // parameterized constructor1
+	AARecord(string TID="unassigned", long St=0, long Sp=0, string H="None", double LC=0, double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, double MxBit=0, string HID="none", string HOrg="none"){ // parameterized constructor1
 		ID=TID;
 		Start=St;
 		Stop=Sp;
 		Hit=H;
 		Bit=B;
 		EScore=ES;
-		HLength=L;
+		HLength=HL;
 		Defeated=false;
-		ALength=A;
+		ALength=AL;
 		QAlignStart=QASt;//query align start offset
 		QAlignStop=QASp;
 		MaxBit=MxBit;
@@ -117,6 +118,7 @@ public:
 		HitOrg=HOrg;
 		SID=0;
 		Entropy=LC;
+		HighScore=0;//highest score so far 
 
 		Blank=(B==0); //if the bit score is 0 then blank is true
 		if (Start>Stop){ 
@@ -146,7 +148,7 @@ public:
 			RelBit=(Bit*Bit)/MaxBit;
 		}//assign the E-value
 		//This is a lazy addition. ToDo: Modify AArecord to use the values at the top of the BitQueue
-		AddPrimary(St,Sp,H,B,ES,L,A,QASt,QASp,MxBit,HID,HOrg);//add Subject
+		AddPrimary(St,Sp,H,B,ES,HL,AL,QASt,QASp,MxBit,HID,HOrg);//add Subject
 	}
 
 
@@ -178,6 +180,7 @@ public:
 		PrimaryHits=Source.PrimaryHits;
 		SecondaryHits=Source.SecondaryHits;
 		SID=Source.SID;
+		HighScore=Source.HighScore;
 		Entropy=Source.Entropy;
 		BitFrac=Source.BitFrac;
 		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
@@ -219,6 +222,7 @@ public:
 		SID=Source.SID;
 		Entropy=Source.Entropy;
 		BitFrac=Source.BitFrac;
+		HighScore=Source.HighScore;
 		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
 			PrimaryQ.push(&(*It));
 		}
@@ -438,14 +442,18 @@ public:
 	int AddPrimary(long& St, long& Sp, string& H, double& B, string& ES, long& L, long& A, long& QASt, long& QASp, double& MxBit, string& HID, string& HOrg){
 		int TempID=PrimaryHits.size();
 		PrimaryHits.push_back(Subject(TempID,St,Sp,H,B,ES,L,A,QASt,QASp,MxBit,HID,HOrg));//add Subject
-		PrimaryQ.push(&PrimaryHits.back());
-		
+		//No need to add to primaryQ until each Subject has been scored based on HighScore
+		//PrimaryQ.push(&PrimaryHits.back());
+		if(HighScore<B){//record highest bit score for any alignment for this query
+			HighScore=B;
+		}
 		//if(BitQueue.top()->ID==OtherHits.back().ID && OtherHits.size()>0){//if the newest hit is the best
 			//switch representative hit
 		//}
 		return 0;
 	}//close def.
 
+	//This FUNCTION IS NOT CURRENTLY IN USE ALL Subjects go into the Primary Queue
 	//Adds Subjects to OtherHits and makes top RelBit value Subject to be Record Rep.
 	int AddSecondary(long& St, long& Sp, string& H, double& B, string& ES, long& L, long& A, long& QASt, long& QASp, double& MxBit, string& HID, string& HOrg){
 		int TempID=SecondaryHits.size();

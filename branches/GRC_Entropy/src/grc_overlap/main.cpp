@@ -570,7 +570,7 @@ std::ostream& operator<<(std::ostream& ACOut, const AARecord& AC){
 	}
 	else 	ACOut<<"ORF Strand:\t"<<'+'<<"\n";
 
-	ACOut<<"DB Hit:\t"<<AC.Hit<<"\n"; //print hit description or no hit line
+	ACOut<<"DB Hit:\t"<<AC.Function<<"\n"; //print hit description or no hit line
 	if(!AC.Blank){//if there is a hit
 		double ALength=AC.ALength;
 		double OLength=AC.QLength;
@@ -623,7 +623,7 @@ std::ostream& operator<<(std::ostream& ChkOut, AARecord* AC){
 
 	ChkOut<<AC->Entropy<<"\t";
 
-	ChkOut<<AC->Hit<<"\t"; //print hit description or no hit line
+	ChkOut<<AC->Function<<"\t"; //print hit description or no hit line
 	if(!AC->Blank){//if there is a hit
 		double ALength=AC->ALength;
 		double OLength=AC->QLength;

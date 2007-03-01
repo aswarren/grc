@@ -34,7 +34,7 @@ class AARecord {//open prototype
 public:
 	string Sequence;
 	string ID; //unique for each record
-	string Hit;
+	string Function;
 	long Start; // the start position for the orf
 	long Stop; // the stop position for the orf
 	long HighBase; //the highest base number for the orf
@@ -66,8 +66,8 @@ public:
 	//are closest to the alignment and as a result should have higher Bit/MaxBit
 	//The secondary queue stores those start site/subject pairs that are farther
 	//away from the alignment
-	priority_queue<Subject*,vector<Subject*>,MoreBit> PrimaryQ;
-	priority_queue<Subject*,vector<Subject*>,MoreBit> SecondaryQ;
+	priority_queue<Subject*,vector<Subject*>,OrderSubject> SubjectQ;
+	priority_queue<Subject*,vector<Subject*>,OrderSubject> SecondaryQ;
 
 	double Entropy;
 //public:
@@ -75,7 +75,7 @@ public:
 	AARecord(){//default constructor
 		Sequence="blah";
 		ID="unassigned";
-		Hit="unassigned";
+		Function="unassigned";
 		Start=0;
 		Stop=0;
 		HighBase=0;
@@ -100,11 +100,11 @@ public:
 	}
 
 	//parameterized constructor
-	AARecord(string TID="unassigned", long St=0, long Sp=0, string H="None", double LC=0, double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, double MxBit=0, string HID="none", string HOrg="none"){ // parameterized constructor1
+	AARecord(string TID="unassigned", long St=0, long Sp=0, string Func="None", double LC=0, double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, double MxBit=0, string HID="none", string HOrg="none"){ // parameterized constructor1
 		ID=TID;
 		Start=St;
 		Stop=Sp;
-		Hit=H;
+		Function=Func;
 		Bit=B;
 		EScore=ES;
 		HLength=HL;
@@ -133,7 +133,7 @@ public:
 			LowBase=Start;
 			Stop=Stop+3;
 		}
-		Hypot=(Hit.npos!=Hit.find("hypothetical"));
+		Hypot=(Function.npos!=Function.find("hypothetical"));
 		QLength=labs(Start-Stop)+1;
 		if(Bit==0){EValue=100000;}
 		else {
@@ -148,7 +148,7 @@ public:
 			RelBit=(Bit*Bit)/MaxBit;
 		}//assign the E-value
 		//This is a lazy addition. ToDo: Modify AArecord to use the values at the top of the BitQueue
-		AddPrimary(St,Sp,H,B,ES,HL,AL,QASt,QASp,MxBit,HID,HOrg);//add Subject
+		AddPrimary(St,Sp,Func,B,ES,HL,AL,QASt,QASp,MxBit,HID,HOrg);//add Subject
 	}
 
 
@@ -156,7 +156,7 @@ public:
 	 AARecord(const AARecord &Source){// open defintion
 		 Sequence=Source.Sequence;
 		 ID=Source.ID; //unique for each record
-		 Hit=Source.Hit;
+		 Function=Source.Function;
 		 Start=Source.Start; // the start position for the orf
 		 Stop=Source.Stop; // the stop position for the orf
 		 HighBase=Source.HighBase; 
@@ -184,7 +184,7 @@ public:
 		Entropy=Source.Entropy;
 		BitFrac=Source.BitFrac;
 		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
-			PrimaryQ.push(&(*It));
+			SubjectQ.push(&(*It));
 		}
 		for(list<Subject>::iterator It=SecondaryHits.begin(); It!=SecondaryHits.end(); It++){
 			SecondaryQ.push(&(*It));
@@ -196,7 +196,7 @@ public:
 		if (this!= &Source){// open non-self assignment consq.
 		 Sequence=Source.Sequence;
 		 ID=Source.ID; //unique for each record
-		 Hit=Source.Hit;
+		 Function=Source.Function;
 		 Start=Source.Start; // the start position for the orf
 		 Stop=Source.Stop; // the stop position for the orf
 		 HighBase=Source.HighBase;
@@ -224,7 +224,7 @@ public:
 		BitFrac=Source.BitFrac;
 		HighScore=Source.HighScore;
 		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
-			PrimaryQ.push(&(*It));
+			SubjectQ.push(&(*It));
 		}
 		for(list<Subject>::iterator It=SecondaryHits.begin(); It!=SecondaryHits.end(); It++){
 			SecondaryQ.push(&(*It));
@@ -235,7 +235,7 @@ public:
 	
 	 //destructor
 	 ~AARecord(){
-		 PrimaryQ.empty();
+		 SubjectQ.empty();
 		 SecondaryQ.empty();
 	 }
 
@@ -439,11 +439,11 @@ public:
 	}
 
 	//Adds Subjects to OtherHits and makes top RelBit value Subject to be Record Rep.
-	int AddPrimary(long& St, long& Sp, string& H, double& B, string& ES, long& L, long& A, long& QASt, long& QASp, double& MxBit, string& HID, string& HOrg){
+	int AddPrimary(long& St, long& Sp, string& Func, double& B, string& ES, long& L, long& A, long& QASt, long& QASp, double& MxBit, string& HID, string& HOrg){
 		int TempID=PrimaryHits.size();
-		PrimaryHits.push_back(Subject(TempID,St,Sp,H,B,ES,L,A,QASt,QASp,MxBit,HID,HOrg));//add Subject
+		PrimaryHits.push_back(Subject(TempID,St,Sp,Func,B,ES,L,A,QASt,QASp,MxBit,HID,HOrg));//add Subject
 		//No need to add to primaryQ until each Subject has been scored based on HighScore
-		//PrimaryQ.push(&PrimaryHits.back());
+		//SubjectQ.push(&PrimaryHits.back());
 		if(HighScore<B){//record highest bit score for any alignment for this query
 			HighScore=B;
 		}
@@ -467,71 +467,27 @@ public:
 	}//close def.
 
 	//Switch the representative for the query orf
-	//Assumes that the first hit is at the top of the OtherHit list
+	//Assumes SubjectQ is ordered in order of decreasing importantance
 	int SwitchRep(){
 
-		if(PrimaryHits.size()>1 && SID!=PrimaryQ.top()->ID){
-			Subject* TempS=PrimaryQ.top();
-			SID=TempS->ID;
-			Hit=TempS->Hit;
-			HitID=TempS->HitID;
-			HitOrg=TempS->HitOrg;
-			HLength=TempS->HLength;
-			Hypot=TempS->Hypot;
-			ALength=TempS->ALength;
-			Bit=TempS->Bit;
-			EScore=TempS->EScore;
-			EValue=TempS->EValue;
-			HighBase=TempS->HighBase;
-			LowBase=TempS->LowBase;
-			MaxBit=TempS->MaxBit;
-			QAlignStart=TempS->QAlignStart;
-			QAlignStop=TempS->QAlignStop;
-			QLength=TempS->QLength;
-			RelBit=TempS->RelBit;
-			Start=TempS->Start;
-			Stop=TempS->Stop;
+		if(PrimaryHits.size()>1 && SID!=SubjectQ.top()->SubjectID){
+			Subject* TopS=SubjectQ.top();
+			TopS->GetInfo(SID, Function, HitID, HitOrg, HLength, Hypot, ALength, Bit, EScore, EValue, HighBase, LowBase, MaxBit, QAlignStart, QAlignStop, RelBit, Start, Stop);
 		}
 		return 0;
 	}//close def.
 	
-	//Switch the representative for the query orf
-	//Assumes that the first hit is at the top of the OtherHit list
-	int SwitchRep2(){
-		if(SecondaryHits.size()>1){
-			Subject* TempS=SecondaryQ.top();
-			SID=TempS->ID;
-			Hit=TempS->Hit;
-			HitID=TempS->HitID;
-			HitOrg=TempS->HitOrg;
-			HLength=TempS->HLength;
-			Hypot=TempS->Hypot;
-			ALength=TempS->ALength;
-			Bit=TempS->Bit;
-			EScore=TempS->EScore;
-			EValue=TempS->EValue;
-			HighBase=TempS->HighBase;
-			LowBase=TempS->LowBase;
-			MaxBit=TempS->MaxBit;
-			QAlignStart=TempS->QAlignStart;
-			QAlignStop=TempS->QAlignStop;
-			QLength=TempS->QLength;
-			RelBit=TempS->RelBit;
-			Start=TempS->Start;
-			Stop=TempS->Stop;
-		}
-		return 0;
-	}//close def.
+
 
 	//This function looks through the other hits/subjects for the orf to see
 	//if there is a compatible orf and if so selects that one to be representative
 	bool Incompatible(AARecord& Winner){
-		priority_queue<Subject*,vector<Subject*>,MoreBit> CopyQ=PrimaryQ;//copy for refreshing PrimaryQ
+		priority_queue<Subject*,vector<Subject*>,OrderSubject> CopyQ=SubjectQ;//copy for refreshing SubjectQ
 		bool ToKO=true;
 		//For each
 
-		PrimaryQ.pop();//get rid of top hit
-		while(!PrimaryQ.empty() && ToKO){//open while loop
+		SubjectQ.pop();//get rid of top hit
+		while(!SubjectQ.empty() && ToKO){//open while loop
 			SwitchRep();//switch this Records Rep. hit
 			int OverL=Overlap(Winner);
 			if(OverL==0){//if the two do not overlap
@@ -540,25 +496,10 @@ public:
 			else{//else check if compatible
 				ToKO=KnockOut(Winner,OverL);//check compatability
 			}
-			PrimaryQ.pop();//get rid of top hit
+			SubjectQ.pop();//get rid of top hit
 		}//close while loop
 
-		PrimaryQ=CopyQ;//refresh PrimaryQ
-		if(ToKO){//if ToKO is still true check secondary Q for compatible starts
-			CopyQ=SecondaryQ;
-			while(!SecondaryQ.empty() && ToKO){//open while loop
-				SwitchRep2();//switch this Records Rep. hit
-				int OverL=Overlap(Winner);
-				if(OverL==0){//if the two do not overlap
-					ToKO=false;
-				}
-				else{//else check if compatible
-					ToKO=KnockOut(Winner,OverL);//check compatability
-				}
-			
-				SecondaryQ.pop();//get rid of top hit
-			}//close while loop
-		}
+		SubjectQ=CopyQ;//refresh SubjectQ
 
 		return ToKO;
 	}//end def.

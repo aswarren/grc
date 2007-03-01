@@ -1,5 +1,7 @@
 // Subject.h
-
+//The subject class models the subjects from the db
+//that the user provides
+//each subject can have multiple alignments 
 
 //Programmer: Andrew Warren
 //email: anwarren@vt.edu
@@ -11,6 +13,7 @@
 #ifndef Subject_H
 #define Subject_H
 
+#include "Alignment.h"
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -19,6 +22,9 @@
 #include <map>
 #include <list>
 #include <sstream>
+#include <queue>
+#include<vector>
+
 
 using std::cout;
 using std::cerr;
@@ -30,209 +36,85 @@ using std::multimap;
 using std::map;
 using std::list;
 using std::stringstream;
+using std::deque;
+using std::priority_queue;
+using std::vector;
 
 class Subject {//open prototype
 public:
-	int ID;
-	string Hit;
-	long Start; // the start position for the orf
-	long Stop; // the stop position for the orf
-	long HighBase; //the highest base number for the orf
-	long LowBase; //the lowest base number for the orf
-	double Bit; // the bit score for the hit
-	string EScore; //the E-score for the hit
-	double EValue;
+	int SubjectID;
+	string Function;
 	long HLength; //the length of the hit sequence
-	bool Reverse; //Is it in a - frame
-	bool Blank; //indicates whether the was a hit to this orf in the DB
-	long QLength; //the length of the orf
-	long ALength; //the length of the alignment
 	bool Defeated; //marks whether this record has been knocked out(tombstone method)
-	long QAlignStart;//offset to start alignment from Start
-	long QAlignStop;//offset to stop alignment from Start
-	double MaxBit;//the maximum possible bit score
-	double RelBit;//bit score adjusted by bit/maxbit
 	bool Hypot;//bool to tell whether description contains hypothetical
 	string HitID;//id of the hit in db
 	string HitOrg;//name of the organism in the db hit
+	list<Alignment> AlignList;//the list of alignments for this subject
+	priority_queue<Alignment*,vector<Alignment*>,OrderAlign> AlignQ;
 
 
 	
 	Subject(){//default constructor
-		ID=-1;
-		Hit="unassigned";
-		Start=0;
-		Stop=0;
-		HighBase=0;
-		LowBase=0;
-		Bit=0;
-		EScore="Not Assigned";
-		EValue=100000;
+		SubjectID=-1;
+		HitID="unassigned";
 		HLength=0;
-		Reverse =false;
-		Blank =true;
 		Defeated=false;
-		QLength=0;
-		ALength=0;
-		QAlignStart=0;
-		QAlignStop=0;
-		MaxBit=0;
-		RelBit=0;
-		HitID="none";
+		Function="none";
 		HitOrg="none";
+	
 	}
 
 	//parameterized constructor
-	Subject(int I=1, long St=0, long Sp=0, string H="None", double B=0, string ES="none", long L=0, long A=0, long QASt=0, long QASp=0, double MxBit=0, string HID="none", string HOrg="none"){ // parameterized constructor1
-		ID=I;
-		Start=St;
-		Stop=Sp;
-		Hit=H;
-		Bit=B;
-		EScore=ES;
-		HLength=L;
+	Subject(int I=-1, long St=0, long Sp=0, string Func="None", double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, double MxBit=0, string HID="none", string HOrg="none"){ // parameterized constructor1
+		SubjectID=I;
+		Function=Func;
+		HLength=HL;
 		Defeated=false;
-		ALength=A;
-		QAlignStart=QASt;//query align start offset
-		QAlignStop=QASp;
-		MaxBit=MxBit;
-		RelBit=0;
 		HitID=HID;
 		HitOrg=HOrg;
-
-		Blank=(B==0); //if the bit score is 0 then blank is true
-		if (Start>Stop){ 
-			Reverse=true;//see if the orf is reversed
-			HighBase=Start;
-			LowBase=Stop;
-			Stop=Stop-3;//adjust for stop codon
-		}
-		else{
-			Reverse=false;
-			HighBase=Stop;
-			LowBase=Start;
-			Stop=Stop+3;
-		}
-		Hypot=(Hit.npos!=Hit.find("hypothetical"));
-		QLength=labs(Start-Stop)+1;
-		if(Bit==0){EValue=100000;}
-		else {
-			stringstream ss;
-			if(EScore[0]=='e'){
-				EScore="1"+EScore;
-			}
-			ss.str(EScore);
-			ss>>EValue;
-			//EValue=(double(HLength))*(double(QLength))*(1.0/pow(2.0,Bit));
-			RelBit=(Bit*Bit)/MaxBit;
-		}//assign the E-value 
+		Hypot=(Function.npos!=Function.find("hypothetical"));
+		AlignList.push_back(Alignment(St,Sp,B,ES,AL,QASt,QASp,MxBit));//add Alignment
 	}
 
 
 		//Copy Constructor
 	 Subject(const Subject &Source){// open defintion
-		 ID=Source.ID;
-		 Hit=Source.Hit;
-		 Start=Source.Start; // the start position for the orf
-		 Stop=Source.Stop; // the stop position for the orf
-		 HighBase=Source.HighBase; 
-		 LowBase=Source.LowBase;
-		 Defeated=Source.Defeated;
-		 RelBit=Source.RelBit;
-		 Hypot=Source.Hypot;
-		 MaxBit=Source.MaxBit;
-		 Bit=Source.Bit; // the bit score for the hit
-		 EScore=Source.EScore; //the E-score for the hit
-		 HLength=Source.HLength; //the length of the hit sequence
-		 Reverse=Source.Reverse; //Is it in a - frame
-		 Blank=Source.Blank;
-		 EValue=Source.EValue;//copy the evalue for the hit
-		ALength=Source.ALength;//alignment length
-		QLength=Source.QLength;//Orf length
-		QAlignStart=Source.QAlignStart;
-		QAlignStop=Source.QAlignStop;
+		SubjectID=Source.SubjectID;
+		Function=Source.Function;
+		Defeated=Source.Defeated;
+		Hypot=Source.Hypot;
+		HLength=Source.HLength; //the length of the hit sequence
 		HitOrg=Source.HitOrg;
 		HitID=Source.HitID;
+		AlignList=Source.AlignList;
+		for(list<Alignment>::iterator It=AlignList.begin(); It!=AlignList.end(); It++){
+			AlignQ.push(&(*It));
+		}
+		
 	}// close definition
 
-	 	//> OPERATOR overload
-		//adding e-score evaluation and inverting signs 04/04/06
-	//bool operator>(const Subject& RHS)const{
-	//	return(RelBit>RHS.RelBit);
-		//return(EValue<RHS.EValue);
-	//}
-
-		//< OPERATOR overload
-	//bool operator<(const Subject& RHS)const{
-
-	//	return (RelBit<RHS.RelBit);
-		//return(EValue>RHS.EValue);
-	//}
 
 
 	 //Assignment Operator
 	 Subject& operator =(const Subject &Source){// open defintion
 		if (this!= &Source){// open non-self assignment consq.
-			ID=Source.ID;
-			Hit=Source.Hit;
-			Start=Source.Start; // the start position for the orf
-			Stop=Source.Stop; // the stop position for the orf
-			HighBase=Source.HighBase;
-			RelBit=Source.RelBit;
-			Hypot=Source.Hypot;
+			SubjectID=Source.SubjectID;
+			Function=Source.Function;
 			Defeated=Source.Defeated;
-			LowBase=Source.LowBase;
-			MaxBit=Source.MaxBit;
-			Bit=Source.Bit; // the bit score for the hit
-			EScore=Source.EScore; //the E-score for the hit
+			Hypot=Source.Hypot;
 			HLength=Source.HLength; //the length of the hit sequence
-			Reverse=Source.Reverse; //Is it in a - frame
-			Blank=Source.Blank;	
-			EValue=Source.EValue;
-			QLength=Source.QLength;//Orf length
-			ALength=Source.ALength;//alignment length
-			QAlignStart=Source.QAlignStart;
-			QAlignStop=Source.QAlignStop;
 			HitOrg=Source.HitOrg;
 			HitID=Source.HitID;
+			AlignList=Source.AlignList;
+			for(list<Alignment>::iterator It=AlignList.begin(); It!=AlignList.end(); It++){
+				AlignQ.push(&(*It));
+			}
 		}// close self assignment
 		return *this;
 	}// close definition
 
 
 
-
-	//bool Overlap
-	//returns the length of there being an overlap of ORFs
-	 int Overlap(Subject& RHS){//open def
-		int OverLen=0;
-		 
-		if (RHS.LowBase>=LowBase && RHS.LowBase <=HighBase){
-			if(HighBase>=RHS.HighBase){OverLen=RHS.QLength;}//if one frame encompasses the other
-			else OverLen=HighBase-RHS.LowBase+1;
-		}
-		else if(RHS.LowBase <= LowBase && RHS.HighBase >= LowBase){
-			 if(RHS.HighBase>=HighBase){OverLen=QLength;}//if one frame encompasses the other
-			 else OverLen=RHS.HighBase-LowBase+1;
-		}
-		return OverLen;
-	 }// close defintion
-
-
-
-
-
-		
-		
-
-
-	bool operator ^(const Subject& RHS)const{//open definition
-		return (QLength>RHS.QLength);
-	}// close definition
-
-	bool ReportHit() const{//open defintion
-		return !Blank;
-	}//close definiton
 
 	//Reporter function that tells whether a record has been knocked out
 	bool Dead(){return Defeated;}
@@ -242,18 +124,29 @@ public:
 		Defeated=true;
 		return 0;
 	}
+	
+	//function for retrieving information from the top alignment
+	int GetInfo(int& SID, string& Func, string& HID, string& HOrg, long& HLen, bool& Hyp, long& ALen, double& BScore, string& EScr, double& EVal, long& HB, long& LB, double& MxBit, long& QAStart, long& QAStop, double& RelB, long& Strt, long& Stp){
+		Alignment* TopA=AlignQ.top();
+		SID=SubjectID;
+		Func=Function;
+		HID=HitID;
+		HOrg=HitOrg;
+		HLen=HLength;
+		Hyp=Hypot;
+		TopA->GetInfo(ALen, BScore, EScr, EVal, HB, LB, MxBit, QAStart, QAStop, RelB, Strt, Stp);
+		TopA=NULL;
+		return 0;
+	}
 
-	//string ReportAcc ()const{//open definition
-	//	return Accession;
-	//}// close definition
 
-//	string ReportSeq ()const{//open definition
-//		return Sequence;
-//	}// close definition
 
 };//close prototype
 
-struct MoreBit {
+//Struct for ordering priority of Subjects
+//the priority of subjects is determined by their alignments
+//Returns wheter Subject2 is better than Subject1
+struct OrderSubject {
 	bool operator()(Subject* S1, Subject*S2){
 		if(S1==NULL){
 			return true;
@@ -261,7 +154,7 @@ struct MoreBit {
 		else if(S2==NULL){
 			return false;
 		}
-		else return ((S1->RelBit)<(S2->RelBit));
+		else return ((*(S1->AlignQ.top()))<(*(S2->AlignQ.top())));
 	}//close def.
 	
 };//close prototype

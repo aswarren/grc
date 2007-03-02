@@ -26,26 +26,31 @@ using std::set;
 //container classs for holding maxbit and entropy calculations for a segment of sequence
 class SeqCalc{//open prototype
 public:
+	double RawBit;
 	double MaxBit;
 	double Entropy;
 	//default constructor
 	SeqCalc(){
-		MaxBit=0;
+		RawBit=0;
 		Entropy=0;
+		MaxBit=0;
 	}
 	//paramaterized constructor
-	SeqCalc(double MB, double E){
-		MaxBit=MB;
+	SeqCalc(double RB, double MB, double E){
+		RawBit=RB;
 		Entropy=E;
+		MaxBit=MB;
 	}
 	//copy constructor
 	SeqCalc(const SeqCalc &Source){// open defintion
+		RawBit=Source.RawBit;
 		MaxBit=Source.MaxBit;
 		Entropy=Source.Entropy;
 	}
 // 	//assignment operator
 	SeqCalc& operator =(const SeqCalc &Source){// open defintion
 		if (this!= &Source){// open non-self assignment consq.
+			RawBit=Source.RawBit;
 			MaxBit=Source.MaxBit;
 			Entropy=Source.Entropy;
 		}
@@ -90,7 +95,8 @@ public:
 
 	priority_queue<Subject*,vector<Subject*>,OrderSubject> SubjectQ;;
 	map<string,Subject*> SubjectNames;//map of the subject names used to enforce unique subject addition in AddPrimary function
-	map<string,SeqCalc> CalcMap;//for storing and retrieving MaxBitValues and entropy values
+	//sequence specific calculations are stored here, according to increasing offset from the stop site
+	map<long,SeqCalc, std::greater<long> > CalcMap;//for storing and retrieving RawBitValues and entropy values stored according to decreasing length
 	double Entropy;
 //public:
 	
@@ -452,6 +458,7 @@ public:
 			map<string,Subject*>::iterator FindIt;
 			//Search for the subject ID
 			FindIt=SubjectNames.find(HID);
+			double MxBit=Calc
 			if(FindIt!=SubjectNames.end()){//if the subject ID is found
 				FindIt->second->AddAlign(St,Sp,B,ES,AL,QASt,QASp,MxBit);//add Alignment
 			}
@@ -573,18 +580,63 @@ public:
 
 
 	//This function calculates the maximum possible bit score for a given segment of the genome
-	//Takes parameters LowBase, HighBase, Genome, Map of conservation values, lambda, and K blast values
+	//Checks to see if the rawbit has been calculated for this LB HB Reverse Combo
+	//Calculates the rawbit additively so that the same sequence is not iterated
+	//over multiple times
 	//Need to clean up this coordinate to string conversion +1 -1 stuff
-	double CalcMaxBit(const long& LB, const long& HB, const string& Genome, map <string,int>& ConsValue, const bool& Reverse, const double & Lambda, const double & K){
+	SeqCalc* CalcMaxBit(CalcPack& CP, const long& LowB, const long& HighB, const bool& Rev){
 		double MaxBit=0;
 		double RawBit=0;
+		long LowerBound=0;//lower bound on calc raw bit
+		long UpperBound=0;//upper bound on calc raw bit
+		long Length=HighB-LowB+1;
+		map<long,SeqCalc>::iterator FindIt;
+		FindIt=CalcMap.find(Length);//find according to the offset from stop which is always HighBase-LowBase
+
+		//if the score has been found
+		if(FindIt!=CalcMap.end()){
+			return (&(FindIt->second));//return address of the Calculation container
+		}
+		//else calculate the score
+		else{
+			if(CalcMap.size()>0){//if the calc map has values
+				//check to see if this Length is bigger than previous ones
+				if(Length > CalcMap.begin()->first){ 
+					//if it is, adjust Segment length for RawBit calc so that previous longest can be added to it
+					if(Rev){
+						LowerBound=LowB+CalcMap.begin()->first;
+						UpperBound=HighB;
+					}
+					else{//forward orf
+						UpperBound=HighB-CalcMap.begin()->first;
+						LowerBound=LowB;
+					}
+					//Rawbit is the sum of both the subsequence and additional sequence
+					RawBit=CalcRawBit(CP, LowerBound, UpperBound, Rev)+CalcMap.begin()->second.RawBit;
+				}
+				else{//not bigger so check to see if there is one small enough
+					//(1)for loop to check if there is a previous calc small enough
+					//if not small enough do self calc
+					//else small enough do additive calc
+				}
+
+		}
+		MaxBit=((RawBit*Lambda)-log(K))/M_LN2;
+		return MaxBit;
+	}//close definition
+
+	
+	//Calculate the RawBit score from sequence coordinates
+	double CalcRawBit(CalcPack& CP, const long& LowB, const long& HighB, const bool& Rev){
+		long LB=LowB;
+		long HB=HighB;
 		long StartSearch=LB-1;//Subtract one to convert to string coordinates
-		long Length=HB-LB;
+		long Length=HB-LB+1;
 		string Codon;
-		map<string,int>::iterator FindIt;
-		//even though its in reverse go forward through the sequence and get reverse complement
-		if(Reverse){
-			for (long s=0; s<Length+1; s=s+3){//calc max possible score
+		double RawBit;
+	//even though its in reverse go forward through the sequence and get reverse complement
+		if(Rev){
+			for (long s=0; s<Length; s=s+3){//calc max possible score
 				if(s%3==0){//if its the next codon
 					Codon=ReverseComp(Genome.substr(StartSearch+s, 3));//get reverse complement
 					FindIt=ConsValue.find(Codon);//find the score of this codon
@@ -596,7 +648,7 @@ public:
 		}//close if Reverse
 
 		else {
-			for (long s=0; s<Length+1; s=s+3){//calc max possible score
+			for (long s=0; s<Length; s=s+3){//calc max possible score
 				if(s%3==0){//if its the next codon
 					Codon=Genome.substr(StartSearch+s, 3);//codon
 					FindIt=ConsValue.find(Codon);//find the score of this codon
@@ -606,11 +658,8 @@ public:
 				}
 			}//close max loop
 		}//close not Reverse
-
-		MaxBit=((RawBit*Lambda)-log(K))/M_LN2;
-		return MaxBit;
+		return RawBit;
 	}//close definition
-
 
 }; // close prototype
 

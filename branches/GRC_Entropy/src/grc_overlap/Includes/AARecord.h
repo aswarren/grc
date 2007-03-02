@@ -17,13 +17,40 @@
 #include <functional>
 #include<vector>
 #include <set>
+#include "CalcPack.h"
 using std::vector;
 using std::deque;
 using std::priority_queue;
 using std::set;
 
-
-
+//container classs for holding maxbit and entropy calculations for a segment of sequence
+class SeqCalc{//open prototype
+public:
+	double MaxBit;
+	double Entropy;
+	//default constructor
+	SeqCalc(){
+		MaxBit=0;
+		Entropy=0;
+	}
+	//paramaterized constructor
+	SeqCalc(double MB, double E){
+		MaxBit=MB;
+		Entropy=E;
+	}
+	//copy constructor
+	SeqCalc(const SeqCalc &Source){// open defintion
+		MaxBit=Source.MaxBit;
+		Entropy=Source.Entropy;
+	}
+// 	//assignment operator
+	SeqCalc& operator =(const SeqCalc &Source){// open defintion
+		if (this!= &Source){// open non-self assignment consq.
+			MaxBit=Source.MaxBit;
+			Entropy=Source.Entropy;
+		}
+	}
+};//close prototype
 
 
 class AARecord {//open prototype
@@ -60,15 +87,10 @@ public:
 	int SID;//identifier of subject that is current rep
 	list<Subject> PrimaryHits;//other blast hits for this query orf
 	list<Subject> SecondaryHits;//other blast hits for this query orf
-	//There are two Queues because there can be different bit scores
-	//for alignments of the same region to a different subject
-	//The primary queue stores all of those start site/subject pairs that
-	//are closest to the alignment and as a result should have higher Bit/MaxBit
-	//The secondary queue stores those start site/subject pairs that are farther
-	//away from the alignment
-	priority_queue<Subject*,vector<Subject*>,OrderSubject> SubjectQ;
-	priority_queue<Subject*,vector<Subject*>,OrderSubject> SecondaryQ;
 
+	priority_queue<Subject*,vector<Subject*>,OrderSubject> SubjectQ;;
+	map<string,Subject*> SubjectNames;//map of the subject names used to enforce unique subject addition in AddPrimary function
+	map<string,SeqCalc> CalcMap;//for storing and retrieving MaxBitValues and entropy values
 	double Entropy;
 //public:
 	
@@ -100,55 +122,38 @@ public:
 	}
 
 	//parameterized constructor
-	AARecord(string TID="unassigned", long St=0, long Sp=0, string Func="None", double LC=0, double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, double MxBit=0, string HID="none", string HOrg="none"){ // parameterized constructor1
+	AARecord( CalcPack& CP, string TID="unassigned", long St=0, long Sp=0, string HID="none", double LC=0, double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, string Func="none", string HOrg="none"){ // parameterized constructor1
 		ID=TID;
-		Start=St;
-		Stop=Sp;
-		Function=Func;
-		Bit=B;
-		EScore=ES;
-		HLength=HL;
-		Defeated=false;
-		ALength=AL;
-		QAlignStart=QASt;//query align start offset
-		QAlignStop=QASp;
-		MaxBit=MxBit;
+		Function="unassigned";
+		Start=0;
+		Stop=0;
+		HighBase=0;
+		LowBase=0;
+		Bit=0;
+		EScore="Not Assigned";
+		EValue=100000;
+		HLength=0;
+		Reverse =false;
+		Blank =true;
+		Defeated=false;;
+		ALength=0;
+		QAlignStart=0;
+		QAlignStop=0;
+		MaxBit=0;
 		RelBit=0;
-		HitID=HID;
-		HitOrg=HOrg;
+		HitID="none";
+		HitOrg="none";
 		SID=0;
 		Entropy=LC;
 		HighScore=0;//highest score so far 
-
 		Blank=(B==0); //if the bit score is 0 then blank is true
-		if (Start>Stop){ 
-			Reverse=true;//see if the orf is reversed
-			HighBase=Start;
-			LowBase=Stop;
-			Stop=Stop-3;//adjust for stop codon
-		}
-		else{
-			Reverse=false;
-			HighBase=Stop;
-			LowBase=Start;
-			Stop=Stop+3;
-		}
-		Hypot=(Function.npos!=Function.find("hypothetical"));
-		QLength=labs(Start-Stop)+1;
-		if(Bit==0){EValue=100000;}
-		else {
-			stringstream ss;
-			if(EScore[0]=='e'){
-				EScore="1"+EScore;
-			}
-			ss.str(EScore);
-			ss>>EValue;
-			//EValue=(double(HLength))*(double(QLength))*(1.0/pow(2.0,Bit));
-			BitFrac=Bit/MaxBit;
-			RelBit=(Bit*Bit)/MaxBit;
-		}//assign the E-value
+		QLength=labs(St-Sp)+1;
+
 		//This is a lazy addition. ToDo: Modify AArecord to use the values at the top of the BitQueue
-		AddPrimary(St,Sp,Func,B,ES,HL,AL,QASt,QASp,MxBit,HID,HOrg);//add Subject
+		if(!Blank){
+			AddPrimary(St,Sp,HID,B,ES,HL,AL,QASt,QASp,Func,HOrg, CP);//add Subject
+		}
+			
 	}
 
 
@@ -183,60 +188,59 @@ public:
 		HighScore=Source.HighScore;
 		Entropy=Source.Entropy;
 		BitFrac=Source.BitFrac;
+		CalcMap=Source.CalcMap;
 		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
 			SubjectQ.push(&(*It));
+			SubjectNames.insert(map<string,Subject*>::value_type(It->GetID(),&(*It)));//insert pointer to Subject based on name
 		}
-		for(list<Subject>::iterator It=SecondaryHits.begin(); It!=SecondaryHits.end(); It++){
-			SecondaryQ.push(&(*It));
-		}
+
 	}// close definition
 
 	 //Assignment Operator
 	 AARecord& operator =(const AARecord &Source){// open defintion
 		if (this!= &Source){// open non-self assignment consq.
-		 Sequence=Source.Sequence;
-		 ID=Source.ID; //unique for each record
-		 Function=Source.Function;
-		 Start=Source.Start; // the start position for the orf
-		 Stop=Source.Stop; // the stop position for the orf
-		 HighBase=Source.HighBase;
-		 RelBit=Source.RelBit;
-		 Hypot=Source.Hypot;
-		 Defeated=Source.Defeated;
-		 LowBase=Source.LowBase;
-		 MaxBit=Source.MaxBit;
-		 Bit=Source.Bit; // the bit score for the hit
-		 EScore=Source.EScore; //the E-score for the hit
-		 HLength=Source.HLength; //the length of the hit sequence
-		 Reverse=Source.Reverse; //Is it in a - frame
-		 Blank=Source.Blank;	
-		 EValue=Source.EValue;
-		QLength=Source.QLength;//Orf length
-		ALength=Source.ALength;//alignment length
-		QAlignStart=Source.QAlignStart;
-		QAlignStop=Source.QAlignStop;
-		HitOrg=Source.HitOrg;
-		HitID=Source.HitID;
-		PrimaryHits=Source.PrimaryHits;
-		SecondaryHits=Source.SecondaryHits;
-		SID=Source.SID;
-		Entropy=Source.Entropy;
-		BitFrac=Source.BitFrac;
-		HighScore=Source.HighScore;
-		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
-			SubjectQ.push(&(*It));
-		}
-		for(list<Subject>::iterator It=SecondaryHits.begin(); It!=SecondaryHits.end(); It++){
-			SecondaryQ.push(&(*It));
-		}
+			Sequence=Source.Sequence;
+			ID=Source.ID; //unique for each record
+			Function=Source.Function;
+			Start=Source.Start; // the start position for the orf
+			Stop=Source.Stop; // the stop position for the orf
+			HighBase=Source.HighBase;
+			RelBit=Source.RelBit;
+			Hypot=Source.Hypot;
+			Defeated=Source.Defeated;
+			LowBase=Source.LowBase;
+			MaxBit=Source.MaxBit;
+			Bit=Source.Bit; // the bit score for the hit
+			EScore=Source.EScore; //the E-score for the hit
+			HLength=Source.HLength; //the length of the hit sequence
+			Reverse=Source.Reverse; //Is it in a - frame
+			Blank=Source.Blank;	
+			EValue=Source.EValue;
+			QLength=Source.QLength;//Orf length
+			ALength=Source.ALength;//alignment length
+			QAlignStart=Source.QAlignStart;
+			QAlignStop=Source.QAlignStop;
+			HitOrg=Source.HitOrg;
+			HitID=Source.HitID;
+			PrimaryHits=Source.PrimaryHits;
+			SecondaryHits=Source.SecondaryHits;
+			SID=Source.SID;
+			Entropy=Source.Entropy;
+			BitFrac=Source.BitFrac;
+			HighScore=Source.HighScore;
+			CalcMap=Source.CalcMap;
+			for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
+				SubjectQ.push(&(*It));
+				SubjectNames.insert(map<string,Subject*>::value_type(It->GetID(),&(*It)));//insert pointer to Subject based on name
+			}
 		}// close self assignment
 		return *this;
 	}// close definition
 	
 	 //destructor
 	 ~AARecord(){
-		 SubjectQ.empty();
-		 SecondaryQ.empty();
+		//SubjectQ.clear();
+		SubjectNames.clear();
 	 }
 
 	 	//> OPERATOR overload
@@ -439,32 +443,34 @@ public:
 	}
 
 	//Adds Subjects to OtherHits and makes top RelBit value Subject to be Record Rep.
-	int AddPrimary(long& St, long& Sp, string& Func, double& B, string& ES, long& L, long& A, long& QASt, long& QASp, double& MxBit, string& HID, string& HOrg){
-		int TempID=PrimaryHits.size();
-		PrimaryHits.push_back(Subject(TempID,St,Sp,Func,B,ES,L,A,QASt,QASp,MxBit,HID,HOrg));//add Subject
-		//No need to add to primaryQ until each Subject has been scored based on HighScore
-		//SubjectQ.push(&PrimaryHits.back());
+	int AddPrimary(long& St, long& Sp, string& HID, double& B, string& ES, long& HL, long& AL, long& QASt, long& QASp, string& Func, string& HOrg, CalcPack& CP){
 		if(HighScore<B){//record highest bit score for any alignment for this query
 			HighScore=B;
 		}
+		Reverse=St>Sp;//set Reverse frame
+		do {//find all start sites from aligned region back to original
+			map<string,Subject*>::iterator FindIt;
+			//Search for the subject ID
+			FindIt=SubjectNames.find(HID);
+			if(FindIt!=SubjectNames.end()){//if the subject ID is found
+				FindIt->second->AddAlign(St,Sp,B,ES,AL,QASt,QASp,MxBit);//add Alignment
+			}
+			else{//else add a new subject
+				int TempID=PrimaryHits.size();
+				PrimaryHits.push_back(Subject(TempID,St,Sp,HID,B,ES,HL,AL,QASt,QASp,MxBit,Func,HOrg));//add Subject
+				SubjectNames.insert(map<string,Subject*>::value_type(HID,&PrimaryHits.back()));//insert pointer to Subject based on name
+			}
+		}while(FindStarts(Start,OrigStart,Stop,QAlignStart,Rev,Genome));
+		//No need to add to primaryQ until each Subject has been scored based on HighScore
+		//SubjectQ.push(&PrimaryHits.back());
+
 		//if(BitQueue.top()->ID==OtherHits.back().ID && OtherHits.size()>0){//if the newest hit is the best
 			//switch representative hit
 		//}
 		return 0;
 	}//close def.
 
-	//This FUNCTION IS NOT CURRENTLY IN USE ALL Subjects go into the Primary Queue
-	//Adds Subjects to OtherHits and makes top RelBit value Subject to be Record Rep.
-	int AddSecondary(long& St, long& Sp, string& H, double& B, string& ES, long& L, long& A, long& QASt, long& QASp, double& MxBit, string& HID, string& HOrg){
-		int TempID=SecondaryHits.size();
-		SecondaryHits.push_back(Subject(TempID,St,Sp,H,B,ES,L,A,QASt,QASp,MxBit,HID,HOrg));//add Subject
-		SecondaryQ.push(&SecondaryHits.back());
-		
-		//if(BitQueue.top()->ID==OtherHits.back().ID && OtherHits.size()>0){//if the newest hit is the best
-			//switch representative hit
-		//}
-		return 0;
-	}//close def.
+
 
 	//Switch the representative for the query orf
 	//Assumes SubjectQ is ordered in order of decreasing importantance
@@ -505,15 +511,106 @@ public:
 	}//end def.
 		
 
+	//This function continually adjusts the start site until its back at the original
+	bool FindStarts(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, const string& Genome){//open definition
+		long Start=St;
+		long Stop=Sp;
+		long OrigStart=OSt;
+		long QAlignStart=QAS;
+		int StartSearch;
+		double StartScore=0;
+		double MaxStartScore=0;
+		double Travel=0;
+		double NuclDist=(3*QAlignStart);
+		int Halt=0;//defines when the search has gone back to original
+	
+		if(QAlignStart<2){//if there is no room to search for a start between the aligned region and current start
+			return false;//stop the search
+		}
+		else if(Reverse){//if the pGene is reversed
+			if(Start==OrigStart){
+				StartSearch=(Start-1)-(3*QAlignStart);// start search position
+				Halt=(QAlignStart*3);
+			}
+			else{//start from the position of the last start found
+				StartSearch=Start+2;//next codon 
+				Halt=OrigStart-Start-3;//room left between orig and current search position
+			}
+	
+			for (int s=0; s<=Halt; s=s+3){//search codons in the upstream direction
+				if(s%3==0){//if its the next codon
+					if(ReverseStart(Genome.substr(StartSearch+s-2, 3))){//if its a start
+						St=StartSearch+s+1;
+						return St!=OrigStart;//if back to original start, stop searching
+						//}//close max start score
+					}//close is start
+				}//close next codon
+			}//close search codons
+		}//close reverse pGene
+	
+		else{//else its not reversed
+			if(Start==OrigStart){
+				StartSearch=(Start-1)+(3*QAlignStart);
+				Halt=(QAlignStart*3);
+			}
+			else{
+				StartSearch=Start-4;//start at the next codon
+				Halt=Start-OrigStart-3;//room left between orig and current search position
+			}
+	
+			for (int s=0; s<=Halt; s=s+3){//search 3 codons in the upstream direction
+				if(s%3==0){//if its the next codon
+					if(ForwardStart(Genome.substr(StartSearch-s, 3))){//if its a start
+						St=StartSearch-s+1;
+						return St!=OrigStart;
+						//}//close if max score
+					}//close if start
+				}//close if next codon
+			}//close search next codons
+		}//close not reversed
+		return false;
+	}//close defintion
 
 
-	//string ReportAcc ()const{//open definition
-	//	return Accession;
-	//}// close definition
+	//This function calculates the maximum possible bit score for a given segment of the genome
+	//Takes parameters LowBase, HighBase, Genome, Map of conservation values, lambda, and K blast values
+	//Need to clean up this coordinate to string conversion +1 -1 stuff
+	double CalcMaxBit(const long& LB, const long& HB, const string& Genome, map <string,int>& ConsValue, const bool& Reverse, const double & Lambda, const double & K){
+		double MaxBit=0;
+		double RawBit=0;
+		long StartSearch=LB-1;//Subtract one to convert to string coordinates
+		long Length=HB-LB;
+		string Codon;
+		map<string,int>::iterator FindIt;
+		//even though its in reverse go forward through the sequence and get reverse complement
+		if(Reverse){
+			for (long s=0; s<Length+1; s=s+3){//calc max possible score
+				if(s%3==0){//if its the next codon
+					Codon=ReverseComp(Genome.substr(StartSearch+s, 3));//get reverse complement
+					FindIt=ConsValue.find(Codon);//find the score of this codon
+					if(FindIt!=ConsValue.end()){
+						RawBit=RawBit+FindIt->second;//add up score
+					}
+				}
+			}//close max loop
+		}//close if Reverse
 
-//	string ReportSeq ()const{//open definition
-//		return Sequence;
-//	}// close definition
+		else {
+			for (long s=0; s<Length+1; s=s+3){//calc max possible score
+				if(s%3==0){//if its the next codon
+					Codon=Genome.substr(StartSearch+s, 3);//codon
+					FindIt=ConsValue.find(Codon);//find the score of this codon
+					if(FindIt!=ConsValue.end()){
+						RawBit=RawBit+(FindIt->second);//add up score
+					}
+				}
+			}//close max loop
+		}//close not Reverse
+
+		MaxBit=((RawBit*Lambda)-log(K))/M_LN2;
+		return MaxBit;
+	}//close definition
+
 
 }; // close prototype
 

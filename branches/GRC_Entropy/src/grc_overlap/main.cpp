@@ -12,8 +12,11 @@ REMEMBER TO ADD THIS BACK IN BEFORE RUNNING TESTS
 #include <math.h>
 #include "AARecord.h"
 #include "Compete.h"
+#include "CalcPack.h"
 #include <map>
 #include <utility>
+
+
 
 using std::list;
 using std::cout;
@@ -22,18 +25,6 @@ using std::fstream;
 using std::map;
 using std::pair;
 
-string ltos(long i)	// convert long to string
-	{
-		stringstream s;
-		s << i;
-		return s.str();
-	}
-string btos(bool i)	// convert bool to string
-	{
-		stringstream s;
-		s << i;
-		return s.str();
-	}
 
 
 
@@ -52,19 +43,20 @@ bool ForwardStart(const string& Codon);
 double CalcSS(const string& Codon, const double& Travel);
 string ReverseComp(const string& Codon);//returns the reverse complement of a codon
 char Complement(const char& Base);//returns the complement of a nucl.base
-int InitCodes(double& Lambda, double& K, const string& Matrix, map <string,int>& ConsValue);
 double CalcMaxBit(const long& LB, const long& HB, const string& Genome, map <string,int>& ConsValue, const bool& Reverse, const double& Lambda, const double& K);
-double GetEntropy(const long& LB, const long& HB, const string& Genome, const bool& Reverse, string Command);
+
+
+
 
 //run as GRC_overlap -i BlastResults.txt
 int main (int argc, char* argv[]) {   //  Main is open
 	char* BlastFile = argv[1]; //get the name of the blast test results file
 	char* GenomeName= argv[2];//the name of the target genome
-	char* GenomeFile= argv[3];//the name of the fna file
+	string GenomeFile= argv[3];//the name of the fna file
 	string Matrix=argv[4];//the matrix used for blast
 	string ECommand=argv[5];//command for running entropy calc.
-	string Genome; //for storing the genome
-	int Status=0;//status variable
+
+
 
 	list<AARecord> RecordList;//storage for all of the records
 	RecordMap PositionMap; //the initial map	 for the aa records ordered by HighBase of the orf
@@ -77,14 +69,8 @@ int main (int argc, char* argv[]) {   //  Main is open
 	list<AARecord*> WinnerList; //the final list of highest non overlaping blast hits
 	CompeteMap KOMap;//create map for tracking win/lose relationships
 
-	double Lambda;//constant in MaxBit calculation
-	double K;//constant in MaxBit calculation
-	map <string,int> ConsValue;//map for storing the max value of a conserved amino acid
-	Status= InitCodes(Lambda, K, Matrix, ConsValue);//read in the values.
-	if(Status!=0){
-		cout<<"\nexiting\n";
-		return 1;
-	}
+
+	CalcPack InfoPack(Matrix, GenomeFile, ECommand);//create information package
 	
 
 	string GName;//for storing input and creating output name from it
@@ -100,27 +86,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 
 
 
-	ifstream In2;//ofstream operator for reading in the genomic sequence
-	In2.open(GenomeFile);//open up the translated file
-	
-	string GenomeID;//for reading in the id
-	getline(In2,GenomeID); //get line for description
-	string Seq;//for reading in the sequence
-	Genome="";//Initialize to empty string
 
-	while(In2){//read in the genome file
-
-		In2>>Seq; //read in the genomic sequence
-		LowerTheCase(Seq);
-		Genome+=Seq;//concat. each line to Genome
-
-		/*FindIt=HitList.find(ID.substr(1,(ID.length())-1));
-
-		if(FindIt!=HitList.end()){//if its found then its a hit
-			FindIt->second->Sequence=Seq;//assign the sequence
-		}*/
-	}
-	In2.close();//close the input stream
 
 
 	ifstream BlastIn; //input for the blast results
@@ -132,7 +98,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	string OldOrg="none";
 	string OldHID="none";
 	int OldCount=0;
-	map<string,double> MaxBitMap;//for storing and retrieving MaxBitValues
+
 	map<string,double>::iterator FindMB;
 	while (BlastIn){//read in the input file
 		string ID;//
@@ -145,7 +111,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 		int GapOpens;
 		int Mismatches;
 		long SubjectLen;
-		string Hit;
+		string Function;
 		long Length;
 		double Bit;
 		double PercentIdent;
@@ -185,13 +151,12 @@ int main (int argc, char* argv[]) {   //  Main is open
 			//In>>ES; //read in the delimiter
 			//Insert Record into Initial RecordMap
 			BlastIn>>LowComplexity;
-			Entropy=GetEntropy(LowBase, HighBase, Genome, Rev, ECommand);
-			RecordList.push_back(AARecord(ID, Start, Stop, HitID, Entropy));//add record to the list
+			RecordList.push_back(AARecord(ID, Start, Stop, HitID, Entropy, InfoPack));//add record to the list
 			//EditList.push_back(&((MapIt.first)->second));//add a pointer to the location of the record
 		}//close consq.
 		else {//there is a hit
 			//string TempHack=HitID;//SWITCHED TO ACCOMODATE INVERSED ID AND DESCRIPTION IN OLD OUTPUT********
-			getline(BlastIn,Hit,'\t'); //get line for hit description 
+			getline(BlastIn,Function,'\t'); //get line for hit description 
 			//HitID=Hit;//SWITCHED TO ACCOMODATE INVERSED ID AND DESCRIPTION IN OLD OUTPUT********
 			//Hit=TempHack;//SWITCHED TO ACCOMODATE INVERSED ID AND DESCRIPTION IN OLD OUTPUT********
 
@@ -215,19 +180,15 @@ int main (int argc, char* argv[]) {   //  Main is open
 			
 			//if it doesn't have align start further in or as high a bit score
 			bool Old;
-			if(ID==OldID){//if its the same query orf
-				Old=(Bit==OldBit&&QAlignStart==OldQAS);
+			Old=(ID==OldID&&HitID==OldHID&&Bit==OldBit&&QAlignStart==OldQAS);
+
+			if(!Old){
+				OldID=ID;//update old values
+				OldOrg=HitOrg;
+				OldHID=HitID;
+				OldBit=Bit;
+				OldQAS=QAlignStart;
 			}
-			else{//if its not the same query orf clear max bit hash
-				Old=false;
-				MaxBitMap.clear();//no more max bit calculations for that stop
-			}
-			OldID=ID;//update old values
-			OldOrg=HitOrg;
-			OldHID=HitID;
-			OldBit=Bit;
-			OldQAS=QAlignStart;
-	
 			
 
 			//See if start can be adjusted then set lowbase
@@ -235,7 +196,18 @@ int main (int argc, char* argv[]) {   //  Main is open
 			//After this is done a CalcMaxBit function that calculates each MaxBit
 			//for each subject in 1 move across the genome
 			if(!Old){
-				AdjustStart1(Start,Stop,QAlignStart,Rev,Genome);//attempt adjust start site to alignment
+				IDMap::iterator FindID;
+				FindID=HitList.find(ID);
+				if(FindID!=HitList.end()){//if the orf already has a hit 
+				//Add Subject orf to Record
+					FindID->second->AddPrimary(Start, Stop, HitID, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, MaxBit, Function, HitOrg);
+				}
+				else{//else there has not been a hit for this orf so far. so create a new AARecord
+					RecordList.push_back(AARecord(ID, Start, Stop, HitID, Entropy, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, MaxBit, Function, HitOrg));
+					HitList.insert(IDMap::value_type(ID,&RecordList.back()));//add pointer to the record to the hit list
+				}
+			}
+				/*AdjustStart1(Start,Stop,QAlignStart,Rev,Genome);//attempt adjust start site to alignment
 				if(Rev){//fix Low or High Base after adjust start
 					HighBase=Start;
 				}
@@ -243,7 +215,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 					LowBase=Start;
 				}
 				
-				//create Hash for MaxBit value to avoid multiple calc. for same seq. segment
+				create Hash for MaxBit value to avoid multiple calc. for same seq. segment
 				string LowHigh=ltos(LowBase)+","+ltos(HighBase)+","+btos(Rev);
 				FindMB=MaxBitMap.find(LowHigh);//see if the maxbit has been previously calc.
 				if(FindMB==MaxBitMap.end()){
@@ -254,16 +226,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 					MaxBit=FindMB->second;
 				}
 				
-				IDMap::iterator FindID;
-				FindID=HitList.find(ID);
-				if(FindID!=HitList.end()){//if the orf already has a hit 
-				//Add Subject orf to Record
-					FindID->second->AddPrimary(Start, Stop, Hit, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, MaxBit, HitID, HitOrg);
-				}
-				else{//else there has not been a hit for this orf so far. so create a new AARecord
-					RecordList.push_back(AARecord(ID, Start, Stop, Hit, Entropy, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, MaxBit, HitID, HitOrg));
-					HitList.insert(IDMap::value_type(ID,&RecordList.back()));//add pointer to the record to the hit list
-				}
+
 				while(AdjustStart2(Start,OrigStart,Stop,QAlignStart,Rev,Genome)){//find all start sites from aligned region back to original
 					if (!Rev){
 						LowBase=Start;
@@ -286,7 +249,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 					FindID=HitList.find(ID);
 					if(FindID!=HitList.end()){//if the orf already has a hit
 						//Add Subject orf to Record
-						FindID->second->AddPrimary(Start, Stop, Hit, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, MaxBit, HitID, HitOrg);
+						FindID->second->AddPrimary(Start, Stop, Function, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, MaxBit, HitID, HitOrg);
 					}
 					else{//else there has not been a hit for this orf so far
 						cerr<<"Logic error in grc_overlap adjust start: record should already be created.\n";
@@ -294,7 +257,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 						//HitList.insert(IDMap::value_type(ID,&RecordList.back()));//add pointer to the record to the hit list
 					}
 				}//close find start sites
-			}//close if not Old
+			}//close if not Old*/
 			else{
 				OldCount++;
 			}
@@ -317,13 +280,13 @@ int main (int argc, char* argv[]) {   //  Main is open
 	for(list<AARecord>::iterator PosIt=RecordList.begin(); PosIt!=RecordList.end(); PosIt++){
 		if(!PosIt->Blank){//if the query has a hit
 			PosIt->SwitchRep();//switch to highest scoring start site
-			PosIt->Entropy=GetEntropy(PosIt->LowBase, PosIt->HighBase, Genome, PosIt->Reverse, ECommand);
+			PosIt->Entropy=InfoPack.GetEntropy(PosIt->LowBase, PosIt->HighBase, PosIt->Reverse);
 		}
 		PositionMap.insert(RecordMap::value_type(PosIt->LowBase, &(*PosIt))); //Add to position map
 	}//close for loop
 
 
-	Genome.clear();//clear the genome (no longer needed)
+	InfoPack.Genome.clear();//clear the genome (no longer needed)
 	
 	ofstream ChkOut;
 	//ChkOut.open(Positives.c_str());
@@ -660,215 +623,13 @@ void DisplayKO(ostream& Out, CompeteMap& KOMap){
 	}//close for loop
 }//close definition
 
-//function to lower the case of all characters in a string
-int LowerTheCase(string & Seq){
-	for(int i=0; i<Seq.length(); i++){
-		Seq[i]=tolower(Seq[i]);
-	}
-	return 1;
-}//close definition
-	
-//Function to Adjust the start site based on where the alignment begins
-//returns bool stop searching or not
-bool AdjustStart2(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, const string& Genome){//open definition
-	long Start=St;
-	long Stop=Sp;
-	long OrigStart=OSt;
-	long QAlignStart=QAS;
-	int StartSearch;
-	double StartScore=0;
-	double MaxStartScore=0;
-	double Travel=0;
-	double NuclDist=(3*QAlignStart);
-	int Halt=0;//defines when the search has gone back to original
-
-	if(QAlignStart<2){//if there is no room to search for a start between the aligned region and current start
-		return false;//stop the search
-	}
-	else if(Reverse){//if the pGene is reversed
-		if(Start==OrigStart){
-			StartSearch=(Start-1)-(3*QAlignStart);// start search position
-			Halt=(QAlignStart*3);
-		}
-		else{//start from the position of the last start found
-			StartSearch=Start+2;//next codon 
-			Halt=OrigStart-Start-3;//room left between orig and current search position
-		}
-
-		for (int s=0; s<=Halt; s=s+3){//search codons in the upstream direction
-			if(s%3==0){//if its the next codon
-				if(ReverseStart(Genome.substr(StartSearch+s-2, 3))){//if its a start
-					St=StartSearch+s+1;
-					return St!=OrigStart;//if back to original start, stop searching
-					//start score calc. from codon and distance traveled to orig. start
-					//Travel=(1-(s/NuclDist));
-					//StartScore=CalcSS(Genome.substr(StartSearch+s-2, 3), Travel);
-					//if (StartScore>MaxStartScore){
-                        			//St=StartSearch+s+1;
-						//MaxStartScore=StartScore;
-					//}//close max start score
-				}//close is start
-			}//close next codon
-		}//close search codons
-	}//close reverse pGene
-
-	else{//else its not reversed
-		if(Start==OrigStart){
-			StartSearch=(Start-1)+(3*QAlignStart);
-			Halt=(QAlignStart*3);
-		}
-		else{
-			StartSearch=Start-4;//start at the next codon
-			Halt=Start-OrigStart-3;//room left between orig and current search position
-		}
-
-		for (int s=0; s<=Halt; s=s+3){//search 3 codons in the upstream direction
-			if(s%3==0){//if its the next codon
-				if(ForwardStart(Genome.substr(StartSearch-s, 3))){//if its a start
-					St=StartSearch-s+1;
-					return St!=OrigStart;
-					//Travel=(1-(s/NuclDist));
-					//StartScore=CalcSS(Genome.substr(StartSearch-s, 3), Travel);
-					//if (StartScore>MaxStartScore){
-                        			//St=StartSearch-s+1;
-						//MaxStartScore=StartScore;
-					//}//close if max score
-				}//close if start
-			}//close if next codon
-		}//close search next codons
-	}//close not reversed
-	return false;
-}//close defintion
-
-
-//This function is designed to check if submitted string is reverse codon
-bool ReverseStart(const string& Codon){//open definition
-	if(Codon=="cat"||Codon=="cac"||Codon=="caa"){
-		return true;
-	}
-	else return false;
-}
-
-//This function is designed to check if submitted string is reverse codon
-bool ForwardStart(const string& Codon){//open definition
-	if(Codon=="atg"||Codon=="gtg"||Codon=="ttg"){
-		return true;
-	}
-	else return false;
-}
-
-//This function is intended to give a likelihood of correctness relative to other starts
-//this is done by considering the different start codons to have different inherent probab.
-//this is then  mult. times the 1- percent distance away from alignment
-double CalcSS(const string& Codon, const double& Travel){//open definition
-	if (Codon=="atg"||Codon=="cat"){
-		return (.77*Travel);
-	}
-	else if (Codon=="gtg"||Codon=="cac"){
-		return (.14*Travel);
-	}
-	else if (Codon=="ttg"||Codon=="caa"){
-		return (.08*Travel);
-	}
-	return 0;
-}
-
-//This function returns the complement of a nucleotide passed as a parameter
-char Complement(const char& Base){//open definition
-	switch(Base){
-		case 'a':
-			return 't';
-			
-		case 't':
-			return 'a';
-			
-		case 'c':
-			return 'g';
-			
-		case 'g':
-			return 'c';
-		default: return '*';
-	}
-}//close definition
-
-//This function returns the reverse complement of a given sequence
-string ReverseComp(const string& Forward){
-
-	string Comp="";
-	for(int s= int(Forward.length())-1; s>=0; s--){
-		Comp+=Complement(Forward[s]);
-	}
-	return Comp;
-}//close definition
 
 
 
-	int InitCodes(double& Lambda, double& K, const string& Matrix, map <string,int>& ConsValue){//open definition
-	//Get the Genetic Codes for translation
-		ifstream InCode;
-		InCode.open(Matrix.c_str());//open matrix specified
-		if(!InCode.is_open()){
-			cout<<"Error opening MaxMatrix file";
-			return 1;
-		}
-		string Delim;
-		string OpCase="";
-		int AA; //Max value for conservation of the amino acid
-		//InCode>>Delim;
-
-		while(InCode){
-			InCode>>Delim;
-			if(isupper(Delim[0])){//create lower case in map
-				OpCase=tolower(Delim[0]);
-				for(int t=1; t<Delim.size(); t++){
-					OpCase+=tolower(Delim[t]);
-				}
-			}
-			else {
-				OpCase=Delim;
-			}
-
-			InCode>>AA; //Read in the AA conservation value
-			//CodeArray[TableNum].insert(map<string,char>::value_type(Delim,AA));
-			ConsValue.insert(map<string,int>::value_type(OpCase,AA));
-			
-		}//close while loop
-		InCode.close();
-
-		//Set constants
-		if(string::npos!=Matrix.find("MaxB62",0)){//if the matrix is BLOSUM62
-			Lambda=0.267;
-			K=0.041;
-		}
-
-		else if(string::npos!=Matrix.find("MaxB80",0)){//if the matrix is BLOSUM80
-			Lambda=0.299;
-			K=0.071;
-		}
-
-		else if(string::npos!=Matrix.find("MaxB45",0)){//if the matrix is BLOSUM45
-			Lambda=0.195;
-			K=0.032;
-		}
-
-		else if(string::npos!=Matrix.find("MaxP30",0)){//if the matrix is PAM30
-			Lambda=0.309;
-			K=0.15;
-		}
-
-		else if(string::npos!=Matrix.find("MaxP70",0)){//if the matrix is PAM30
-			Lambda=0.270;
-			K=0.060;
-		}
-
-		else{//default B62
-			Lambda=0.267;
-			K=0.041;
-		}
 
 
-		return 0;
-	}//close definition
+
+
 
 	//Function to Adjust the start site based on where the alignment begins
 int AdjustStart1(long& St, const long& Sp, const long& QAS, const bool& Reverse, const string& Genome){//open definition
@@ -915,36 +676,7 @@ int AdjustStart1(long& St, const long& Sp, const long& QAS, const bool& Reverse,
 }//close defintion
 
 
-//This function calculates the entropy for the section of the genome specified
-double GetEntropy(const long& LB, const long& HB, const string& Genome, const bool& Reverse, string Command){//open definition
-	long Length=HB-LB+1;
-	long Begin=LB-1;
-	FILE* TempF;
-	char TempC[sizeof(double)];
-	double Entropy=-1;	
-	
-	Command=Command+" ";//add space before sequence
-	if(Reverse){//if the pGene is reversed
-		Command=Command+ReverseComp(Genome.substr(Begin, Length));	
-	}
-	else{//not reverse complement
-		Command=Command+Genome.substr(Begin, Length);
-	}
-	
 
-	if ( ( TempF = popen ( Command.c_str(), "r") ) != NULL ){
-		fgets (TempC, sizeof(double), TempF);
-		pclose(TempF); 
-		stringstream StoD;
-		StoD<<TempC;
-		StoD>>Entropy;
-		return Entropy;
-	}
-	else{
-		cerr<<"Could not run command with popen in GetEntropy.";
-		return Entropy;
-	}
-}//close function
 
 //this function removes ORFs that do not have hits from the WinnersList and places them in the losers list
 //it also creates a KO record that the orf was removed due to entropy
@@ -979,44 +711,7 @@ double GetEntropy(const long& LB, const long& HB, const string& Genome, const bo
 
 
 
-	//This function calculates the maximum possible bit score for a given segment of the genome
-	//Takes parameters LowBase, HighBase, Genome, Map of conservation values, lambda, and K blast values
-	//Need to clean up this coordinate to string conversion +1 -1 stuff
-double CalcMaxBit(const long& LB, const long& HB, const string& Genome, map <string,int>& ConsValue, const bool& Reverse, const double & Lambda, const double & K){
-		double MaxBit=0;
-		double RawBit=0;
-		long StartSearch=LB-1;//Subtract one to convert to string coordinates
-		long Length=HB-LB;
-		string Codon;
-		map<string,int>::iterator FindIt;
-		//even though its in reverse go forward through the sequence and get reverse complement
-		if(Reverse){
-			for (long s=0; s<Length+1; s=s+3){//calc max possible score
-				if(s%3==0){//if its the next codon
-					Codon=ReverseComp(Genome.substr(StartSearch+s, 3));//get reverse complement
-					FindIt=ConsValue.find(Codon);//find the score of this codon
-					if(FindIt!=ConsValue.end()){
-						RawBit=RawBit+FindIt->second;//add up score
-					}
-				}
-			}//close max loop
-		}//close if Reverse
 
-		else {
-			for (long s=0; s<Length+1; s=s+3){//calc max possible score
-				if(s%3==0){//if its the next codon
-					Codon=Genome.substr(StartSearch+s, 3);//codon
-					FindIt=ConsValue.find(Codon);//find the score of this codon
-					if(FindIt!=ConsValue.end()){
-						RawBit=RawBit+(FindIt->second);//add up score
-					}
-				}
-			}//close max loop
-		}//close not Reverse
-
-		MaxBit=((RawBit*Lambda)-log(K))/M_LN2;
-		return MaxBit;
-	}//close definition
 
 
 

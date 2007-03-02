@@ -65,7 +65,7 @@ public:
 	}
 
 	//parameterized constructor
-	Subject(int I=-1, long St=0, long Sp=0, string Func="None", double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, double MxBit=0, string HID="none", string HOrg="none"){ // parameterized constructor1
+	Subject(int I=-1, long St=0, long Sp=0, string HID="None", double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, double MxBit=0, string Func="none", string HOrg="none"){ // parameterized constructor1
 		SubjectID=I;
 		Function=Func;
 		HLength=HL;
@@ -73,7 +73,7 @@ public:
 		HitID=HID;
 		HitOrg=HOrg;
 		Hypot=(Function.npos!=Function.find("hypothetical"));
-		AlignList.push_back(Alignment(St,Sp,B,ES,AL,QASt,QASp,MxBit));//add Alignment
+		AddAlign(St,Sp,B,ES,AL,QASt,QASp,MxBit);//add Alignment
 	}
 
 
@@ -92,8 +92,6 @@ public:
 		}
 		
 	}// close definition
-
-
 
 	 //Assignment Operator
 	 Subject& operator =(const Subject &Source){// open defintion
@@ -114,6 +112,17 @@ public:
 	}// close definition
 
 
+	//Function for adding alignment to the alignment list
+	int AddAlign(long St=0, long Sp=0, double B=0, string ES="none", long AL=0, long QASt=0, long QASp=0, double MxBit=0){
+		AlignList.push_back(Alignment(St,Sp,B,ES,AL,QASt,QASp,MxBit));//add Alignment
+		return 0;
+	}
+
+	
+	//Function for returning the SubjectID of this subject
+	string GetID(){
+		return HitID;
+	}
 
 
 	//Reporter function that tells whether a record has been knocked out
@@ -158,5 +167,20 @@ struct OrderSubject {
 	}//close def.
 	
 };//close prototype
+
+
+string ltos(long i)	// convert long to string
+	{
+		stringstream s;
+		s << i;
+		return s.str();
+	}
+string btos(bool i)	// convert bool to string
+	{
+		stringstream s;
+		s << i;
+		return s.str();
+	}
+
 
 #endif

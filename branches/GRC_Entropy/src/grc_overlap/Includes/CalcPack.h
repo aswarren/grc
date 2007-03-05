@@ -313,13 +313,12 @@ public:
 
 
 	//This function continually adjusts the start site until its back at the original
-	bool FindStarts(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse){//open definition
+	bool FindStarts(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, double& StartScore){//open definition
 		long Start=St;
 		long Stop=Sp;
 		long OrigStart=OSt;
 		long QAlignStart=QAS;
-		int StartSearch;
-		double StartScore=0;
+		int StartSearch=0;
 		double MaxStartScore=0;
 		double Travel=0;
 		double NuclDist=(3*QAlignStart);
@@ -333,8 +332,14 @@ public:
 				OStartCount=0;//reset for next use
 				return false;
 			}
-			else if(QAlignStart<2){
+			else if(QAlignStart<2){//if there isn't any room for finding another start return true this time and false next time
 				OStartCount++;
+				if(Reverse){
+					StartScore=CalcSS(Genome.substr(Start-3, 3));//get the probability of the codon being start site
+				}
+				else{
+					StartScore=CalcSS(Genome.substr(Start-1, 3));//get the probability of the codon being start site
+				}
 				return true;
 			} 
 		}
@@ -352,6 +357,7 @@ public:
 			for (int s=0; s<=Halt; s=s+3){//search codons in the upstream direction
 				if(s%3==0){//if its the next codon
 					if(ReverseStart(Genome.substr(StartSearch+s-2, 3))){//if its a start
+						StartScore=CalcSS(Genome.substr(StartSearch+s-2, 3));//get the probability of the codon being start site
 						St=StartSearch+s+1;
 						return true;//if back to original start, stop searching
 						//}//close max start score
@@ -374,6 +380,7 @@ public:
 			for (int s=0; s<=Halt; s=s+3){//search 3 codons in the upstream direction
 				if(s%3==0){//if its the next codon
 					if(ForwardStart(Genome.substr(StartSearch-s, 3))){//if its a start
+						StartScore=CalcSS(Genome.substr(StartSearch-s, 3));//get the probability of the codon being start site
 						St=StartSearch-s+1;
 						return true;
 						//}//close if max score

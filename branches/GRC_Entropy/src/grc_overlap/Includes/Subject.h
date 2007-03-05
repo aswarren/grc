@@ -65,7 +65,7 @@ public:
 	}
 
 	//parameterized constructor
-	Subject(int I=-1, long St=0, long Sp=0, string HID="None", double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, double MxBit=0, string Func="none", string HOrg="none"){ // parameterized constructor1
+	Subject(int I=-1, string HID="None", long HL=0, string Func="none", string HOrg="none"){ // parameterized constructor1
 		SubjectID=I;
 		Function=Func;
 		HLength=HL;
@@ -73,7 +73,7 @@ public:
 		HitID=HID;
 		HitOrg=HOrg;
 		Hypot=(Function.npos!=Function.find("hypothetical"));
-		AddAlign(St,Sp,B,ES,AL,QASt,QASp,MxBit);//add Alignment
+
 	}
 
 
@@ -87,8 +87,10 @@ public:
 		HitOrg=Source.HitOrg;
 		HitID=Source.HitID;
 		AlignList=Source.AlignList;
-		for(list<Alignment>::iterator It=AlignList.begin(); It!=AlignList.end(); It++){
-			AlignQ.push(&(*It));
+		if (Source.AlignQ.size()>0){//if there is something to copy
+			for(list<Alignment>::iterator It=AlignList.begin(); It!=AlignList.end(); It++){
+				AlignQ.push(&(*It));
+			}
 		}
 		
 	}// close definition
@@ -104,8 +106,10 @@ public:
 			HitOrg=Source.HitOrg;
 			HitID=Source.HitID;
 			AlignList=Source.AlignList;
-			for(list<Alignment>::iterator It=AlignList.begin(); It!=AlignList.end(); It++){
-				AlignQ.push(&(*It));
+			if (Source.AlignQ.size()>0){//if there is something to copy
+				for(list<Alignment>::iterator It=AlignList.begin(); It!=AlignList.end(); It++){
+					AlignQ.push(&(*It));
+				}
 			}
 		}// close self assignment
 		return *this;
@@ -113,10 +117,24 @@ public:
 
 
 	//Function for adding alignment to the alignment list
-	int AddAlign(long St=0, long Sp=0, double B=0, string ES="none", long AL=0, long QASt=0, long QASp=0, double MxBit=0){
-		AlignList.push_back(Alignment(St,Sp,B,ES,AL,QASt,QASp,MxBit));//add Alignment
+	int AddAlign(long St, long Sp, double B, string ES, long AL, long QASt, long QASp, double MxBit, double SScore){
+		AlignList.push_back(Alignment(St,Sp,B,ES,AL,QASt,QASp,MxBit,SScore));//add Alignment
 		return 0;
 	}
+
+
+	//This function updates the score for each (alignment, start site pair) aka each alignment object
+	int UpdateScores(const double& HighScore){
+		while(!AlignQ.empty()){//clear the alignQ
+			AlignQ.pop();
+		}
+		for(list<Alignment>::iterator It=AlignList.begin(); It!=AlignList.end(); It++){
+			It->SetScore(HighScore);//update the score
+			AlignQ.push(&(*It));//add to the alignment Q
+		}
+		return 0;
+	}
+	
 
 	
 	//Function for returning the SubjectID of this subject
@@ -135,7 +153,7 @@ public:
 	}
 	
 	//function for retrieving information from the top alignment
-	int GetInfo(int& SID, string& Func, string& HID, string& HOrg, long& HLen, bool& Hyp, long& ALen, double& BScore, string& EScr, double& EVal, long& HB, long& LB, double& MxBit, long& QAStart, long& QAStop, double& RelB, long& Strt, long& Stp){
+	int GetInfo(int& SID, string& Func, string& HID, string& HOrg, long& HLen, bool& Hyp, long& ALen, double& BScore, string& EScr, double& EVal, long& HB, long& LB, double& MxBit, long& QAStart, long& QAStop, double& BFrac, double& RelB, long& Strt, long& Stp){
 		Alignment* TopA=AlignQ.top();
 		SID=SubjectID;
 		Func=Function;
@@ -143,7 +161,7 @@ public:
 		HOrg=HitOrg;
 		HLen=HLength;
 		Hyp=Hypot;
-		TopA->GetInfo(ALen, BScore, EScr, EVal, HB, LB, MxBit, QAStart, QAStop, RelB, Strt, Stp);
+		TopA->GetInfo(ALen, BScore, EScr, EVal, HB, LB, MxBit, QAStart, QAStop, BFrac, RelB, Strt, Stp);
 		TopA=NULL;
 		return 0;
 	}
@@ -163,7 +181,7 @@ struct OrderSubject {
 		else if(S2==NULL){
 			return false;
 		}
-		else return ((*(S1->AlignQ.top()))<(*(S2->AlignQ.top())));
+		else return ((S1->AlignQ.top()->ReportScore())<(S2->AlignQ.top()->ReportScore()));
 	}//close def.
 	
 };//close prototype

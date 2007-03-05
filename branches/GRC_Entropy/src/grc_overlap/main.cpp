@@ -125,7 +125,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 		long LowBase;
 		long HighBase;
 		double LowComplexity=0;//fraction of low complexity AA's as determined by SEG in fsa-blast
-		double Entropy=8888;
+		
 		bool Rev=false;//indicates if ORF is in reverse reading frame
 		if (Start<Stop){
 			LowBase=Start;
@@ -141,7 +141,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 			//In>>ES; //read in the delimiter
 			//Insert Record into Initial RecordMap
 			BlastIn>>LowComplexity;
-			RecordList.push_back(AARecord(InfoPack, ID, Start, Stop, HitID, Entropy));//add record to the list
+			RecordList.push_back(AARecord(InfoPack, ID, Start, Stop, HitID));//add record to the list
 			//EditList.push_back(&((MapIt.first)->second));//add a pointer to the location of the record
 		}//close consq.
 		else {//there is a hit
@@ -216,7 +216,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	//this is not accounted for yet
 	for(list<AARecord>::iterator PosIt=RecordList.begin(); PosIt!=RecordList.end(); PosIt++){
 		if(PosIt->HasHit()){//if the query has a hit
-			PosIt->SwitchRep();//switch to highest scoring start site
+			PosIt->UpdateScores();
 			PosIt->CalcEntropy(InfoPack);
 		}
 		PositionMap.insert(RecordMap::value_type(PosIt->ReportLowBase(), &(*PosIt))); //Add to position map
@@ -240,15 +240,17 @@ int main (int argc, char* argv[]) {   //  Main is open
 	double ConservCutoff=.90;//Bit fraction cutoff for creating the entropy cutoff
 	double AvgEntropy=0;//The average entropy
 	int NumWinHits=0;
+	int NumForAvg=0;
 	for (list<AARecord*>::iterator AvgIt =WinnerList.begin(); AvgIt!=WinnerList.end(); AvgIt++ ){
 		if((*AvgIt)->HasHit()){//if this orf has a hit
 			NumWinHits++;
 			if((*AvgIt)->ReportBitFrac()>ConservCutoff){
+				NumForAvg++;
 				AvgEntropy+=(*AvgIt)->ReportEntropy();
 			}
 		}
 	}
-	AvgEntropy=AvgEntropy/double(NumWinHits);//finish avg entropy calc. by dividing by number of orfs with hits
+	AvgEntropy=AvgEntropy/double(NumForAvg);//finish avg entropy calc. by dividing by number of orfs with hits
 
 	//Calculate the std deviation
 	double Variance=0;
@@ -264,7 +266,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	//Tally results
 	cout<<"Average entropy is\t"<<AvgEntropy<<"\n";
 	cout<<"Std Dev of entropy is\t"<<EntropyDev<<"\n";
-	cout<<"Number of orfs filtered from entroy\t"<<NumFiltered<<"\n";
+	cout<<"Number of orfs filtered from entropy\t"<<NumFiltered<<"\n";
 
 	cout<<"******************GRC v0.01******************"<<"\n";
 	cout<<"Total # of initial ORFS created:   "<<PositionMap.size()<<"\n";

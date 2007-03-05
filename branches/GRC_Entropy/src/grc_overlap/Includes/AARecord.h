@@ -59,7 +59,7 @@ public:
 	}
 };//close prototype
 
-typedef map<long,SeqCalc, std::greater<long> > SeqCalcMap;
+typedef map<long,SeqCalc, std::less<long> > SeqCalcMap;
 
 
 class AARecord {//open prototype
@@ -153,11 +153,20 @@ public:
 		RelBit=0;
 		HitID="none";
 		HitOrg="none";
-		SID=0;
+		SID=-1;
 		HighScore=0;//highest score so far 
 		Blank=(B==0); //if the bit score is 0 then blank is true
 		QLength=labs(St-Sp)+1;
-
+		if(Start<Stop){
+			Reverse=false;
+			LowBase=Start;
+			HighBase=Stop;
+		}
+		else{
+			Reverse=true;
+			LowBase=Stop;
+			HighBase=Start;
+		}
 		
 
 		//This is a lazy addition. ToDo: Modify AArecord to use the values at the top of the BitQueue
@@ -200,11 +209,12 @@ public:
 		Entropy=Source.Entropy;
 		BitFrac=Source.BitFrac;
 		CalcMap=Source.CalcMap;
-		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
-			SubjectQ.push(&(*It));
-			SubjectNames.insert(map<string,Subject*>::value_type(It->GetID(),&(*It)));//insert pointer to Subject based on name
+		if (Source.SubjectQ.size()>0){//if there is something to copy
+			for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
+				SubjectQ.push(&(*It));
+				SubjectNames.insert(map<string,Subject*>::value_type(It->GetID(),&(*It)));//insert pointer to Subject based on name
+			}
 		}
-
 	}// close definition
 
 	 //Assignment Operator
@@ -240,9 +250,11 @@ public:
 			BitFrac=Source.BitFrac;
 			HighScore=Source.HighScore;
 			CalcMap=Source.CalcMap;
-			for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
-				SubjectQ.push(&(*It));
-				SubjectNames.insert(map<string,Subject*>::value_type(It->GetID(),&(*It)));//insert pointer to Subject based on name
+			if (Source.SubjectQ.size()>0){//if there is something to copy
+				for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
+					SubjectQ.push(&(*It));
+					SubjectNames.insert(map<string,Subject*>::value_type(It->GetID(),&(*It)));//insert pointer to Subject based on name
+				}
 			}
 		}// close self assignment
 		return *this;
@@ -477,6 +489,7 @@ public:
 		long LBase=0;
 		long HBase=0;
 		long OrigStart=St;
+		double StartScore=0;
 		if(HighScore<B){//record highest bit score for any alignment for this query
 			HighScore=B;
 		}
@@ -491,17 +504,25 @@ public:
 			HBase=Sp;
 		}
 
-		while(CP.FindStarts(St,OrigStart,Sp,QAlignStart,Reverse)) {//find all start sites from aligned region back to original
+		while(CP.FindStarts(St,OrigStart,Sp,QASt,Reverse, StartScore)) {//find all start sites from aligned region back to original
+			//update low base and highbase
+			if(Reverse){
+				HBase=St;
+			}
+			else{
+				LBase=St;
+			}
 			map<string,Subject*>::iterator FindIt;
 			//Search for the subject ID
 			FindIt=SubjectNames.find(HID);
 			SeqCalc* CalcPointer= CalcSeqScore(CP,LBase,HBase,Reverse);
 			if(FindIt!=SubjectNames.end()){//if the subject ID is found
-				FindIt->second->AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcPointer->MaxBit);//add Alignment
+				FindIt->second->AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcPointer->MaxBit,StartScore);//add Alignment
 			}
 			else{//else add a new subject
 				int TempID=PrimaryHits.size();
-				PrimaryHits.push_back(Subject(TempID,St,Sp,HID,B,ES,HL,AL,QASt,QASp,CalcPointer->MaxBit,Func,HOrg));//add Subject
+				PrimaryHits.push_back(Subject(TempID,HID,HL,Func,HOrg));//add Subject
+				PrimaryHits.back().AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcPointer->MaxBit,StartScore);//add Alignment
 				SubjectNames.insert(map<string,Subject*>::value_type(HID,&PrimaryHits.back()));//insert pointer to Subject based on name
 			}
 		}
@@ -525,9 +546,9 @@ public:
 	//Assumes SubjectQ is ordered in order of decreasing importantance
 	int SwitchRep(){
 
-		if(PrimaryHits.size()>1 && SID!=SubjectQ.top()->SubjectID){
+		if(PrimaryHits.size()>0 && SID!=SubjectQ.top()->SubjectID){
 			Subject* TopS=SubjectQ.top();
-			TopS->GetInfo(SID, Function, HitID, HitOrg, HLength, Hypot, ALength, Bit, EScore, EValue, HighBase, LowBase, MaxBit, QAlignStart, QAlignStop, RelBit, Start, Stop);
+			TopS->GetInfo(SID, Function, HitID, HitOrg, HLength, Hypot, ALength, Bit, EScore, EValue, HighBase, LowBase, MaxBit, QAlignStart, QAlignStop, BitFrac, RelBit, Start, Stop);
 		}
 		return 0;
 	}//close def.
@@ -541,7 +562,7 @@ public:
 		bool ToKO=true;
 		//For each
 
-		SubjectQ.pop();//get rid of top hit
+		
 		while(!SubjectQ.empty() && ToKO){//open while loop
 			SwitchRep();//switch this Records Rep. hit
 			int OverL=Overlap(Winner);
@@ -561,7 +582,21 @@ public:
 		
 
 
-
+	//This function is designed to be run after all subjects/alignments have been added to the Record
+	//It will pass in the highest BitScore out of all the alignments for this query so that
+	//each (alignment,start site) pair can be scored according to its individual and relative characteristics
+	int UpdateScores(){
+		while(!SubjectQ.empty()){//clear the alignQ
+			SubjectQ.pop();
+		}
+		//for each subject update the scores
+		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
+			It->UpdateScores(HighScore);
+			SubjectQ.push(&(*It));//add to the subject Q
+		}
+		SwitchRep();
+		return 0;
+	}
 
 	//This function calculates the maximum possible bit score for a given segment of the genome
 	//Checks to see if the rawbit has been calculated for this LB HB Reverse Combo

@@ -18,6 +18,8 @@
 #include<vector>
 #include <set>
 #include "CalcPack.h"
+#define _USE_MATH_DEFINES
+#include <math.h>
 using std::vector;
 using std::deque;
 using std::priority_queue;
@@ -57,13 +59,15 @@ public:
 	}
 };//close prototype
 
+typedef map<long,SeqCalc, std::greater<long> > SeqCalcMap;
+
 
 class AARecord {//open prototype
 	friend std::ostream& operator<<(std::ostream& ACOut, const AARecord& AC);
 	friend std::ostream& operator<<(std::ostream& ACOut, AARecord* AC);
 
-//private:
-public:
+private:
+//public:
 	string Sequence;
 	string ID; //unique for each record
 	string Function;
@@ -96,9 +100,9 @@ public:
 	priority_queue<Subject*,vector<Subject*>,OrderSubject> SubjectQ;;
 	map<string,Subject*> SubjectNames;//map of the subject names used to enforce unique subject addition in AddPrimary function
 	//sequence specific calculations are stored here, according to increasing offset from the stop site
-	map<long,SeqCalc, std::greater<long> > CalcMap;//for storing and retrieving RawBitValues and entropy values stored according to decreasing length
+	 SeqCalcMap CalcMap;//for storing and retrieving RawBitValues and entropy values stored according to decreasing length
 	double Entropy;
-//public:
+public:
 	
 	AARecord(){//default constructor
 		Sequence="blah";
@@ -128,11 +132,11 @@ public:
 	}
 
 	//parameterized constructor
-	AARecord( CalcPack& CP, string TID="unassigned", long St=0, long Sp=0, string HID="none", double LC=0, double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, string Func="none", string HOrg="none"){ // parameterized constructor1
+	AARecord( CalcPack& CP, string TID="unassigned", long St=0, long Sp=0, string HID="none", double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, string Func="none", string HOrg="none"){ // parameterized constructor1
 		ID=TID;
 		Function="unassigned";
-		Start=0;
-		Stop=0;
+		Start=St;
+		Stop=Sp;
 		HighBase=0;
 		LowBase=0;
 		Bit=0;
@@ -150,14 +154,15 @@ public:
 		HitID="none";
 		HitOrg="none";
 		SID=0;
-		Entropy=LC;
 		HighScore=0;//highest score so far 
 		Blank=(B==0); //if the bit score is 0 then blank is true
 		QLength=labs(St-Sp)+1;
 
+		
+
 		//This is a lazy addition. ToDo: Modify AArecord to use the values at the top of the BitQueue
 		if(!Blank){
-			AddPrimary(St,Sp,HID,B,ES,HL,AL,QASt,QASp,Func,HOrg, CP);//add Subject
+			AddPrimary(CP, St,Sp,HID,B,ES,HL,AL,QASt,QASp,Func,HOrg);//add Subject
 		}
 			
 	}
@@ -433,11 +438,30 @@ public:
 			
 	}// close definition
 
+	string ReportID(){
+		return ID;
+	}
 
-
-	bool ReportHit() const{//open defintion
+	bool HasHit() const{//open defintion
 		return !Blank;
 	}//close definiton
+
+	long ReportLowBase(){
+		return LowBase;
+	}
+
+	long ReportHighBase(){
+		return HighBase;
+	}
+
+	double ReportBitFrac(){
+		return BitFrac;
+	}
+
+	double ReportEntropy(){
+		return Entropy;
+	}
+
 
 	//Reporter function that tells whether a record has been knocked out
 	bool Dead(){return Defeated;}
@@ -449,25 +473,38 @@ public:
 	}
 
 	//Adds Subjects to OtherHits and makes top RelBit value Subject to be Record Rep.
-	int AddPrimary(long& St, long& Sp, string& HID, double& B, string& ES, long& HL, long& AL, long& QASt, long& QASp, string& Func, string& HOrg, CalcPack& CP){
+	int AddPrimary(CalcPack& CP, long St, long Sp, string& HID, double& B, string& ES, long& HL, long& AL, long& QASt, long& QASp, string& Func, string& HOrg){
+		long LBase=0;
+		long HBase=0;
+		long OrigStart=St;
 		if(HighScore<B){//record highest bit score for any alignment for this query
 			HighScore=B;
 		}
-		Reverse=St>Sp;//set Reverse frame
-		do {//find all start sites from aligned region back to original
+		if(St>Sp){
+			Reverse=true;//set Reverse frame
+			LBase=Sp;
+			HBase=St;
+		}
+		else{
+			Reverse=false;
+			LBase=St;
+			HBase=Sp;
+		}
+
+		while(CP.FindStarts(St,OrigStart,Sp,QAlignStart,Reverse)) {//find all start sites from aligned region back to original
 			map<string,Subject*>::iterator FindIt;
 			//Search for the subject ID
 			FindIt=SubjectNames.find(HID);
-			double MxBit=Calc
+			SeqCalc* CalcPointer= CalcSeqScore(CP,LBase,HBase,Reverse);
 			if(FindIt!=SubjectNames.end()){//if the subject ID is found
-				FindIt->second->AddAlign(St,Sp,B,ES,AL,QASt,QASp,MxBit);//add Alignment
+				FindIt->second->AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcPointer->MaxBit);//add Alignment
 			}
 			else{//else add a new subject
 				int TempID=PrimaryHits.size();
-				PrimaryHits.push_back(Subject(TempID,St,Sp,HID,B,ES,HL,AL,QASt,QASp,MxBit,Func,HOrg));//add Subject
+				PrimaryHits.push_back(Subject(TempID,St,Sp,HID,B,ES,HL,AL,QASt,QASp,CalcPointer->MaxBit,Func,HOrg));//add Subject
 				SubjectNames.insert(map<string,Subject*>::value_type(HID,&PrimaryHits.back()));//insert pointer to Subject based on name
 			}
-		}while(FindStarts(Start,OrigStart,Stop,QAlignStart,Rev,Genome));
+		}
 		//No need to add to primaryQ until each Subject has been scored based on HighScore
 		//SubjectQ.push(&PrimaryHits.back());
 
@@ -478,6 +515,11 @@ public:
 	}//close def.
 
 
+
+	//Calculate the entropy for the current sequence alignment representative
+	int CalcEntropy(CalcPack& CP){
+		Entropy=CP.GetEntropy(LowBase, HighBase,Reverse);
+	}
 
 	//Switch the representative for the query orf
 	//Assumes SubjectQ is ordered in order of decreasing importantance
@@ -518,65 +560,7 @@ public:
 	}//end def.
 		
 
-	//This function continually adjusts the start site until its back at the original
-	bool FindStarts(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, const string& Genome){//open definition
-		long Start=St;
-		long Stop=Sp;
-		long OrigStart=OSt;
-		long QAlignStart=QAS;
-		int StartSearch;
-		double StartScore=0;
-		double MaxStartScore=0;
-		double Travel=0;
-		double NuclDist=(3*QAlignStart);
-		int Halt=0;//defines when the search has gone back to original
-	
-		if(QAlignStart<2){//if there is no room to search for a start between the aligned region and current start
-			return false;//stop the search
-		}
-		else if(Reverse){//if the pGene is reversed
-			if(Start==OrigStart){
-				StartSearch=(Start-1)-(3*QAlignStart);// start search position
-				Halt=(QAlignStart*3);
-			}
-			else{//start from the position of the last start found
-				StartSearch=Start+2;//next codon 
-				Halt=OrigStart-Start-3;//room left between orig and current search position
-			}
-	
-			for (int s=0; s<=Halt; s=s+3){//search codons in the upstream direction
-				if(s%3==0){//if its the next codon
-					if(ReverseStart(Genome.substr(StartSearch+s-2, 3))){//if its a start
-						St=StartSearch+s+1;
-						return St!=OrigStart;//if back to original start, stop searching
-						//}//close max start score
-					}//close is start
-				}//close next codon
-			}//close search codons
-		}//close reverse pGene
-	
-		else{//else its not reversed
-			if(Start==OrigStart){
-				StartSearch=(Start-1)+(3*QAlignStart);
-				Halt=(QAlignStart*3);
-			}
-			else{
-				StartSearch=Start-4;//start at the next codon
-				Halt=Start-OrigStart-3;//room left between orig and current search position
-			}
-	
-			for (int s=0; s<=Halt; s=s+3){//search 3 codons in the upstream direction
-				if(s%3==0){//if its the next codon
-					if(ForwardStart(Genome.substr(StartSearch-s, 3))){//if its a start
-						St=StartSearch-s+1;
-						return St!=OrigStart;
-						//}//close if max score
-					}//close if start
-				}//close if next codon
-			}//close search next codons
-		}//close not reversed
-		return false;
-	}//close defintion
+
 
 
 	//This function calculates the maximum possible bit score for a given segment of the genome
@@ -584,13 +568,13 @@ public:
 	//Calculates the rawbit additively so that the same sequence is not iterated
 	//over multiple times
 	//Need to clean up this coordinate to string conversion +1 -1 stuff
-	SeqCalc* CalcMaxBit(CalcPack& CP, const long& LowB, const long& HighB, const bool& Rev){
-		double MaxBit=0;
+	SeqCalc* CalcSeqScore(CalcPack& CP, const long& LowB, const long& HighB, const bool& Rev){
+		double MxB=0;
 		double RawBit=0;
 		long LowerBound=0;//lower bound on calc raw bit
 		long UpperBound=0;//upper bound on calc raw bit
 		long Length=HighB-LowB+1;
-		map<long,SeqCalc>::iterator FindIt;
+		SeqCalcMap::iterator FindIt;
 		FindIt=CalcMap.find(Length);//find according to the offset from stop which is always HighBase-LowBase
 
 		//if the score has been found
@@ -612,54 +596,45 @@ public:
 						LowerBound=LowB;
 					}
 					//Rawbit is the sum of both the subsequence and additional sequence
-					RawBit=CalcRawBit(CP, LowerBound, UpperBound, Rev)+CalcMap.begin()->second.RawBit;
+					RawBit=CP.CalcRawBit(LowerBound, UpperBound, Rev)+CalcMap.begin()->second.RawBit;
 				}
 				else{//not bigger so check to see if there is one small enough
-					//(1)for loop to check if there is a previous calc small enough
+					//(1)loop to check if there is a previous calc small enough
+					FindIt=CalcMap.begin();
+					while(FindIt!=CalcMap.end() && FindIt->first > Length){
+						 FindIt++;
+					}
 					//if not small enough do self calc
+					if(FindIt==CalcMap.end()){//if it walked off the end then there wasn't one small enough
+						RawBit=CP.CalcRawBit(LowB,HighB,Rev);
+					}
 					//else small enough do additive calc
+					else{
+						if(Rev){
+							LowerBound=LowB+FindIt->first;
+							UpperBound=HighB;
+						}
+						else{//forward orf
+							UpperBound=HighB-FindIt->first;
+							LowerBound=LowB;
+						}
+						//Rawbit is the sum of both the subsequence and additional sequence
+						RawBit=CP.CalcRawBit(LowerBound, UpperBound, Rev)+CalcMap.begin()->second.RawBit;
+					}
 				}
-
+			}//close if the calc map has values
+			else{
+				RawBit=CP.CalcRawBit(LowB,HighB,Rev);
+			}
 		}
-		MaxBit=((RawBit*Lambda)-log(K))/M_LN2;
-		return MaxBit;
+		MxB=((RawBit*CP.Lambda)-log(CP.K))/M_LN2;
+		CalcMap.insert(map<long,SeqCalc>::value_type(Length,SeqCalc(RawBit,MxB,0)));//insert new SeqCalc based on this segment of sequence
+		FindIt=CalcMap.find(Length);
+		return (&(FindIt->second));//return pointer to SeqCalc structure that holds the scores
 	}//close definition
 
 	
-	//Calculate the RawBit score from sequence coordinates
-	double CalcRawBit(CalcPack& CP, const long& LowB, const long& HighB, const bool& Rev){
-		long LB=LowB;
-		long HB=HighB;
-		long StartSearch=LB-1;//Subtract one to convert to string coordinates
-		long Length=HB-LB+1;
-		string Codon;
-		double RawBit;
-	//even though its in reverse go forward through the sequence and get reverse complement
-		if(Rev){
-			for (long s=0; s<Length; s=s+3){//calc max possible score
-				if(s%3==0){//if its the next codon
-					Codon=ReverseComp(Genome.substr(StartSearch+s, 3));//get reverse complement
-					FindIt=ConsValue.find(Codon);//find the score of this codon
-					if(FindIt!=ConsValue.end()){
-						RawBit=RawBit+FindIt->second;//add up score
-					}
-				}
-			}//close max loop
-		}//close if Reverse
 
-		else {
-			for (long s=0; s<Length; s=s+3){//calc max possible score
-				if(s%3==0){//if its the next codon
-					Codon=Genome.substr(StartSearch+s, 3);//codon
-					FindIt=ConsValue.find(Codon);//find the score of this codon
-					if(FindIt!=ConsValue.end()){
-						RawBit=RawBit+(FindIt->second);//add up score
-					}
-				}
-			}//close max loop
-		}//close not Reverse
-		return RawBit;
-	}//close definition
 
 }; // close prototype
 

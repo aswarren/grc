@@ -35,15 +35,6 @@ int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>
 int EntropyFilter(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CompeteMap& KOMap, double EntCutoff);//removes orfs that are "winners" that have high entropy
 int PrintLosers(list<AARecord*>& InitList, string NegName);
 void DisplayKO(ostream& Out, CompeteMap& KOMap);
-int LowerTheCase(string& Seq);
-int AdjustStart1(long& St, const long& Sp, const long& QAS, const bool& Reverse, const string& Genome);
-bool AdjustStart2(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, const string& Genome);
-bool ReverseStart(const string& Forward);
-bool ForwardStart(const string& Codon);
-double CalcSS(const string& Codon, const double& Travel);
-string ReverseComp(const string& Codon);//returns the reverse complement of a codon
-char Complement(const char& Base);//returns the complement of a nucl.base
-double CalcMaxBit(const long& LB, const long& HB, const string& Genome, map <string,int>& ConsValue, const bool& Reverse, const double& Lambda, const double& K);
 
 
 
@@ -133,7 +124,6 @@ int main (int argc, char* argv[]) {   //  Main is open
 		getline(BlastIn,HitID,'\t'); //get line for hit ID/No_hits
 		long LowBase;
 		long HighBase;
-		double MaxBit;//the maximum bit score possible for a given sequence
 		double LowComplexity=0;//fraction of low complexity AA's as determined by SEG in fsa-blast
 		double Entropy=8888;
 		bool Rev=false;//indicates if ORF is in reverse reading frame
@@ -151,7 +141,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 			//In>>ES; //read in the delimiter
 			//Insert Record into Initial RecordMap
 			BlastIn>>LowComplexity;
-			RecordList.push_back(AARecord(ID, Start, Stop, HitID, Entropy, InfoPack));//add record to the list
+			RecordList.push_back(AARecord(InfoPack, ID, Start, Stop, HitID, Entropy));//add record to the list
 			//EditList.push_back(&((MapIt.first)->second));//add a pointer to the location of the record
 		}//close consq.
 		else {//there is a hit
@@ -200,64 +190,14 @@ int main (int argc, char* argv[]) {   //  Main is open
 				FindID=HitList.find(ID);
 				if(FindID!=HitList.end()){//if the orf already has a hit 
 				//Add Subject orf to Record
-					FindID->second->AddPrimary(Start, Stop, HitID, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, MaxBit, Function, HitOrg);
+					FindID->second->AddPrimary(InfoPack, Start, Stop, HitID, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, Function, HitOrg);
 				}
 				else{//else there has not been a hit for this orf so far. so create a new AARecord
-					RecordList.push_back(AARecord(ID, Start, Stop, HitID, Entropy, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, MaxBit, Function, HitOrg));
+					RecordList.push_back(AARecord(InfoPack, ID, Start, Stop, HitID, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, Function, HitOrg));
 					HitList.insert(IDMap::value_type(ID,&RecordList.back()));//add pointer to the record to the hit list
 				}
 			}
-				/*AdjustStart1(Start,Stop,QAlignStart,Rev,Genome);//attempt adjust start site to alignment
-				if(Rev){//fix Low or High Base after adjust start
-					HighBase=Start;
-				}
-				else{
-					LowBase=Start;
-				}
-				
-				create Hash for MaxBit value to avoid multiple calc. for same seq. segment
-				string LowHigh=ltos(LowBase)+","+ltos(HighBase)+","+btos(Rev);
-				FindMB=MaxBitMap.find(LowHigh);//see if the maxbit has been previously calc.
-				if(FindMB==MaxBitMap.end()){
-					MaxBit=CalcMaxBit(LowBase,HighBase,Genome,ConsValue,Rev, Lambda, K);
-					MaxBitMap.insert(map<string,double>::value_type(LowHigh,MaxBit));
-				}
-				else{//else its found
-					MaxBit=FindMB->second;
-				}
-				
 
-				while(AdjustStart2(Start,OrigStart,Stop,QAlignStart,Rev,Genome)){//find all start sites from aligned region back to original
-					if (!Rev){
-						LowBase=Start;
-						HighBase=Stop;
-					}
-					else {
-						LowBase=Stop;
-						HighBase=Start;
-					}
-					LowHigh=ltos(LowBase)+","+ltos(HighBase)+","+btos(Rev);//create calc MaxBit hash key
-					FindMB=MaxBitMap.find(LowHigh);//see if the maxbit has been previously calc.
-					if(FindMB==MaxBitMap.end()){
-						MaxBit=CalcMaxBit(LowBase,HighBase,Genome,ConsValue,Rev, Lambda, K);
-						MaxBitMap.insert(map<string,double>::value_type(LowHigh,MaxBit));
-					}
-					else{//else its found
-						MaxBit=FindMB->second;
-					}
-					
-					FindID=HitList.find(ID);
-					if(FindID!=HitList.end()){//if the orf already has a hit
-						//Add Subject orf to Record
-						FindID->second->AddPrimary(Start, Stop, Function, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, MaxBit, HitID, HitOrg);
-					}
-					else{//else there has not been a hit for this orf so far
-						cerr<<"Logic error in grc_overlap adjust start: record should already be created.\n";
-						//RecordList.push_back(AARecord(ID, Start, Stop, Hit, Entropy, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, MaxBit, HitID, HitOrg));
-						//HitList.insert(IDMap::value_type(ID,&RecordList.back()));//add pointer to the record to the hit list
-					}
-				}//close find start sites
-			}//close if not Old*/
 			else{
 				OldCount++;
 			}
@@ -272,17 +212,14 @@ int main (int argc, char* argv[]) {   //  Main is open
 	//create position map
 	//and switch the start site to the one with the highest conservation
 	//and calculate entropy
-	//NOTE:SwitchRep and perhaps entropy calc should happen automatically in the internals of AARecord
-	//should access the top Subject in the PrimaryQ for all of these values
-	//NOTE:During the compare function the entropies calculated here will 
-	//be invalidated as soon as the start site changes
+
 	//this is not accounted for yet
 	for(list<AARecord>::iterator PosIt=RecordList.begin(); PosIt!=RecordList.end(); PosIt++){
-		if(!PosIt->Blank){//if the query has a hit
+		if(PosIt->HasHit()){//if the query has a hit
 			PosIt->SwitchRep();//switch to highest scoring start site
-			PosIt->Entropy=InfoPack.GetEntropy(PosIt->LowBase, PosIt->HighBase, PosIt->Reverse);
+			PosIt->CalcEntropy(InfoPack);
 		}
-		PositionMap.insert(RecordMap::value_type(PosIt->LowBase, &(*PosIt))); //Add to position map
+		PositionMap.insert(RecordMap::value_type(PosIt->ReportLowBase(), &(*PosIt))); //Add to position map
 	}//close for loop
 
 
@@ -304,10 +241,10 @@ int main (int argc, char* argv[]) {   //  Main is open
 	double AvgEntropy=0;//The average entropy
 	int NumWinHits=0;
 	for (list<AARecord*>::iterator AvgIt =WinnerList.begin(); AvgIt!=WinnerList.end(); AvgIt++ ){
-		if((*AvgIt)->ReportHit()){//if this orf has a hit
+		if((*AvgIt)->HasHit()){//if this orf has a hit
 			NumWinHits++;
-			if((*AvgIt)->BitFrac>ConservCutoff){
-				AvgEntropy+=(*AvgIt)->Entropy;
+			if((*AvgIt)->ReportBitFrac()>ConservCutoff){
+				AvgEntropy+=(*AvgIt)->ReportEntropy();
 			}
 		}
 	}
@@ -316,8 +253,8 @@ int main (int argc, char* argv[]) {   //  Main is open
 	//Calculate the std deviation
 	double Variance=0;
 	for (list<AARecord*>::iterator EntIt =WinnerList.begin(); EntIt!=WinnerList.end(); EntIt++ ){
-		if((*EntIt)->ReportHit() && (*EntIt)->BitFrac>ConservCutoff){//if this orf has a hit
-			double Diff=(*EntIt)->Entropy-AvgEntropy;//get difference between mean and current
+		if((*EntIt)->HasHit() && (*EntIt)->ReportBitFrac()>ConservCutoff){//if this orf has a hit
+			double Diff=(*EntIt)->ReportEntropy()-AvgEntropy;//get difference between mean and current
 			Variance+=(Diff*Diff);//square the difference of mean and current and add to total variance
 		}
 	}
@@ -407,7 +344,7 @@ int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>
 					if(KO){//if one of the ORFs should be knocked out
 
 						if (*(It1->second)>*(It2->second) && It2->second->Incompatible(*(It1->second))){//If record 1 has a higher score
-							Spot=It1->second->ID;
+							Spot=It1->second->ReportID();
 							CompeteMap::iterator TempC=KOMap.find(Spot);
 							if (TempC!=KOMap.end()){
 								(TempC->second).AddLoser((It2->second));
@@ -420,7 +357,7 @@ int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>
 							It2->second->KnockOut();//then record 2 is out
 						}
 						else if(*(It1->second)<*(It2->second) && It1->second->Incompatible(*(It2->second))){//if record 1 has a lower score
-							Spot=((It2)->second->ID);
+							Spot=((It2)->second->ReportID());
 							CompeteMap::iterator TempC=KOMap.find(Spot);
 							if (TempC!=KOMap.end()){
 								TempC->second.AddLoser((It1->second));
@@ -434,7 +371,7 @@ int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>
 							break;//break from the inner loop since record 1 is dead
 						}
 						else if(*(It1->second)^*(It2->second) && It2->second->Incompatible(*(It1->second))){//else if It1 is longer than It2
-							Spot=((It1->second)->ID);
+							Spot=((It1->second)->ReportID());
 							CompeteMap::iterator TempC=KOMap.find(Spot);
 							if (TempC!=KOMap.end()){
 								(TempC->second).AddLoser((It2->second));
@@ -446,7 +383,7 @@ int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>
 							It2->second->KnockOut(); //record 2 is out
 						}
 						else if(*(It2->second)^*(It1->second)  && It1->second->Incompatible(*(It2->second))){//else It2 is longer
-							Spot=((It2->second)->ID);
+							Spot=((It2->second)->ReportID());
 							CompeteMap::iterator TempC=KOMap.find(Spot);
 							if (TempC!=KOMap.end()){
 								(TempC->second).AddLoser((It1->second));
@@ -559,9 +496,9 @@ std::ostream& operator<<(std::ostream& Out, const Compete& C){
 	if(C.Winner==NULL){
 		Out<<"Entropy";
 	}
-	else Out<<(C.Winner)->ID;
+	else Out<<(C.Winner)->ReportID();
 	for (list<AARecord*>::const_iterator It1 =C.Losers.begin(); It1!=C.Losers.end(); It1++ ){
-		Out<<"\t"<<(*It1)->ID;
+		Out<<"\t"<<(*It1)->ReportID();
 	}//close for loop
 	Out<<"\n";
 	return Out;
@@ -628,56 +565,6 @@ void DisplayKO(ostream& Out, CompeteMap& KOMap){
 
 
 
-
-
-
-	//Function to Adjust the start site based on where the alignment begins
-int AdjustStart1(long& St, const long& Sp, const long& QAS, const bool& Reverse, const string& Genome){//open definition
-	long Start=St;
-	long Stop=Sp;
-	long QAlignStart=QAS;
-	int StartSearch;
-	double StartScore=0;
-	double MaxStartScore=0;
-	double Travel=0;
-	int NuclDist=(3*QAlignStart);
-
-
-	if(QAlignStart<2){
-		return 1;
-	}
-	else if(Reverse){//if the pGene is reversed
-		StartSearch=(Start-1)-NuclDist;// start search position
-
-		for (int s=0; s<NuclDist; s+=3){//search codons in the upstream direction
-			if(s%3==0){//if its the next codon
-				if(ReverseStart(Genome.substr(StartSearch+s-2, 3))){//if its a start
-					St=StartSearch+s+1;
-					return 1;
-					//}//close max start score
-				}//close is start
-			}//close next codon
-		}//close search codons
-	}//close reverse pGene
-
-	else{//else its not reversed
-		StartSearch=(Start-1)+NuclDist;
-
-		for (int s=0; s<NuclDist; s+=3){//search 3 codons in the upstream direction
-			if(s%3==0){//if its the next codon
-				if(ForwardStart(Genome.substr(StartSearch-s, 3))){//if its a start
-					St=StartSearch-s+1;
-					return 1;
-				}//close if start
-			}//close if next codon
-		}//close search next codons
-	}//close not reversed
-	return 1;
-}//close defintion
-
-
-
-
 //this function removes ORFs that do not have hits from the WinnersList and places them in the losers list
 //it also creates a KO record that the orf was removed due to entropy
  int EntropyFilter(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CompeteMap& KOMap, double EntCutoff){
@@ -685,7 +572,7 @@ int AdjustStart1(long& St, const long& Sp, const long& QAS, const bool& Reverse,
 	int OrigSize=WinnerList.size();
 	//check each winner with no hit for high entropy
 	for (list<AARecord*>::iterator CheckIt=WinnerList.begin(); CheckIt!=WinnerList.end(); CheckIt++){
-		if((*CheckIt)->ReportHit()||(*CheckIt)->Entropy<=EntCutoff){//if the record has a hit OR its entropy is under cutoff
+		if((*CheckIt)->HasHit()||(*CheckIt)->ReportEntropy()<=EntCutoff){//if the record has a hit OR its entropy is under cutoff
 			NuWinners.push_back((*CheckIt));//add it to the final list
 		}
 		else{

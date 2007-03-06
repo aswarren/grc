@@ -215,10 +215,11 @@ int main (int argc, char* argv[]) {   //  Main is open
 
 	//this is not accounted for yet
 	for(list<AARecord>::iterator PosIt=RecordList.begin(); PosIt!=RecordList.end(); PosIt++){
+
 		if(PosIt->HasHit()){//if the query has a hit
 			PosIt->UpdateScores();
-			PosIt->CalcEntropy(InfoPack);
 		}
+		PosIt->CalcEntropy(InfoPack);
 		PositionMap.insert(RecordMap::value_type(PosIt->ReportLowBase(), &(*PosIt))); //Add to position map
 	}//close for loop
 

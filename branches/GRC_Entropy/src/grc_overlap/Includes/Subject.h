@@ -166,6 +166,32 @@ public:
 		return 0;
 	}
 
+	//reports the size of the alignment queue
+	int ReportAlignQSize(){
+		return AlignQ.size();
+	}
+
+	//pops the top Alignment off the queue
+	int PopTopAlign(){
+		if(AlignQ.size()==0){
+			cerr<<"Error trying to pop off empty queue\n";
+		}
+		else {
+			AlignQ.pop();//remove top element
+		}
+		return AlignQ.size();
+	}
+
+	int RefreshAlignQ(){
+		while(!AlignQ.empty()){
+			AlignQ.pop();
+		}
+		//put each alignment back into the queue
+		for(list<Alignment>::iterator It=AlignList.begin(); It!=AlignList.end(); It++){
+			AlignQ.push(&(*It));
+		}
+		return 0;
+	}
 
 
 };//close prototype
@@ -181,7 +207,13 @@ struct OrderSubject {
 		else if(S2==NULL){
 			return false;
 		}
-		else return ((S1->AlignQ.top()->ReportScore())<(S2->AlignQ.top()->ReportScore()));
+		else if(S1->ReportAlignQSize()==0){
+			return true;
+		}
+		else if(S2->ReportAlignQSize()==0){
+			return false;
+		}
+		else return ((S1->AlignQ.top()->ReportScore()) < (S2->AlignQ.top()->ReportScore()));
 	}//close def.
 	
 };//close prototype

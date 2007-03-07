@@ -52,6 +52,7 @@ public:
 	double BitFrac;//Bit/MaxBit
 	double StartScore;//frequency of occurence of start score
 	double AlignScore;//Conditional Probability of(BitFrac, StartSite Codon Prob, MaxFrac)
+	double RP;//relative performance of this alignment to all other alignments
 
 
 
@@ -74,6 +75,7 @@ public:
 		RelBit=0;
 		AlignScore=0;
 		StartScore=0;
+		RP=0;
 	}
 
 	//parameterized constructor
@@ -90,8 +92,7 @@ public:
 		RelBit=0;
 		AlignScore=0;
 		StartScore=SScore;
-
-
+		RP=0;
 
 		if (Start>Stop){ 
 			Reverse=true;//see if the orf is reversed
@@ -141,6 +142,7 @@ public:
 		QAlignStop=Source.QAlignStop;
 		AlignScore=Source.AlignScore;
 		StartScore=Source.StartScore;
+		RP=Source.RP;
 	}// close definition
 
 
@@ -166,6 +168,7 @@ public:
 			QAlignStop=Source.QAlignStop;
 			AlignScore=Source.AlignScore;
 			StartScore=Source.StartScore;
+			RP=Source.RP;
 		}// close self assignment
 		return *this;
 	}// close definition
@@ -197,6 +200,7 @@ public:
 		ALen=ALength;
 		BScore=Bit;
 		EVal=EValue;
+		EScr=EScore;
 		HB=HighBase;
 		LB=LowBase;
 		MxBit=MaxBit;
@@ -214,7 +218,7 @@ public:
 	//Bayes: AlignScore=Prob(Correct|SF,AX,RP)=alpha
 	//alpha/(1-alpha)=(SF/(1-SF))*(AX/(1-AX))*(RP/(1-RP))
 	int SetScore(const double& HighScore){
-		double RP=Bit/HighScore;//relative performance to all other alignments
+		RP=Bit/HighScore;//relative performance to all other alignments
 		double RPDiv=1-RP;
 		double BFDiv=1-BitFrac;
 		double SSDiv=1-StartScore;

@@ -346,57 +346,69 @@ int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>
 					}
 					if(KO){//if one of the ORFs should be knocked out
 
-						if (*(It1->second)>*(It2->second) && It2->second->Incompatible(*(It1->second))){//If record 1 has a higher score
-							Spot=It1->second->ReportID();
-							CompeteMap::iterator TempC=KOMap.find(Spot);
-							if (TempC!=KOMap.end()){
-								(TempC->second).AddLoser((It2->second));
+						if (*(It1->second)>*(It2->second)){//If record 1 has a higher score
+							KO=(It2->second->Incompatible(*(It1->second)));//KO if its incompatible
+							if(KO){//if KO is still true
+								Spot=It1->second->ReportID();
+								CompeteMap::iterator TempC=KOMap.find(Spot);
+								if (TempC!=KOMap.end()){
+									(TempC->second).AddLoser((It2->second));
+								}
+								else {
+									KOMap.insert(CompeteMap::value_type(Spot, Compete((It1->second),(It2->second))));
+								}
+									
+								LoserList.push_back((It2->second));//loser
+								It2->second->KnockOut();//then record 2 is out
 							}
-							else {
-								KOMap.insert(CompeteMap::value_type(Spot, Compete((It1->second),(It2->second))));
-							}
-								
-							LoserList.push_back((It2->second));//loser
-							It2->second->KnockOut();//then record 2 is out
 						}
-						else if(*(It1->second)<*(It2->second) && It1->second->Incompatible(*(It2->second))){//if record 1 has a lower score
-							Spot=((It2)->second->ReportID());
-							CompeteMap::iterator TempC=KOMap.find(Spot);
-							if (TempC!=KOMap.end()){
-								TempC->second.AddLoser((It1->second));
+						else if(*(It1->second)<*(It2->second)){//if record 1 has a lower score
+							KO=It1->second->Incompatible(*(It2->second));//KO if its incompatible
+							if(KO){
+								Spot=((It2)->second->ReportID());
+								CompeteMap::iterator TempC=KOMap.find(Spot);
+								if (TempC!=KOMap.end()){
+									TempC->second.AddLoser((It1->second));
+								}
+								else {
+									KOMap.insert(CompeteMap::value_type(Spot, Compete((It2->second), (It1->second))));
+								}
+									
+								LoserList.push_back((It1->second));//loser
+								It1->second->KnockOut();//then record 1 is out
+								break;//break from the inner loop since record 1 is dead
 							}
-							else {
-								KOMap.insert(CompeteMap::value_type(Spot, Compete((It2->second), (It1->second))));
-							}
-								
-							LoserList.push_back((It1->second));//loser
-							It1->second->KnockOut();//then record 1 is out
-							break;//break from the inner loop since record 1 is dead
 						}
-						else if(*(It1->second)^*(It2->second) && It2->second->Incompatible(*(It1->second))){//else if It1 is longer than It2
-							Spot=((It1->second)->ReportID());
-							CompeteMap::iterator TempC=KOMap.find(Spot);
-							if (TempC!=KOMap.end()){
-								(TempC->second).AddLoser((It2->second));
+						else if(*(It1->second)^*(It2->second)){//else if It1 better than It2
+							KO= It2->second->Incompatible(*(It1->second));
+							if(KO){
+								Spot=((It1->second)->ReportID());
+								CompeteMap::iterator TempC=KOMap.find(Spot);
+								if (TempC!=KOMap.end()){
+									(TempC->second).AddLoser((It2->second));
+								}
+								else {
+									KOMap.insert(CompeteMap::value_type(Spot, Compete((It1->second),(It2->second))));
+								}
+								LoserList.push_back((It2->second));//loser
+								It2->second->KnockOut(); //record 2 is out
 							}
-							else {
-								KOMap.insert(CompeteMap::value_type(Spot, Compete((It1->second),(It2->second))));
-							}
-							LoserList.push_back((It2->second));//loser
-							It2->second->KnockOut(); //record 2 is out
 						}
-						else if(*(It2->second)^*(It1->second)  && It1->second->Incompatible(*(It2->second))){//else It2 is longer
-							Spot=((It2->second)->ReportID());
-							CompeteMap::iterator TempC=KOMap.find(Spot);
-							if (TempC!=KOMap.end()){
-								(TempC->second).AddLoser((It1->second));
+						else if(*(It2->second)^*(It1->second)){//else It2 is better
+							KO=It1->second->Incompatible(*(It2->second));
+							if(KO){
+								Spot=((It2->second)->ReportID());
+								CompeteMap::iterator TempC=KOMap.find(Spot);
+								if (TempC!=KOMap.end()){
+									(TempC->second).AddLoser((It1->second));
+								}
+								else {
+									KOMap.insert(CompeteMap::value_type(Spot, Compete((It2->second), (It1->second))));
+								}
+								LoserList.push_back((It1->second));
+								It1->second->KnockOut();
+								break; //break from inner loop
 							}
-							else {
-								KOMap.insert(CompeteMap::value_type(Spot, Compete((It2->second), (It1->second))));
-							}
-							LoserList.push_back((It1->second));
-							It1->second->KnockOut();
-							break; //break from inner loop
 						}
 						else{//else its a tie
 						}
@@ -526,8 +538,9 @@ std::ostream& operator<<(std::ostream& ChkOut, AARecord* AC){
 
 	ChkOut<<AC->Entropy<<"\t";
 
-	ChkOut<<AC->Function<<"\t"; //print hit description or no hit line
+
 	if(!AC->Blank){//if there is a hit
+		ChkOut<<AC->Function<<"\t"; //print hit description or no hit line
 		double ALength=AC->ALength;
 		double OLength=AC->QLength;
 		double HLength=AC->HLength;
@@ -541,6 +554,7 @@ std::ostream& operator<<(std::ostream& ChkOut, AARecord* AC){
 	}
 
 	else{
+		ChkOut<<AC->HitID<<"\t";
 		ChkOut<<"-\t";//HitID
 		ChkOut<<"-\t";//HitOrg
 		ChkOut<<"-\t";//Bit

@@ -81,8 +81,9 @@ private:
 	long HLength; //the length of the hit sequence
 	bool Reverse; //Is it in a - frame
 	bool Blank; //indicates whether the was a hit to this orf in the DB
-	long QLength; //the length of the orf
+	long QLength; //the length of the query orf
 	long ALength; //the length of the alignment
+	long CurrentLength;//the length with current Start Stop
 	bool Defeated; //marks whether this record has been knocked out(tombstone method)
 	long QAlignStart;//offset to start alignment from Start
 	long QAlignStop;//offset to stop alignment from Start
@@ -121,6 +122,7 @@ public:
 		Defeated=false;
 		QLength=0;
 		ALength=0;
+		CurrentLength=0;
 		QAlignStart=0;
 		QAlignStop=0;
 		MaxBit=0;
@@ -151,12 +153,12 @@ public:
 		QAlignStop=0;
 		MaxBit=0;
 		RelBit=0;
-		HitID="none";
+		HitID=HID;
 		HitOrg="none";
 		SID=-1;
 		HighScore=0;//highest score so far 
 		Blank=(B==0); //if the bit score is 0 then blank is true
-		QLength=labs(St-Sp)+1;
+		CurrentLength=QLength=labs(St-Sp)+1;
 		if(Start<Stop){
 			Reverse=false;
 			LowBase=Start;
@@ -197,6 +199,7 @@ public:
 		 Blank=Source.Blank;
 		 EValue=Source.EValue;//copy the evalue for the hit
 		ALength=Source.ALength;//alignment length
+		CurrentLength=Source.CurrentLength;
 		QLength=Source.QLength;//Orf length
 		QAlignStart=Source.QAlignStart;
 		QAlignStop=Source.QAlignStop;
@@ -239,6 +242,7 @@ public:
 			EValue=Source.EValue;
 			QLength=Source.QLength;//Orf length
 			ALength=Source.ALength;//alignment length
+			CurrentLength=Source.CurrentLength;
 			QAlignStart=Source.QAlignStart;
 			QAlignStop=Source.QAlignStop;
 			HitOrg=Source.HitOrg;
@@ -312,8 +316,6 @@ public:
 
 
 
-
-
 	//bool Overlap
 	//returns the length of there being an overlap of ORFs
 	//OR if two no_hit orfs are being compared it returns the distance between them if no overlap
@@ -321,23 +323,72 @@ public:
 		int OverLen=0;
 		 
 		if (RHS.LowBase>=LowBase && RHS.LowBase <=HighBase){
-			if(HighBase>=RHS.HighBase){OverLen=RHS.QLength;}//if one frame encompasses the other
+			if(HighBase>=RHS.HighBase){OverLen=RHS.CurrentLength;}//if one frame encompasses the other
 			else OverLen=HighBase-RHS.LowBase+1;
 		}
 		else if(RHS.LowBase <= LowBase && RHS.HighBase >= LowBase){
-			 if(RHS.HighBase>=HighBase){OverLen=QLength;}//if one frame encompasses the other
+			 if(RHS.HighBase>=HighBase){OverLen=CurrentLength;}//if one frame encompasses the other
 			 else OverLen=RHS.HighBase-LowBase+1;
 		}
-		else if(RHS.Bit==0 && Bit==0){//neither have hits return distance between two orfs in possible intergenic region
-			if(LowBase<RHS.LowBase){
-				OverLen=HighBase-RHS.LowBase;//Negative overlap is distance between
-			}
-			else {
-				OverLen=RHS.HighBase-LowBase;
-			}
-		}
+		//else if(RHS.Bit==0 && Bit==0){//neither have hits return distance between two orfs in possible intergenic region
+		//	if(LowBase<RHS.LowBase){
+		//		OverLen=HighBase-RHS.LowBase;//Negative overlap is distance between
+		//	}
+		//	else {
+		//		OverLen=RHS.HighBase-LowBase;
+		//	}
+		//}
 		return OverLen;
 	 }// close defintion
+
+
+
+	//bool CompatibleOverlap
+	//meant to be run on Loser.CompatibleOverlap(Winner)
+	//returns whether an overlap occurs on the three prime side of THIS ORF aka LHS
+	//used to determine if there is any chance that adjusting the start site will result in compatible orfs
+	//return true if threeprimeoverlap , return false if five prime overlap
+	//if Loser is encompassed by winner return false
+	//if Loser encompasses winner return true
+	//otherwise return by case
+	bool CompatibleOverlap(AARecord& Winner){
+		//if the overlap occurs on the high side of this orf
+		if (Winner.LowBase>=LowBase && Winner.LowBase <=HighBase){
+			if(HighBase>=Winner.HighBase){//if loser encompasses the winner
+				return true;
+			}
+			else{//else overlap on high side of loser
+				if (Reverse){//if its reversed the start site can be adjusted
+					return true;
+				}
+				else{
+					return false;
+				}
+			}
+		}
+		//if the overlap occurs on the low side of this loser orf
+		else if(Winner.LowBase <= LowBase && Winner.HighBase >= LowBase){
+			//if winner encompasses loser
+			 if(Winner.HighBase>=HighBase){
+				return false;//there is no hope
+			}
+			 else {//else overlap on low side of loser
+				if(Reverse){
+					return false;
+				}
+				else{
+					return true;
+				}
+			}
+		}
+		
+		//else why are you doing this check in the first place?
+		else{
+			cerr<<"Logic error in calling grc_overlap CompatibleOverlap\n";
+		}
+		return true;
+	}
+
 
 
 
@@ -450,6 +501,7 @@ public:
 			
 	}// close definition
 
+	//report ID of the record aka queryID
 	string ReportID(){
 		return ID;
 	}
@@ -546,9 +598,10 @@ public:
 	//Assumes SubjectQ is ordered in order of decreasing importantance
 	int SwitchRep(){
 
-		if(PrimaryHits.size()>0 && SID!=SubjectQ.top()->SubjectID){
+		if(PrimaryHits.size()>0){
 			Subject* TopS=SubjectQ.top();
 			TopS->GetInfo(SID, Function, HitID, HitOrg, HLength, Hypot, ALength, Bit, EScore, EValue, HighBase, LowBase, MaxBit, QAlignStart, QAlignStop, BitFrac, RelBit, Start, Stop);
+			CurrentLength=labs(Start-Stop)+1;
 		}
 		return 0;
 	}//close def.
@@ -557,30 +610,77 @@ public:
 
 	//This function looks through the other hits/subjects for the orf to see
 	//if there is a compatible orf and if so selects that one to be representative
+	//returns whether they are incompatible
 	bool Incompatible(AARecord& Winner){
-		priority_queue<Subject*,vector<Subject*>,OrderSubject> CopyQ=SubjectQ;//copy for refreshing SubjectQ
+
+		if(!HasHit()){//if this loser does not have a hit
+			return true;//no compatability can be found
+		}
+			
+		if(!CompatibleOverlap(Winner)){
+			return true;
+		}
+
 		bool ToKO=true;
 		//For each
-
-		
 		while(!SubjectQ.empty() && ToKO){//open while loop
 			SwitchRep();//switch this Records Rep. hit
 			int OverL=Overlap(Winner);
 			if(OverL==0){//if the two do not overlap
-				ToKO=false;
+				RefreshAll();
+				return false;
 			}
 			else{//else check if compatible
 				ToKO=KnockOut(Winner,OverL);//check compatability
 			}
-			SubjectQ.pop();//get rid of top hit
+			PopTop();//get rid of top hit
 		}//close while loop
 
-		SubjectQ=CopyQ;//refresh SubjectQ
-
+		RefreshAll();//refresh all queues
 		return ToKO;
 	}//end def.
-		
 
+
+
+	//This function removes the top alignment from the top subject
+	//and then refreshes the subject priority Queue by emptying and reloading it
+	int PopTop(){
+		if(SubjectQ.size()>0){//if there is something to pop
+			//pop the top alignment off the top
+			SubjectQ.top()->PopTopAlign();
+			RefreshSubjectQ();//Refresh the subject Q
+		}
+		return SubjectQ.size();
+	}
+
+	
+	//This function refreshes the subjectQ adding only those subjects that still have alignments
+	//in the alignment Q
+	int RefreshSubjectQ(){
+		while(!SubjectQ.empty()){
+			SubjectQ.pop();
+		}
+		//for each subject in the list
+		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
+			//if the alignQ has alignments left in it
+			if(It->ReportAlignQSize()>0){
+				SubjectQ.push(&(*It));//add that subject to the Queue
+			}
+		}
+		return SubjectQ.size();
+	}
+
+	//this function refreshes both subject and alignment queues
+	int RefreshAll(){
+		while(!SubjectQ.empty()){
+			SubjectQ.pop();
+		}
+		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
+			It->RefreshAlignQ();
+			SubjectQ.push(&(*It));//put the subject back on the queue
+		}
+		return 0;
+	}
 
 	//This function is designed to be run after all subjects/alignments have been added to the Record
 	//It will pass in the highest BitScore out of all the alignments for this query so that

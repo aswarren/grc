@@ -11,6 +11,7 @@
 #include <fstream>
 #include <map>
 #include <sstream>
+#include "Translate.h"
 
 using std::cout;
 using std::cerr;
@@ -20,6 +21,14 @@ using std::ofstream;
 using std::ifstream;
 using std::map;
 using std::stringstream;
+
+
+/*#define  DEFAULT_POS_ENTROPY_PROF  {0.08468,0.01606,0.05739,0.05752,0.04328,\
+  0.07042,0.02942,0.05624,0.04442,0.05620,0.03029,0.03975,0.05116,0.04098,\
+  0.05989,0.08224,0.05660,0.06991,0.02044,0.03310}
+#define  DEFAULT_NEG_ENTROPY_PROF  {0.07434,0.03035,0.05936,0.04729,0.05662,\
+  0.07704,0.05777,0.05328,0.03360,0.05581,0.01457,0.03718,0.04594,0.05977,\
+  0.08489,0.05990,0.04978,0.07227,0.01050,0.01974}*/
 
 class CalcPack{//open prototype
 public:
@@ -74,7 +83,6 @@ public:
 
 	//Function to initialize parameters based on blast matrix used
 	int InitCodes(){//open definition
-	//Get the Genetic Codes for translation
 		ifstream InCode;
 		InCode.open(Matrix.c_str());//open matrix specified
 		if(!InCode.is_open()){

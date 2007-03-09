@@ -39,6 +39,7 @@ public:
 	long Stop; // the stop position for the orf
 	long HighBase; //the highest base number for the orf
 	long LowBase; //the lowest base number for the orf
+	long Length;
 	double Bit; // the bit score for the hit
 	string EScore; //the E-score for the hit
 	double EValue;
@@ -106,6 +107,7 @@ public:
 			LowBase=Start;
 			Stop=Stop+3;
 		}
+		Length=HighBase-LowBase+1;
 
 		if(Bit==0){EValue=100000;}
 		else {
@@ -143,6 +145,7 @@ public:
 		AlignScore=Source.AlignScore;
 		StartScore=Source.StartScore;
 		RP=Source.RP;
+		Length=Source.Length;
 	}// close definition
 
 
@@ -169,6 +172,7 @@ public:
 			AlignScore=Source.AlignScore;
 			StartScore=Source.StartScore;
 			RP=Source.RP;
+			Length=Source.Length;
 		}// close self assignment
 		return *this;
 	}// close definition
@@ -189,6 +193,11 @@ public:
 	//bool operator <(const Alignment& RHS)const{
 	//	AlignScore<RHS.AlignScore;
 	//}
+
+	//report adjusted bit value
+	double ReportRelBit(){
+		return RelBit;
+	}
 
 	//report the alignment score
 	double ReportScore(){
@@ -233,6 +242,107 @@ public:
 		double Beta=(BitFrac/BFDiv)*(StartScore/(1-StartScore))*(RP/RPDiv);
 		AlignScore=(Beta/(1+Beta));//set align score to conditional probability
 		return 0;
+	}
+
+
+//Given two alignments this function determines the allowable overlap threshold
+	double OverlapThreshold(Alignment& RHS, const double& MxOLap){
+		double OLapThreshold=12;//default overlap threshold is 12 nucl.
+		double BitFrac1, BitFrac2;
+		BitFrac1=BitFrac;
+		BitFrac2=RHS.BitFrac;
+		double MaxOverlap=MxOLap;
+
+		if(BitFrac1>1){
+			BitFrac1=1;
+		}
+		if(BitFrac2>1){
+			BitFrac2=1;
+		}
+
+		//double OLapT1=-1*log(EValue)*OEFactor;
+		//double OLapT2=-1*log(RHS.EValue)*OEFactor;
+		//double ScoreFactor=0;
+		//double Diff=0;
+		//BitFrac1=BitFrac1*Bit;
+		//BitFrac2=BitFrac2*RHS.Bit;
+		if(Length<300 || RHS.Length<300){ //if the length of one of the orfs is less than 300 decrease maxoverlap
+			if(Length<RHS.Length){
+				MaxOverlap=MaxOverlap*(Length/300);
+				//MaxOverlap=0.4*QLength;
+			}
+			else {
+				MaxOverlap=MaxOverlap*(RHS.Length/300);
+				//MaxOverlap=0.4*RHS.QLength;
+			}
+		}
+			
+		if(BitFrac1<BitFrac2){
+			//Diff=(Bit/RHS.Bit)*2;
+			//ScoreFactor=(Bit/1000)+1;
+			OLapThreshold=(BitFrac1*MaxOverlap);
+		}
+		else{
+			//Diff=(RHS.Bit/Bit)*2;
+			//ScoreFactor=(RHS.Bit/1000)+1;
+			OLapThreshold=(BitFrac2*MaxOverlap);
+		}
+
+		return OLapThreshold;
+		//OLapThreshold=BitFrac*90;//for every .10 they have similar score give a 1% overlap
+		//if(OLapT2<OLapT1){//set overlap threshold to be a function of the e-value score
+		//	OLapThreshold=OLapT2;
+		//}
+		//else {OLapThreshold=OLapT1;}//take the min threshold
+	}
+
+
+	//Function that reports the bit ratio of LHS.RelBit to RHS.RelBit
+	//returns a negative bit ratio if LHS.RelBit < RHS.RelBit
+	double BitRatio(Alignment& RHS){//open def
+		double BRatio=0;
+		if (RelBit==0 || RHS.RelBit==0){
+			BRatio=0;
+		}
+		else if(RelBit<RHS.RelBit){
+			BRatio=(RelBit/RHS.RelBit)*-1;
+		}
+		else {BRatio=RHS.RelBit/RelBit;}
+		return BRatio;
+	}
+
+
+	int DisplayInfo(std::ostream& Out){
+		Out<<Bit<<"\t";
+		Out<<EScore<<"\t";
+		return 0;
+	}
+
+
+
+	//This function returns the value of the lower part of the orf coordinates
+	long ReportLowBase(){
+		return LowBase;
+	}
+
+	//Reports the Bit/MaxBit value for this alignment
+	double ReportBitFrac(){
+		return BitFrac;
+	}
+
+	//Gives value of Alignment Length
+	double GetALength(){
+		return ALength;
+	}
+
+	//Gives value of ORF length
+	double GetLength(){
+		return Length;
+	}
+
+	//This function returns the value of the higher part of the orf coordinates
+	long ReportHighBase(){
+		return HighBase;
 	}
 		
 		

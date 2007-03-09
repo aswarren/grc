@@ -60,6 +60,7 @@ public:
 };//close prototype
 
 typedef map<long,SeqCalc, std::less<long> > SeqCalcMap;
+typedef priority_queue<Subject*,vector<Subject*>,OrderSubject> PQSubject;
 
 
 class AARecord {//open prototype
@@ -68,107 +69,63 @@ class AARecord {//open prototype
 
 private:
 //public:
-	string Sequence;
 	string ID; //unique for each record
-	string Function;
-	long Start; // the start position for the orf
-	long Stop; // the stop position for the orf
-	long HighBase; //the highest base number for the orf
-	long LowBase; //the lowest base number for the orf
-	double Bit; // the bit score for the hit
-	string EScore; //the E-score for the hit
-	double EValue;
-	long HLength; //the length of the hit sequence
+	long Start;//these coordinates are stored here when the query orf has no hit
+	long Stop;
+	long LowBase;
+	long HighBase;
 	bool Reverse; //Is it in a - frame
 	bool Blank; //indicates whether the was a hit to this orf in the DB
 	long QLength; //the length of the query orf
-	long ALength; //the length of the alignment
-	long CurrentLength;//the length with current Start Stop
+	long CurrentLength;
 	bool Defeated; //marks whether this record has been knocked out(tombstone method)
-	long QAlignStart;//offset to start alignment from Start
-	long QAlignStop;//offset to stop alignment from Start
-	double MaxBit;//the maximum possible bit score for the query sequence
-	double RelBit;//bit score * bit/maxbit
-	double BitFrac;//bit Fraction Bit/MaxBit
 	double HighScore;//the highest bit score out of all alignmnets for this query
-	bool Hypot;//bool to tell whether description contains hypothetical
-	string HitID;//id of the hit in db
-	string HitOrg;//name of the organism in the db hit
-	int SID;//identifier of subject that is current rep
 	list<Subject> PrimaryHits;//other blast hits for this query orf
-	list<Subject> SecondaryHits;//other blast hits for this query orf
-
-	priority_queue<Subject*,vector<Subject*>,OrderSubject> SubjectQ;;
+	PQSubject SubjectQ;;
 	map<string,Subject*> SubjectNames;//map of the subject names used to enforce unique subject addition in AddPrimary function
 	//sequence specific calculations are stored here, according to increasing offset from the stop site
 	 SeqCalcMap CalcMap;//for storing and retrieving RawBitValues and entropy values stored according to decreasing length
 	double Entropy;
+	Subject* CurrentRep;//subject whose alignment is serving as the current representative of this orf
 public:
 	
 	AARecord(){//default constructor
-		Sequence="blah";
+
 		ID="unassigned";
-		Function="unassigned";
-		Start=0;
-		Stop=0;
-		HighBase=0;
-		LowBase=0;
-		Bit=0;
-		EScore="Not Assigned";
-		EValue=100000;
-		HLength=0;
 		Reverse =false;
 		Blank =true;
 		Defeated=false;
 		QLength=0;
-		ALength=0;
 		CurrentLength=0;
-		QAlignStart=0;
-		QAlignStop=0;
-		MaxBit=0;
-		RelBit=0;
-		HitID="none";
-		HitOrg="none";
-		SID=0;
 		Entropy=0;
+		Start=Stop=LowBase=HighBase=0;
+		CurrentRep=NULL;
 	}
 
 	//parameterized constructor
 	AARecord( CalcPack& CP, string TID="unassigned", long St=0, long Sp=0, string HID="none", double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, string Func="none", string HOrg="none"){ // parameterized constructor1
 		ID=TID;
-		Function="unassigned";
 		Start=St;
 		Stop=Sp;
-		HighBase=0;
-		LowBase=0;
-		Bit=0;
-		EScore="Not Assigned";
-		EValue=100000;
-		HLength=0;
 		Reverse =false;
 		Blank =true;
 		Defeated=false;;
-		ALength=0;
-		QAlignStart=0;
-		QAlignStop=0;
-		MaxBit=0;
-		RelBit=0;
-		HitID=HID;
-		HitOrg="none";
-		SID=-1;
 		HighScore=0;//highest score so far 
 		Blank=(B==0); //if the bit score is 0 then blank is true
-		CurrentLength=QLength=labs(St-Sp)+1;
-		if(Start<Stop){
-			Reverse=false;
-			LowBase=Start;
-			HighBase=Stop;
+		CurrentRep=NULL;
+		if (Start>Stop){ 
+			Reverse=true;//see if the orf is reversed
+			HighBase=Start;
+			LowBase=Stop;
+			Stop=Stop-3;//adjust for stop codon
 		}
 		else{
-			Reverse=true;
-			LowBase=Stop;
-			HighBase=Start;
+			Reverse=false;
+			HighBase=Stop;
+			LowBase=Start;
+			Stop=Stop+3;
 		}
+		CurrentLength=QLength=HighBase-LowBase+1;
 		
 
 		//This is a lazy addition. ToDo: Modify AArecord to use the values at the top of the BitQueue
@@ -181,84 +138,73 @@ public:
 
 		//Copy Constructor
 	 AARecord(const AARecord &Source){// open defintion
-		 Sequence=Source.Sequence;
-		 ID=Source.ID; //unique for each record
-		 Function=Source.Function;
-		 Start=Source.Start; // the start position for the orf
-		 Stop=Source.Stop; // the stop position for the orf
-		 HighBase=Source.HighBase; 
-		 LowBase=Source.LowBase;
-		 Defeated=Source.Defeated;
-		 RelBit=Source.RelBit;
-		 Hypot=Source.Hypot;
-		 MaxBit=Source.MaxBit;
-		 Bit=Source.Bit; // the bit score for the hit
-		 EScore=Source.EScore; //the E-score for the hit
-		 HLength=Source.HLength; //the length of the hit sequence
-		 Reverse=Source.Reverse; //Is it in a - frame
-		 Blank=Source.Blank;
-		 EValue=Source.EValue;//copy the evalue for the hit
-		ALength=Source.ALength;//alignment length
-		CurrentLength=Source.CurrentLength;
+		ID=Source.ID; //unique for each record
+		Start=Source.Start;
+		Stop=Source.Stop;
+		LowBase=Source.LowBase;
+		HighBase=Source.HighBase;
+		Defeated=Source.Defeated;
+		Reverse=Source.Reverse; //Is it in a - frame
+		Blank=Source.Blank;
 		QLength=Source.QLength;//Orf length
-		QAlignStart=Source.QAlignStart;
-		QAlignStop=Source.QAlignStop;
-		HitOrg=Source.HitOrg;
-		HitID=Source.HitID;
+		CurrentLength=Source.CurrentLength;
 		PrimaryHits=Source.PrimaryHits;
-		SecondaryHits=Source.SecondaryHits;
-		SID=Source.SID;
 		HighScore=Source.HighScore;
 		Entropy=Source.Entropy;
-		BitFrac=Source.BitFrac;
 		CalcMap=Source.CalcMap;
-		if (Source.SubjectQ.size()>0){//if there is something to copy
-			for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
-				SubjectQ.push(&(*It));
-				SubjectNames.insert(map<string,Subject*>::value_type(It->GetID(),&(*It)));//insert pointer to Subject based on name
-			}
+		
+		string TempName="none";
+		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
+			SubjectNames.insert(map<string,Subject*>::value_type(It->GetID(),&(*It)));//insert pointer to Subject based on name
+		}
+		PQSubject CopyQ=Source.SubjectQ;
+
+		while(!CopyQ.empty()){
+			TempName=CopyQ.top()->GetID();
+			SubjectQ.push((SubjectNames.find(TempName)->second));//add each address for that was on the old queue
+		}
+		if(Source.CurrentRep!=NULL){
+			TempName=Source.CurrentRep->GetID();
+			CurrentRep=(SubjectNames.find(TempName)->second);
+		}
+		else {
+			CurrentRep=NULL;
 		}
 	}// close definition
 
 	 //Assignment Operator
 	 AARecord& operator =(const AARecord &Source){// open defintion
 		if (this!= &Source){// open non-self assignment consq.
-			Sequence=Source.Sequence;
-			ID=Source.ID; //unique for each record
-			Function=Source.Function;
-			Start=Source.Start; // the start position for the orf
-			Stop=Source.Stop; // the stop position for the orf
-			HighBase=Source.HighBase;
-			RelBit=Source.RelBit;
-			Hypot=Source.Hypot;
-			Defeated=Source.Defeated;
+			Start=Source.Start;
+			Stop=Source.Stop;
 			LowBase=Source.LowBase;
-			MaxBit=Source.MaxBit;
-			Bit=Source.Bit; // the bit score for the hit
-			EScore=Source.EScore; //the E-score for the hit
-			HLength=Source.HLength; //the length of the hit sequence
+			HighBase=Source.HighBase;
+			ID=Source.ID; //unique for each record
+			Defeated=Source.Defeated;
 			Reverse=Source.Reverse; //Is it in a - frame
-			Blank=Source.Blank;	
-			EValue=Source.EValue;
+			Blank=Source.Blank;
 			QLength=Source.QLength;//Orf length
-			ALength=Source.ALength;//alignment length
 			CurrentLength=Source.CurrentLength;
-			QAlignStart=Source.QAlignStart;
-			QAlignStop=Source.QAlignStop;
-			HitOrg=Source.HitOrg;
-			HitID=Source.HitID;
 			PrimaryHits=Source.PrimaryHits;
-			SecondaryHits=Source.SecondaryHits;
-			SID=Source.SID;
-			Entropy=Source.Entropy;
-			BitFrac=Source.BitFrac;
 			HighScore=Source.HighScore;
+			Entropy=Source.Entropy;
 			CalcMap=Source.CalcMap;
-			if (Source.SubjectQ.size()>0){//if there is something to copy
-				for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
-					SubjectQ.push(&(*It));
-					SubjectNames.insert(map<string,Subject*>::value_type(It->GetID(),&(*It)));//insert pointer to Subject based on name
-				}
+			string TempName="none";
+			for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
+				SubjectNames.insert(map<string,Subject*>::value_type(It->GetID(),&(*It)));//insert pointer to Subject based on name
+			}
+			PQSubject CopyQ=Source.SubjectQ;
+	
+			while(!CopyQ.empty()){
+				TempName=CopyQ.top()->GetID();
+				SubjectQ.push((SubjectNames.find(TempName)->second));//add each address for that was on the old queue
+			}
+			if(Source.CurrentRep!=NULL){
+				TempName=Source.CurrentRep->GetID();
+				CurrentRep=(SubjectNames.find(TempName)->second);
+			}
+			else {
+				CurrentRep=NULL;
 			}
 		}// close self assignment
 		return *this;
@@ -271,48 +217,91 @@ public:
 	 }
 
 	 	//> OPERATOR overload
-		//adding e-score evaluation and inverting signs 04/04/06
+		//Both operators use the CurrentRep for the following two cases
+		//Case1 One of the orfs have no alignment, in which case
+		//there is no subject so currentRep==NULL
+		//Case2 One of the orfs has alignments but they have all 
+		//been removed in the dequing process which can only happen
+		//in a comparison by comparison basis between AARecords
+		//after which time the Queue is refreshed
 	bool operator>(const AARecord& RHS)const{
-		double BitRatio=0;
-		if (RelBit==0 || RHS.RelBit==0){
-			BitRatio=0;
+		if(CurrentRep==NULL){
+			return false;//LHS cannot be bigger if it has no score
 		}
-		else if(RelBit<RHS.RelBit){
-			BitRatio=RelBit/RHS.RelBit;
+		else if(RHS.CurrentRep==NULL){
+			return true;//if the RHS is has no score then LHS is bigger
 		}
-		else {BitRatio=RHS.RelBit/RelBit;}
-
-		if(Hypot && !RHS.Hypot && BitRatio>.80){
-			return false;
+		else {
+			return ((*CurrentRep)>(*RHS.CurrentRep));//else return who is bigger
 		}
-		else if(!Hypot && RHS.Hypot && BitRatio>.80){
-			return true;
-		}
-		else return(RelBit>RHS.RelBit);
-		//return(EValue<RHS.EValue);
 	}
+
+
 
 		//< OPERATOR overload
 	bool operator<(const AARecord& RHS)const{
-		double BitRatio=0;
-		if (RelBit==0 || RHS.RelBit==0){
-			BitRatio=0;
-		}
-		else if(RelBit<RHS.RelBit){
-			BitRatio=RelBit/RHS.RelBit;
-		}
-		else {BitRatio=RHS.RelBit/RelBit;}
 
-		if(Hypot && !RHS.Hypot && BitRatio>.80){
-			return true;
-		}
-		else if(!Hypot && RHS.Hypot && BitRatio>.80){
+		if(RHS.CurrentRep==NULL){
 			return false;
 		}
-		return (RelBit<RHS.RelBit);
-		//return(EValue>RHS.EValue);
+		else if(CurrentRep==NULL){
+			return true;
+		}
+		else{
+			return ((*CurrentRep)<(*CurrentRep));//else return who is bigger
+		}
+
 	}
 	
+
+
+	//Report Lowbase
+	long ReportLowBase(){
+		if(Blank){
+			return LowBase;
+		}
+		else if(CurrentRep==NULL){
+			cerr<<"LowBase is trying to be accessed when no representative\n";
+			throw 20;
+		}
+		else{
+			return CurrentRep->ReportLowBase();
+		}
+	}
+
+
+	//Report HighBase
+	long ReportHighBase(){
+		if(Blank){
+			return HighBase;
+		}
+		else if(CurrentRep==NULL){
+			cerr<<"HighBase is trying to be accessed when no representative\n";
+			throw 20;
+		}
+		else{
+			return CurrentRep->ReportHighBase();
+		}
+	}
+
+
+	//Update Coordinates
+	//Because some orfs do not have alignments all coordinate information will
+	//be evaluated at the AARecord level
+	int UpdateCoord(){
+		LowBase=ReportLowBase();
+		HighBase=ReportHighBase();
+		CurrentLength=HighBase-LowBase+1;
+		if(Reverse){
+			Start=HighBase;
+			Stop=LowBase-3;
+		}
+		else{
+			Start=LowBase;
+			Stop=HighBase+3;
+		}
+		return 0;
+	}
 
 
 
@@ -342,7 +331,6 @@ public:
 	 }// close defintion
 
 
-
 	//bool CompatibleOverlap
 	//meant to be run on Loser.CompatibleOverlap(Winner)
 	//returns whether an overlap occurs on the three prime side of THIS ORF aka LHS
@@ -352,7 +340,10 @@ public:
 	//if Loser encompasses winner return true
 	//otherwise return by case
 	bool CompatibleOverlap(AARecord& Winner){
-		//if the overlap occurs on the high side of this orf
+		if(Blank){
+			return false;//if the loser has no alignment do not make an adjustment
+		}
+
 		if (Winner.LowBase>=LowBase && Winner.LowBase <=HighBase){
 			if(HighBase>=Winner.HighBase){//if loser encompasses the winner
 				return true;
@@ -393,78 +384,36 @@ public:
 
 
 
+
 	//bool Knockout
 	//returns whether two ORFs break overlapping threshold so that one should be knocked out
 	//modified for different threshold overlaps based on blast score
-	bool KnockOut(AARecord& RHS, int OverLen){//open def
+	bool ToKnockOut(AARecord& RHS, int OverLen){//open def
 		if(RHS.ID==ID){return true;}//if the same id then one has to go
 
-		bool NoScore =(RHS.Bit==0 || Bit==0);//if either ORF does not have a score
-		double BitFrac1;
-		double BitFrac2;
-		//double BitFrac=0;
+		bool NoScore =(RHS.Blank || Blank);//if either ORF does not have a score
 		double MaxOverlap=120;
 		float OEFactor=.05/3;//E-score to overlap threshold converstion factor 
 		double OLapThreshold=12;//default overlap threshold is 12 nucl.
 
 		if(!NoScore){
-			BitFrac1=Bit/MaxBit;
-			BitFrac2=RHS.Bit/RHS.MaxBit;
-			if(BitFrac1>1){
-				BitFrac1=1;
-			}
-			if(BitFrac2>1){
-				BitFrac2=1;
-			}
-
-			//double OLapT1=-1*log(EValue)*OEFactor;
-			//double OLapT2=-1*log(RHS.EValue)*OEFactor;
-			//double ScoreFactor=0;
-			//double Diff=0;
-			//BitFrac1=BitFrac1*Bit;
-			//BitFrac2=BitFrac2*RHS.Bit;
-			if(QLength<300 || RHS.QLength<300){ //if the length of one of the orfs is less than 300 decrease maxoverlap
-				if(QLength<RHS.QLength){
-					MaxOverlap=MaxOverlap*(QLength/300);
-					//MaxOverlap=0.4*QLength;
-				}
-				else {
-					MaxOverlap=MaxOverlap*(RHS.QLength/300);
-					//MaxOverlap=0.4*RHS.QLength;
-				}
-			}
-				
-			if(BitFrac1<BitFrac2){
-				//Diff=(Bit/RHS.Bit)*2;
-				//ScoreFactor=(Bit/1000)+1;
-				OLapThreshold=(BitFrac1*MaxOverlap);
-			}
-			else{
-				//Diff=(RHS.Bit/Bit)*2;
-				//ScoreFactor=(RHS.Bit/1000)+1;
-				OLapThreshold=(BitFrac2*MaxOverlap);
-			}
-			//OLapThreshold=BitFrac*90;//for every .10 they have similar score give a 1% overlap
-			//if(OLapT2<OLapT1){//set overlap threshold to be a function of the e-value score
-			//	OLapThreshold=OLapT2;
-			//}
-			//else {OLapThreshold=OLapT1;}//take the min threshold
+			OLapThreshold=CurrentRep->OverlapThreshold(*RHS.CurrentRep,MaxOverlap);
 		}//close if both have score
-		else if(OverLen>12){return true;}//LAST ADDED 080306  If two putative ORFs overlap and one has no hits it must overlap very little
-		else if(RHS.Bit==0 && Bit==0){
+		else if(OverLen>12){return true;}// If two putative ORFs overlap and one has no hits it must overlap very little
+		else if(RHS.Blank && Blank){
 			if(OverLen>0){return true;}
 			else{//else the overlap is negative which is distance between two no_hit orfs Possible intergenic region
-				int Distance=OverLen*-1;
-				//return(Entropy>0.90||RHS.Entropy>0.90||QLength<300||RHS.QLength<300);
-				return false;
+				cerr<<"Logic error:ToKnockOut called on orfs that do not overlap.\n";
+				throw 20;
 			}
 		}
 
-		//double RPercentOLap=double(OverLen)/RHS.QLength;
-		//double LPercentOLap=double(OverLen)/QLength;
-
 		if(OverLen>OLapThreshold && OverLen>12){
 			return true;
+		}
+		else if(OverLen<=0){
+			cerr<<"Logic error:ToKnockOut called on orfs that do not overlap.\n";
+			throw 20;
 		}
 		else return false;
 	}//close definition
@@ -477,16 +426,16 @@ public:
 	//and evaluates the LHS BetterThan RHS based on that discriminator
 	bool operator ^(const AARecord& RHS)const{//open definition
 		//return (Entropy<RHS.Entropy);
-		//return (QLength>RHS.QLength);//LHS.QueryLength>RHS.QueryLength
+		//return (CurrentLength>RHS.CurrentLength);//LHS.QueryLength>RHS.QueryLength
 		//return (Entropy<RHS.Entropy);
 		double LengthFrac=0;
 		double EntropyFrac=0;
 		//create discriminator fractions by using (difference/Min(value1, value2))
-		if(QLength>RHS.QLength){
-			LengthFrac=double(QLength-RHS.QLength)/double(RHS.QLength);
+		if(CurrentLength>RHS.CurrentLength){
+			LengthFrac=double(CurrentLength-RHS.CurrentLength)/double(RHS.CurrentLength);
 		}
 		else{
-			LengthFrac=double(RHS.QLength-QLength)/double(QLength);
+			LengthFrac=double(RHS.CurrentLength-CurrentLength)/double(CurrentLength);
 		}
 		if(Entropy>RHS.Entropy){
 			EntropyFrac=double(Entropy-RHS.Entropy)/double(RHS.Entropy);
@@ -497,9 +446,10 @@ public:
 		if (EntropyFrac>LengthFrac){
 			return (Entropy<RHS.Entropy); //LHS is better than RHS if entropy is lower
 		}
-		else return (QLength>RHS.QLength); //LHS is better than RHS if length is greater
-			
+		else return (CurrentLength>RHS.CurrentLength); //LHS is better than RHS if length is greater		
 	}// close definition
+
+
 
 	//report ID of the record aka queryID
 	string ReportID(){
@@ -510,17 +460,25 @@ public:
 		return !Blank;
 	}//close definiton
 
-	long ReportLowBase(){
-		return LowBase;
-	}
 
-	long ReportHighBase(){
-		return HighBase;
-	}
 
+	//Reports the Bit/MaxBit value for the alignment currently
+	//being used as rep
 	double ReportBitFrac(){
-		return BitFrac;
+		if(Blank){
+			return 0;
+		}
+		else if(CurrentRep!=NULL){
+			return CurrentRep->ReportBitFrac();
+		}
+		else {
+			cerr<<"Logic error: Reporting BitFraction of orf with Hit but no Rep.\n";
+			throw 20;
+		}
+		return 0;
 	}
+
+
 
 	double ReportEntropy(){
 		return Entropy;
@@ -533,6 +491,9 @@ public:
 	//Tombstones this record
 	int KnockOut(){
 		Defeated=true;
+		if(!Blank){
+			RefreshAll();//refresh all queues
+		}
 		return 0;
 	}
 
@@ -597,11 +558,12 @@ public:
 	//Switch the representative for the query orf
 	//Assumes SubjectQ is ordered in order of decreasing importantance
 	int SwitchRep(){
-
-		if(PrimaryHits.size()>0){
-			Subject* TopS=SubjectQ.top();
-			TopS->GetInfo(SID, Function, HitID, HitOrg, HLength, Hypot, ALength, Bit, EScore, EValue, HighBase, LowBase, MaxBit, QAlignStart, QAlignStop, BitFrac, RelBit, Start, Stop);
-			CurrentLength=labs(Start-Stop)+1;
+		if(SubjectQ.size()>0){
+			CurrentRep=SubjectQ.top();
+			UpdateCoord();
+		}
+		else{
+			CurrentRep=NULL;
 		}
 		return 0;
 	}//close def.
@@ -624,20 +586,23 @@ public:
 		bool ToKO=true;
 		//For each
 		while(!SubjectQ.empty() && ToKO){//open while loop
-			SwitchRep();//switch this Records Rep. hit
-			int OverL=Overlap(Winner);
-			if(OverL==0){//if the two do not overlap
-				RefreshAll();
-				return false;
-			}
-			else{//else check if compatible
-				ToKO=KnockOut(Winner,OverL);//check compatability
-			}
 			PopTop();//get rid of top hit
+			SwitchRep();//switch this Records Rep. hit
+			if(CurrentRep!=NULL){
+				int OverL=Overlap(Winner);
+				if(OverL==0){//if the two do not overlap
+					return false;
+				}
+				else{//else check if compatible
+					ToKO=ToKnockOut(Winner,OverL);//check compatability
+				}
+			}
 		}//close while loop
 
-		RefreshAll();//refresh all queues
-		return ToKO;
+		if(ToKO){
+			return true;
+		}
+		else return ToKO;
 	}//end def.
 
 
@@ -670,6 +635,8 @@ public:
 		return SubjectQ.size();
 	}
 
+
+
 	//this function refreshes both subject and alignment queues
 	int RefreshAll(){
 		while(!SubjectQ.empty()){
@@ -679,8 +646,11 @@ public:
 			It->RefreshAlignQ();
 			SubjectQ.push(&(*It));//put the subject back on the queue
 		}
+		CurrentRep=SubjectQ.top();
 		return 0;
 	}
+
+
 
 	//This function is designed to be run after all subjects/alignments have been added to the Record
 	//It will pass in the highest BitScore out of all the alignments for this query so that
@@ -697,6 +667,9 @@ public:
 		SwitchRep();
 		return 0;
 	}
+
+
+
 
 	//This function calculates the maximum possible bit score for a given segment of the genome
 	//Checks to see if the rawbit has been calculated for this LB HB Reverse Combo
@@ -767,6 +740,22 @@ public:
 		FindIt=CalcMap.find(Length);
 		return (&(FindIt->second));//return pointer to SeqCalc structure that holds the scores
 	}//close definition
+
+
+//Displays information in tab delimited format about AARecord
+//and its current representatives
+//this function violates information hiding
+	int DisplayInfo(std::ostream& Out){
+		if(CurrentRep!=NULL){
+			CurrentRep->DisplayInfo(Out);//display the information about the subject
+
+		}
+		else{
+			cerr<<"Error in Displaying record information\n";
+			throw 20;
+		}
+		return 0;
+	}
 
 	
 

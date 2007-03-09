@@ -116,6 +116,46 @@ public:
 	}// close definition
 
 
+	//>operator to tell whether one subject is better than another
+	//this is judged on the current top alignment
+	bool operator>(const Subject& RHS)const{
+		double BitRatio=AlignQ.top()->BitRatio(*RHS.AlignQ.top());
+		double AbsValue=BitRatio;
+		if(BitRatio<0){
+			AbsValue=BitRatio*-1;
+		}
+
+		//being a hypothetical costs you 20% versus another Hit
+		//this isnt really fair to hypothetical
+		//since others may be called putative, hypot. etc.
+		if(Hypot && !RHS.Hypot && AbsValue>.80){
+			return false;
+		}
+		else if(!Hypot && RHS.Hypot && AbsValue>.80){
+			return true;
+		}
+		else return(BitRatio>0);//BitRatio is positive if LHS>RHS
+	}
+
+
+	//<operator to tell whether one subject is better than another
+	//this is judged on the current top alignment
+	bool operator<(const Subject& RHS)const{
+		double BitRatio=AlignQ.top()->BitRatio(*RHS.AlignQ.top());
+		double AbsValue=BitRatio;
+		if(BitRatio<0){
+			AbsValue=BitRatio*-1;
+		}
+		if(Hypot && !RHS.Hypot && AbsValue>.80){
+			return true;
+		}
+		else if(!Hypot && RHS.Hypot && AbsValue>.80){
+			return false;
+		}
+		return (BitRatio<0);//Bit Ratio is negative if LHS<RHS
+	}
+
+
 	//Function for adding alignment to the alignment list
 	int AddAlign(long St, long Sp, double B, string ES, long AL, long QASt, long QASp, double MxBit, double SScore){
 		AlignList.push_back(Alignment(St,Sp,B,ES,AL,QASt,QASp,MxBit,SScore));//add Alignment
@@ -140,6 +180,21 @@ public:
 	//Function for returning the SubjectID of this subject
 	string GetID(){
 		return HitID;
+	}
+
+
+
+
+
+	//This function returns the value of the lower part of the orf coordinates
+	long ReportLowBase(){
+		return AlignQ.top()->ReportLowBase();
+	}
+
+
+	//This function returns the value of the higher part of the orf coordinates
+	long ReportHighBase(){
+		return AlignQ.top()->ReportHighBase();
 	}
 
 
@@ -191,6 +246,33 @@ public:
 			AlignQ.push(&(*It));
 		}
 		return 0;
+	}
+
+
+	//Return the overlap threshold for the subjects involved
+	double OverlapThreshold(Subject& RHS, const double& MxOLap){
+		return AlignQ.top()->OverlapThreshold(*RHS.AlignQ.top(), MxOLap);
+	}
+
+
+	//Reports the Bit/MaxBit value for this alignment
+	double ReportBitFrac(){
+		return AlignQ.top()->ReportBitFrac();
+	}
+
+	//Display the Information about this Subject and its representative
+	int DisplayInfo(std::ostream& Out){
+
+			double ALength=AlignQ.top()->GetALength();
+			double OLength=AlignQ.top()->GetLength();
+
+			Out<<Function<<"\t"; //print hit description or no hit line
+			Out<<HitID<<"\t";
+			Out<<HitOrg<<"\t";
+			AlignQ.top()->DisplayInfo(Out);
+			Out<<HLength<<"\t";
+			Out<<(ALength/(OLength/3))*100<<"\t";
+			Out<<(ALength/HLength)*100<<"\n";
 	}
 
 

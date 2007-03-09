@@ -342,7 +342,7 @@ int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>
 
 					bool KO=false;//default is to not knock one out
 					if(OverLen!=0){//if they overlap
-						KO=It1->second->KnockOut(*(It2->second), OverLen);//determine if one should be knocked out
+						KO=It1->second->ToKnockOut(*(It2->second), OverLen);//determine if one should be knocked out
 					}
 					if(KO){//if one of the ORFs should be knocked out
 
@@ -474,7 +474,7 @@ int PrintLosers(list<AARecord*>& InitList, string NegName){//open definition
 	return 0;
 }
 
-std::ostream& operator<<(std::ostream& ACOut, const AARecord& AC){
+/*std::ostream& operator<<(std::ostream& ACOut, const AARecord& AC){
 	ACOut<<"PPCG**"<<"\n";
 	ACOut<<"ID:\t"<<AC.ID<<"\n";
 	ACOut<<"ORF Start:\t"<<AC.Start<<"\n";
@@ -503,7 +503,7 @@ std::ostream& operator<<(std::ostream& ACOut, const AARecord& AC){
 	ACOut<<"**PPCG"<<"\n";
 
 	return ACOut;
-}
+}*/
 
 
 //ofstream overload for Compete class
@@ -529,7 +529,7 @@ std::ostream& operator<<(std::ostream& ChkOut, AARecord* AC){
 	ChkOut<<AC->ID<<"\t";
 	ChkOut<<AC->Start<<"\t";
 	ChkOut<<AC->Stop<<"\t";
-	ChkOut<<AC->QLength<<"\t";
+	ChkOut<<AC->CurrentLength<<"\t";
 	
 	if (AC->Reverse){
 		ChkOut<<'-'<<"\t";
@@ -540,21 +540,11 @@ std::ostream& operator<<(std::ostream& ChkOut, AARecord* AC){
 
 
 	if(!AC->Blank){//if there is a hit
-		ChkOut<<AC->Function<<"\t"; //print hit description or no hit line
-		double ALength=AC->ALength;
-		double OLength=AC->QLength;
-		double HLength=AC->HLength;
-		ChkOut<<AC->HitID<<"\t";
-		ChkOut<<AC->HitOrg<<"\t";
-		ChkOut<<AC->Bit<<"\t";
-		ChkOut<<AC->EScore<<"\t";
-		ChkOut<<AC->HLength<<"\t";
-		ChkOut<<(ALength/(OLength/3))*100<<"\t";
-		ChkOut<<(ALength/HLength)*100<<"\n";
+		AC->DisplayInfo(ChkOut);
 	}
 
 	else{
-		ChkOut<<AC->HitID<<"\t";
+		ChkOut<<"No_hits"<<"\t";
 		ChkOut<<"-\t";//HitID
 		ChkOut<<"-\t";//HitOrg
 		ChkOut<<"-\t";//Bit

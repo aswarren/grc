@@ -331,7 +331,7 @@ public:
 		double Travel=0;
 		double NuclDist=(3*QAlignStart);
 		int Halt=0;//defines when the search has gone back to original
-	
+
 		//if there is no room to search for a start between the aligned region and current start
 		//increase orig start count and return
 		//if have returned to Original start (OStartCount>0) then return false
@@ -351,11 +351,11 @@ public:
 				return true;
 			} 
 		}
-		if(Reverse){//if the pGene is reversed
+		if(Reverse){//if the pGene is reversed LOOKING FOR reverse starts in THE FORWARD DIRECTION!!!
 			if(Start==OrigStart){
 				OStartCount++;//increase count that originalstart has been processed
-				StartSearch=(Start-1)-(3*QAlignStart);// start search position
-				Halt=(QAlignStart*3);
+				StartSearch=(Start-3-1)-(3*QAlignStart);// start search position //minus 3 to account for subtraction difference of(+1*3) and -1 to convert to string coordinates
+				Halt=(QAlignStart*3)+3;
 			}
 			else{//start from the position of the last start found
 				StartSearch=Start+2;//next codon 
@@ -364,7 +364,7 @@ public:
 	
 			for (int s=0; s<=Halt; s=s+3){//search codons in the upstream direction
 				if(s%3==0){//if its the next codon
-					if(ReverseStart(Genome.substr(StartSearch+s-2, 3))){//if its a start
+					if(ReverseStart(Genome.substr(StartSearch+s-2, 3))){//if its a start -2 because looking in forward direction
 						StartScore=CalcSS(Genome.substr(StartSearch+s-2, 3));//get the probability of the codon being start site
 						St=StartSearch+s+1;
 						return true;//if back to original start, stop searching

@@ -225,6 +225,9 @@ public:
 		//in a comparison by comparison basis between AARecords
 		//after which time the Queue is refreshed
 	bool operator>(const AARecord& RHS)const{
+		if(ID=="T4489"||ID=="T4490"){
+			cout<<"Stop here";
+		}
 		if(CurrentRep==NULL){
 			return false;//LHS cannot be bigger if it has no score
 		}
@@ -240,7 +243,9 @@ public:
 
 		//< OPERATOR overload
 	bool operator<(const AARecord& RHS)const{
-
+		if(ID=="T4489"||ID=="T4490"){
+			cout<<"Stop here";
+		}
 		if(RHS.CurrentRep==NULL){
 			return false;
 		}
@@ -248,7 +253,7 @@ public:
 			return true;
 		}
 		else{
-			return ((*CurrentRep)<(*CurrentRep));//else return who is bigger
+			return ((*CurrentRep)<(*RHS.CurrentRep));//else return who is bigger
 		}
 
 	}
@@ -503,6 +508,7 @@ public:
 		long HBase=0;
 		long OrigStart=St;
 		double StartScore=0;
+
 		if(HighScore<B){//record highest bit score for any alignment for this query
 			HighScore=B;
 		}
@@ -656,6 +662,7 @@ public:
 	//It will pass in the highest BitScore out of all the alignments for this query so that
 	//each (alignment,start site) pair can be scored according to its individual and relative characteristics
 	int UpdateScores(){
+
 		while(!SubjectQ.empty()){//clear the alignQ
 			SubjectQ.pop();
 		}

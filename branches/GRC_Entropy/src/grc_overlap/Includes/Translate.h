@@ -30,12 +30,14 @@ class Translate {//open prototype
 
 private:
 	int TransCode;
+	int TransCodePosition;
 	map <string,char> TTables[23]; //translation tables
 	string InputFile;
 public:
 	//default constructor
 	Translate(){
 		TransCode=11;
+		TransCodePosition=TransCode-1;
 		InputFile="none";
 	}
 
@@ -43,12 +45,14 @@ public:
 	Translate(int TC, string IF){
 		InputFile=IF;
 		TransCode=TC;
+		TransCodePosition=TransCode--;
 	}
 
 	//copy constructor
 	Translate(const Translate &Source){// open defintion
 		TransCode=Source.TransCode;
 		InputFile=Source.InputFile;
+		TransCodePosition=Source.TransCodePosition;
 		for(int t=0; t<23; t++){
 			TTables[t]=Source.TTables[t];
 		}
@@ -59,6 +63,7 @@ public:
 		if (this!= &Source){// open non-self assignment consq.
 			TransCode=Source.TransCode;
 			InputFile=Source.InputFile;
+			TransCodePosition=Source.TransCodePosition;
 			for(int t=0; t<23; t++){
 				TTables[t]=Source.TTables[t];
 			}
@@ -67,6 +72,11 @@ public:
 	}// close definition
 
 
+	//Set Input File
+	int SetTransFile(const string& IF){
+		InputFile=IF;
+		return 0;
+	}
 
 /* Name:InitCodes
 **	@param1: Array of 23 maps that are to be initialized to contain translation information
@@ -124,14 +134,18 @@ public:
 		for (int s=0; s<Sequence.size(); s=s+3){
 			if((s)%3==0){//if its the end of the next codon
 				SubSeq=Sequence.substr(s,len);				
-				FindIt=TTables[TransCode].find(SubSeq);//look for the codon
-				if(FindIt!=TTables[TransCode].end()){//if found
+				FindIt=TTables[TransCodePosition].find(SubSeq);//look for the codon
+				if(FindIt!=TTables[TransCodePosition].end()){//if found
 					AA=FindIt->second;
 				}
 				Translation+=AA;//append
 				AA='*';
 			}
 		}
+		//enforce that the first codon in an orf gives Met
+		//if(Translation.size()>0 && Translation[0]!='M'){
+		//	Translation[0]='M';
+		//}
 		return Translation;
 	}
 

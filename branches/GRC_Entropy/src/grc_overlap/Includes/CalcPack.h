@@ -36,23 +36,26 @@ public:
 	double K;//constant in MaxBit calculation
 	map <string,int> ConsValue;//map for storing the max value of a conserved amino acid
 	string Genome; //for storing the genome
-	string ECommand;//the command for running entropy-calc
+	string TransFile;//the command for running entropy-calc
 	string Matrix;
 	string GenomeFile;
 	int OStartCount;//Count for find starts that keeps track of the number of times original start has been processed
+	double DefaultCProfile[20];
+	double DefaultNCProfile[20];//for non coding genes
+	Translate Translator;//for translating nucl. to AA
 
 
 	CalcPack(){//default constructor
 		Lambda=0;
 		K=0;
 		Genome="";
-		ECommand="";
+		TransFile="";
 		GenomeFile="";
 		OStartCount=0;
 	}
 
-	CalcPack(string Matx, string GF, string ECom){//parameterized constructor
-		ECommand=ECom;
+	CalcPack(string Matx, string GF, string TF){//parameterized constructor
+		TransFile=TF;
 		Matrix=Matx;
 		OStartCount=0;
 		int Status=InitCodes();//read in the values.
@@ -60,6 +63,9 @@ public:
 			cout<<"\ngrc_overlap unable to initialize BLAST parameters:exiting...\n";
 			throw 20;
 		}
+		SetDefaultEDP();
+		Translator.SetTransFile(TransFile);
+		Translator.InitCodes();
 		GenomeFile=GF;
 		GetGenome();
 	}
@@ -113,7 +119,7 @@ public:
 		}//close while loop
 		InCode.close();
 
-		//Set constants
+		//Set constants Values obtained from FSABLAST
 		if(string::npos!=Matrix.find("MaxB62",0)){//if the matrix is BLOSUM62
 			Lambda=0.267;
 			K=0.041;
@@ -144,9 +150,89 @@ public:
 			K=0.041;
 		}
 
-
 		return 0;
 	}//close definition
+
+
+	int SetDefaultEDP(){
+	//Annoying
+	//no list initialization of non-static data member....
+		DefaultCProfile[0]=0.08468;
+		DefaultCProfile[1]=0.01606;
+		DefaultCProfile[2]=0.05739;
+		DefaultCProfile[3]=0.05752;
+		DefaultCProfile[4]=0.04328;
+		DefaultCProfile[5]=0.07042;
+		DefaultCProfile[6]=0.02942;
+		DefaultCProfile[7]=0.05624;
+		DefaultCProfile[8]=0.04442;
+		DefaultCProfile[9]=0.05620;
+		DefaultCProfile[10]=0.03029;
+		DefaultCProfile[11]=0.03975;
+		DefaultCProfile[12]=0.05116;
+		DefaultCProfile[13]=0.04098;
+		DefaultCProfile[14]=0.05989;
+		DefaultCProfile[15]=0.08224;
+		DefaultCProfile[16]=0.05660;
+		DefaultCProfile[17]=0.06991;
+		DefaultCProfile[18]=0.02044;
+		DefaultCProfile[19]=0.03310;
+
+		//setup Default noncoding profile
+		DefaultNCProfile[0]=0.07434;
+		DefaultNCProfile[1]=0.03035;
+		DefaultNCProfile[2]=0.05936;
+		DefaultNCProfile[3]=0.04729;
+		DefaultNCProfile[4]=0.05662;
+		DefaultNCProfile[5]=0.07704;
+		DefaultNCProfile[6]=0.05777;
+		DefaultNCProfile[7]=0.05328;
+		DefaultNCProfile[8]=0.03360;
+		DefaultNCProfile[9]=0.05581;
+		DefaultNCProfile[10]=0.01457;
+		DefaultNCProfile[11]=0.03718;
+		DefaultNCProfile[12]=0.04594;
+		DefaultNCProfile[13]=0.05977;
+		DefaultNCProfile[14]=0.08489;
+		DefaultNCProfile[15]=0.05990;
+		DefaultNCProfile[16]=0.04978;
+		DefaultNCProfile[17]=0.07227;
+		DefaultNCProfile[18]=0.01050;
+		DefaultNCProfile[19]=0.01974;
+		return 0;
+	}
+
+
+	//this function returns the coordinate of the amino acid in the array
+	//expects that any non-AA coding seq. enountered will be translated to '*'
+	int MapAA(char AA){
+		int Value=21;
+		if(AA=='*'){
+			return Value;
+		}
+		else{
+			Value=AA-'A';
+		}
+		//26 letters in the alphabet but only 20 AA convert to correct indecies
+		if(Value>23){
+			Value-=5;
+		}
+		else if(Value>20){
+			Value-=4;
+		}
+		else if(Value>14){
+			Value-=3;
+		}
+		else if(Value>9){
+			Value-=2;
+		}
+		else if(Value>1){
+			Value-=1;
+		}
+		
+		return Value;
+	}
+
 
 
 	//This function calculates the entropy for the section of the genome specified
@@ -156,18 +242,50 @@ public:
 		FILE* TempF;
 		char TempC[sizeof(double)];
 		double Entropy=-1;
-		string Command=ECommand;
-		
-		Command=Command+" ";//add space before sequence
+		string Translation="";
+		int TempCount[21];
+		double TempFreq[21];
+
+		for(int x=0; x<21; x++){
+			TempCount[x]=0;
+			TempFreq[x]=0;
+		}
+
 		if(Reverse){//if the pGene is reversed
-			Command=Command+ReverseComp(Genome.substr(Begin, Length));	
+			Translation=Translator.TranslateSeq(ReverseComp(Genome.substr(Begin,Length)));
+			//Command=Command+ReverseComp(Genome.substr(Begin, Length));	
 		}
 		else{//not reverse complement
-			Command=Command+Genome.substr(Begin, Length);
+			Translation=Translator.TranslateSeq(Genome.substr(Begin, Length));
+			//Command=Command+Genome.substr(Begin, Length);
 		}
 		
+		GetAACount(TempCount, Translation);
+		int t=0;
+		double TotalEntropy=0;
+		int TotalCount=0;
+
+		for(t=0; t<20; t++){
+			TotalCount+=TempCount[t];
+		}
+		//convert counts to frequencies
+		for(t=0; t<20; t++){
+			TempFreq[t]=double(TempCount[t])/(double(Length)/3);
+		}
+		//convert frequencies to entropies
+		for(t=0; t<20; t++){
+			if(TempFreq[t]!=0){
+				TempFreq[t]=-1*TempFreq[t]*log10(TempFreq[t]);
+				TotalEntropy+=TempFreq[t];
+			}
+		}
+		for(t=0;t<20;t++){
+			TempFreq[t]=TempFreq[t]/TotalEntropy;
+		}
+
+		Entropy=GetEDR(TempFreq);
 	
-		if ( ( TempF = popen ( Command.c_str(), "r") ) != NULL ){
+		/*if ( ( TempF = popen ( Command.c_str(), "r") ) != NULL ){
 			fgets (TempC, sizeof(double), TempF);
 			pclose(TempF); 
 			stringstream StoD;
@@ -178,8 +296,36 @@ public:
 		else{
 			cerr<<"Could not run command with popen in GetEntropy.";
 			return Entropy;
-		}
+		}*/
+		return Entropy;
 	}//close function
+
+
+	//function for finding setting the frequencies of the amino acids in a sequence
+	int GetAACount(int Freq[], const string& AASequence){
+		//for each amino acid in the sequence
+		for (int t=0; t<AASequence.size(); t++){
+			Freq[MapAA(AASequence[t])]++;
+		}
+		return 0;
+	}
+
+
+	//Get the Entropy Distance Ratio
+	double GetEDR(double EntropyProfile[]){
+		int x=0;
+		double CodingDist=0;
+		double NonCodingDist=0;
+		for (x=0; x<20; x++){
+			double CodingDif=EntropyProfile[x]-DefaultCProfile[x];
+			CodingDist+=(CodingDif*CodingDif);
+			double NonCodingDif=EntropyProfile[x]-DefaultNCProfile[x];
+			NonCodingDist+=(NonCodingDif*NonCodingDif);
+		}
+		CodingDist=sqrt(CodingDist);
+		NonCodingDist=sqrt(NonCodingDist);
+		return CodingDist/NonCodingDist;
+	}
 
 
 	//function to lower the case of all characters in a string

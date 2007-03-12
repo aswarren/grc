@@ -30,24 +30,34 @@ class SeqCalc{//open prototype
 public:
 	double RawBit;
 	double MaxBit;
-	double Entropy;
+	double Entropy;//actually the entropy distance ratio
+	int AAFreq[21];
 	//default constructor
 	SeqCalc(){
 		RawBit=0;
 		Entropy=0;
 		MaxBit=0;
+		for(int t=0; t<21; t++){
+			AAFreq[t]=0;
+		}
 	}
 	//paramaterized constructor
 	SeqCalc(double RB, double MB, double E){
 		RawBit=RB;
 		Entropy=E;
 		MaxBit=MB;
+		for(int t=0; t<21; t++){
+			AAFreq[t]=0;
+		}
 	}
 	//copy constructor
 	SeqCalc(const SeqCalc &Source){// open defintion
 		RawBit=Source.RawBit;
 		MaxBit=Source.MaxBit;
 		Entropy=Source.Entropy;
+		for(int t=0; t<21; t++){
+			AAFreq[t]=Source.AAFreq[t];
+		}
 	}
 // 	//assignment operator
 	SeqCalc& operator =(const SeqCalc &Source){// open defintion
@@ -55,7 +65,11 @@ public:
 			RawBit=Source.RawBit;
 			MaxBit=Source.MaxBit;
 			Entropy=Source.Entropy;
+			for(int t=0; t<21; t++){
+				AAFreq[t]=Source.AAFreq[t];
+			}
 		}
+		return *this;
 	}
 };//close prototype
 
@@ -225,9 +239,7 @@ public:
 		//in a comparison by comparison basis between AARecords
 		//after which time the Queue is refreshed
 	bool operator>(const AARecord& RHS)const{
-		if(ID=="T4489"||ID=="T4490"){
-			cout<<"Stop here";
-		}
+
 		if(CurrentRep==NULL){
 			return false;//LHS cannot be bigger if it has no score
 		}
@@ -243,9 +255,7 @@ public:
 
 		//< OPERATOR overload
 	bool operator<(const AARecord& RHS)const{
-		if(ID=="T4489"||ID=="T4490"){
-			cout<<"Stop here";
-		}
+
 		if(RHS.CurrentRep==NULL){
 			return false;
 		}
@@ -690,14 +700,17 @@ public:
 		long UpperBound=0;//upper bound on calc raw bit
 		long Length=HighB-LowB+1;
 		SeqCalcMap::iterator FindIt;
+		SeqCalcMap::iterator MarkIt;
 		FindIt=CalcMap.find(Length);//find according to the offset from stop which is always HighBase-LowBase
 
 		//if the score has been found
 		if(FindIt!=CalcMap.end()){
 			return (&(FindIt->second));//return address of the Calculation container
 		}
-		//else calculate the score
+		//else calculate the score and create new SeqCalc object
 		else{
+			CalcMap.insert(map<long,SeqCalc>::value_type(Length,SeqCalc()));//insert new SeqCalc based on this segment of sequence
+			MarkIt=CalcMap.find(Length);
 			if(CalcMap.size()>0){//if the calc map has values
 				//check to see if this Length is bigger than previous ones
 				if(Length > CalcMap.begin()->first){ 
@@ -711,7 +724,7 @@ public:
 						LowerBound=LowB;
 					}
 					//Rawbit is the sum of both the subsequence and additional sequence
-					RawBit=CP.CalcRawBit(LowerBound, UpperBound, Rev)+CalcMap.begin()->second.RawBit;
+					MarkIt->second.RawBit=CP.CalcRawBit(LowerBound, UpperBound, Rev)+CalcMap.begin()->second.RawBit;
 				}
 				else{//not bigger so check to see if there is one small enough
 					//(1)loop to check if there is a previous calc small enough
@@ -721,7 +734,7 @@ public:
 					}
 					//if not small enough do self calc
 					if(FindIt==CalcMap.end()){//if it walked off the end then there wasn't one small enough
-						RawBit=CP.CalcRawBit(LowB,HighB,Rev);
+						MarkIt->second.RawBit=CP.CalcRawBit(LowB,HighB,Rev);
 					}
 					//else small enough do additive calc
 					else{
@@ -734,18 +747,17 @@ public:
 							LowerBound=LowB;
 						}
 						//Rawbit is the sum of both the subsequence and additional sequence
-						RawBit=CP.CalcRawBit(LowerBound, UpperBound, Rev)+CalcMap.begin()->second.RawBit;
+						MarkIt->second.RawBit=CP.CalcRawBit(LowerBound, UpperBound, Rev)+CalcMap.begin()->second.RawBit;
 					}
 				}
 			}//close if the calc map has values
 			else{
-				RawBit=CP.CalcRawBit(LowB,HighB,Rev);
+				MarkIt->second.RawBit=CP.CalcRawBit(LowB,HighB,Rev);
 			}
 		}
-		MxB=((RawBit*CP.Lambda)-log(CP.K))/M_LN2;
-		CalcMap.insert(map<long,SeqCalc>::value_type(Length,SeqCalc(RawBit,MxB,0)));//insert new SeqCalc based on this segment of sequence
-		FindIt=CalcMap.find(Length);
-		return (&(FindIt->second));//return pointer to SeqCalc structure that holds the scores
+		MarkIt->second.MaxBit=((RawBit*CP.Lambda)-log(CP.K))/M_LN2;
+
+		return (&(MarkIt->second));//return pointer to SeqCalc structure that holds the scores
 	}//close definition
 
 

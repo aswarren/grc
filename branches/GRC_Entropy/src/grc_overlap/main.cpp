@@ -45,7 +45,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	char* GenomeName= argv[2];//the name of the target genome
 	string GenomeFile= argv[3];//the name of the fna file
 	string Matrix=argv[4];//the matrix used for blast
-	string ECommand=argv[5];//command for running entropy calc.
+	string TransFile=argv[5];//command for running entropy calc.
 
 
 
@@ -61,7 +61,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	CompeteMap KOMap;//create map for tracking win/lose relationships
 
 
-	CalcPack InfoPack(Matrix, GenomeFile, ECommand);//create information package
+	CalcPack InfoPack(Matrix, GenomeFile, TransFile);//create information package
 	
 
 	string GName;//for storing input and creating output name from it

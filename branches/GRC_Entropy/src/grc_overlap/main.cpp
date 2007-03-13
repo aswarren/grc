@@ -45,7 +45,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	char* GenomeName= argv[2];//the name of the target genome
 	string GenomeFile= argv[3];//the name of the fna file
 	string Matrix=argv[4];//the matrix used for blast
-	string TransFile=argv[5];//command for running entropy calc.
+	string TransFile=argv[5];//file used for translating sequences in entropy calculations
 
 
 

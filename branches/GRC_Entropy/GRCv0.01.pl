@@ -45,6 +45,7 @@ my $RDir;
 my $DBDir;
 my $UseGO=0;#boolean variable that tells whether GO is to be used
 my $MergeDB=$BinDir."/DB/AutoMerge.faa";
+my $TransFile="GCode.txt";#file used for translating
 
 chdir("$CDir");
 
@@ -277,7 +278,7 @@ print "$BinDir /grc_overlap$partdir$BHName $GenomeName $GFile $MaxFile\n";
 #grc_overlap <ParsedBlast> <GenomeName> <Genome.fna>  Output is to cout
 print "grc_overlap: adjusting and removing orfs.\n";
 chdir("$ResultDir");
-$status = system($BinDir."/grc_overlap $partdir"."$BHName $GenomeName $GFile $MaxFile");
+$status = system($BinDir."/grc_overlap $partdir"."$BHName $GenomeName $GFile $MaxFile $transdir$TransFile");
 if ($status != 0){
 	die "grc_overlap did not run successfully";
 }
@@ -289,7 +290,7 @@ print "Running time: $Minutes minutes\n";
 
 if(defined $opt_r){#if there is a reference file to compare to
 	print "grc_compare: comparing to reference file $opt_r\n";
-	$CompareCommand=$BinDir."/grc_compare $partdir"."$ReferenceName $GenomeName".".Pos $GenomeName".".Neg >$GenomeName".".compare";
+	$CompareCommand=$BinDir."/grc_compare $partdir"."$ReferenceName $GenomeName".".Pos $GenomeName".".Neg ./KnockList.txt >$GenomeName".".compare";
 	if($UseGO==1){
 		$CompareCommand=$CompareCommand." $OntFile";
 	}

@@ -22,7 +22,7 @@ using std::ifstream;
 using std::map;
 using std::stringstream;
 
-
+//Values obtained from Glimmer 3.02
 /*#define  DEFAULT_POS_ENTROPY_PROF  {0.08468,0.01606,0.05739,0.05752,0.04328,\
   0.07042,0.02942,0.05624,0.04442,0.05620,0.03029,0.03975,0.05116,0.04098,\
   0.05989,0.08224,0.05660,0.06991,0.02044,0.03310}
@@ -236,41 +236,25 @@ public:
 
 
 	//This function calculates the entropy for the section of the genome specified
-	double GetEntropy(const long& LB, const long& HB, const bool& Reverse){//open definition
-		long Length=HB-LB+1;
-		long Begin=LB-1;
-		FILE* TempF;
-		char TempC[sizeof(double)];
+	double GetEntropy(int AACount[]){//open definition
+
 		double Entropy=-1;
-		string Translation="";
-		int TempCount[21];
-		double TempFreq[21];
-
-		for(int x=0; x<21; x++){
-			TempCount[x]=0;
-			TempFreq[x]=0;
-		}
-
-		if(Reverse){//if the pGene is reversed
-			Translation=Translator.TranslateSeq(ReverseComp(Genome.substr(Begin,Length)));
-			//Command=Command+ReverseComp(Genome.substr(Begin, Length));	
-		}
-		else{//not reverse complement
-			Translation=Translator.TranslateSeq(Genome.substr(Begin, Length));
-			//Command=Command+Genome.substr(Begin, Length);
-		}
-		
-		GetAACount(TempCount, Translation);
 		int t=0;
 		double TotalEntropy=0;
 		int TotalCount=0;
 
+		double TempFreq[21];
+
+		for(int x=0; x<21; x++){
+			TempFreq[x]=0;
+		}
+
 		for(t=0; t<20; t++){
-			TotalCount+=TempCount[t];
+			TotalCount+=AACount[t];
 		}
 		//convert counts to frequencies
 		for(t=0; t<20; t++){
-			TempFreq[t]=double(TempCount[t])/(double(Length)/3);
+			TempFreq[t]=double(AACount[t])/(double(TotalCount));
 		}
 		//convert frequencies to entropies
 		for(t=0; t<20; t++){
@@ -302,10 +286,24 @@ public:
 
 
 	//function for finding setting the frequencies of the amino acids in a sequence
-	int GetAACount(int Freq[], const string& AASequence){
+	int GetAACount(int AACount[],const long& LB, const long& HB, const bool& Reverse){
+		long Length=HB-LB+1;
+		long Begin=LB-1;
+		string Translation="";
+
+
+		if(Reverse){//if the pGene is reversed
+			Translation=Translator.TranslateSeq(ReverseComp(Genome.substr(Begin,Length)));
+			//Command=Command+ReverseComp(Genome.substr(Begin, Length));	
+		}
+		else{//not reverse complement
+			Translation=Translator.TranslateSeq(Genome.substr(Begin, Length));
+			//Command=Command+Genome.substr(Begin, Length);
+		}
+		
 		//for each amino acid in the sequence
-		for (int t=0; t<AASequence.size(); t++){
-			Freq[MapAA(AASequence[t])]++;
+		for (int t=0; t<Translation.size(); t++){
+			AACount[MapAA(Translation[t])]++;
 		}
 		return 0;
 	}

@@ -120,21 +120,34 @@ public:
 	//this is judged on the current top alignment
 	bool operator>(const Subject& RHS)const{
 		double BitRatio=AlignQ.top()->BitRatio(*RHS.AlignQ.top());
-		double AbsValue=BitRatio;
+		double EDRR=AlignQ.top()->EDRRatio(*RHS.AlignQ.top());
+		double AbsBRatio=BitRatio;
+		double AbsEDRR=EDRR;
 		if(BitRatio<0){
-			AbsValue=BitRatio*-1;
+			AbsBRatio*=-1;
 		}
-
+		if(EDRR<0){
+			AbsEDRR*=-1;
+		}
 		//being a hypothetical costs you 20% versus another Hit
 		//this isnt really fair to hypothetical
 		//since others may be called putative, hypot. etc.
-		if(Hypot && !RHS.Hypot && AbsValue>.80){
-			return false;
+		//if the values are fairly close
+		if(AbsBRatio<.20 && EDRR<.20){
+			if(Hypot && !RHS.Hypot){
+				return false;
+			}
+			else if(!Hypot && RHS.Hypot){
+				return true;
+			}
 		}
-		else if(!Hypot && RHS.Hypot && AbsValue>.80){
-			return true;
+		//else check which score is a stronger discriminator
+		if(AbsBRatio>AbsEDRR){
+			return(BitRatio>0);//BitRatio is positive if LHS>RHS
 		}
-		else return(BitRatio>0);//BitRatio is positive if LHS>RHS
+		else{ //EDR ratio is positive if LHS>RHS (if LHS.EDR<RHS.EDR)
+			return (EDRR>0);
+		}
 	}
 
 
@@ -142,23 +155,37 @@ public:
 	//this is judged on the current top alignment
 	bool operator<(const Subject& RHS)const{
 		double BitRatio=AlignQ.top()->BitRatio(*RHS.AlignQ.top());
-		double AbsValue=BitRatio;
+		double EDRR=AlignQ.top()->EDRRatio(*RHS.AlignQ.top());
+		double AbsBRatio=BitRatio;
+		double AbsEDRR=EDRR;
 		if(BitRatio<0){
-			AbsValue=BitRatio*-1;
+			AbsBRatio*=-1;
 		}
-		if(Hypot && !RHS.Hypot && AbsValue>.80){
-			return true;
+		if(EDRR<0){
+			AbsEDRR*=-1;
 		}
-		else if(!Hypot && RHS.Hypot && AbsValue>.80){
-			return false;
+		//if the values are fairly close
+		if(AbsBRatio<.20 && EDRR<.20){
+			if(Hypot && !RHS.Hypot){
+				return true;
+			}
+			else if(!Hypot && RHS.Hypot){
+				return false;
+			}
 		}
-		return (BitRatio<0);//Bit Ratio is negative if LHS<RHS
+		//else check which if Bit score is a stronger discriminator
+		if(AbsBRatio>AbsEDRR){
+			return (BitRatio<0);//Bit Ratio is negative if LHS<RHS
+		}
+		else{
+			return (EDRR<0);
+		}
 	}
 
 
 	//Function for adding alignment to the alignment list
-	int AddAlign(long St, long Sp, double B, string ES, long AL, long QASt, long QASp, double MxBit, double SScore){
-		AlignList.push_back(Alignment(St,Sp,B,ES,AL,QASt,QASp,MxBit,SScore));//add Alignment
+	int AddAlign(long St, long Sp, double B, string ES, long AL, long QASt, long QASp, double MxBit, double SScore, double EDRatio){
+		AlignList.push_back(Alignment(St,Sp,B,ES,AL,QASt,QASp,MxBit,SScore,EDRatio));//add Alignment
 		return 0;
 	}
 

@@ -30,33 +30,33 @@ class SeqCalc{//open prototype
 public:
 	double RawBit;
 	double MaxBit;
-	double Entropy;//actually the entropy distance ratio
-	int AAFreq[21];
+	double EDR;//actually the entropy distance ratio
+	int AACount[21];
 	//default constructor
 	SeqCalc(){
 		RawBit=0;
-		Entropy=0;
+		EDR=0;
 		MaxBit=0;
 		for(int t=0; t<21; t++){
-			AAFreq[t]=0;
+			AACount[t]=0;
 		}
 	}
 	//paramaterized constructor
 	SeqCalc(double RB, double MB, double E){
 		RawBit=RB;
-		Entropy=E;
+		EDR=E;
 		MaxBit=MB;
 		for(int t=0; t<21; t++){
-			AAFreq[t]=0;
+			AACount[t]=0;
 		}
 	}
 	//copy constructor
 	SeqCalc(const SeqCalc &Source){// open defintion
 		RawBit=Source.RawBit;
 		MaxBit=Source.MaxBit;
-		Entropy=Source.Entropy;
+		EDR=Source.EDR;
 		for(int t=0; t<21; t++){
-			AAFreq[t]=Source.AAFreq[t];
+			AACount[t]=Source.AACount[t];
 		}
 	}
 // 	//assignment operator
@@ -64,12 +64,18 @@ public:
 		if (this!= &Source){// open non-self assignment consq.
 			RawBit=Source.RawBit;
 			MaxBit=Source.MaxBit;
-			Entropy=Source.Entropy;
+			EDR=Source.EDR;
 			for(int t=0; t<21; t++){
-				AAFreq[t]=Source.AAFreq[t];
+				AACount[t]=Source.AACount[t];
 			}
 		}
 		return *this;
+	}
+	//add the frequencies for the amino acids in Source to the frequencies in this SeqCalc object
+	int AddCounts(const SeqCalc& Source){
+		for(int t=0; t<21; t++){
+			AACount[t]+=Source.AACount[t];
+		}
 	}
 };//close prototype
 
@@ -99,7 +105,7 @@ private:
 	map<string,Subject*> SubjectNames;//map of the subject names used to enforce unique subject addition in AddPrimary function
 	//sequence specific calculations are stored here, according to increasing offset from the stop site
 	 SeqCalcMap CalcMap;//for storing and retrieving RawBitValues and entropy values stored according to decreasing length
-	double Entropy;
+	double EDR;
 	Subject* CurrentRep;//subject whose alignment is serving as the current representative of this orf
 public:
 	
@@ -111,7 +117,7 @@ public:
 		Defeated=false;
 		QLength=0;
 		CurrentLength=0;
-		Entropy=0;
+		EDR=0;
 		Start=Stop=LowBase=HighBase=0;
 		CurrentRep=NULL;
 	}
@@ -146,7 +152,14 @@ public:
 		if(!Blank){
 			AddPrimary(CP, St,Sp,HID,B,ES,HL,AL,QASt,QASp,Func,HOrg);//add Subject
 		}
-			
+		else{//it is blank set entropy
+			int TempCount[21];
+			for(int t=0; t<21; t++){
+				TempCount[t]=0;
+			}
+			CP.GetAACount(TempCount,LowBase,HighBase,Reverse);
+			EDR=CP.GetEntropy(TempCount);
+		}
 	}
 
 
@@ -164,7 +177,7 @@ public:
 		CurrentLength=Source.CurrentLength;
 		PrimaryHits=Source.PrimaryHits;
 		HighScore=Source.HighScore;
-		Entropy=Source.Entropy;
+		EDR=Source.EDR;
 		CalcMap=Source.CalcMap;
 		
 		string TempName="none";
@@ -201,7 +214,7 @@ public:
 			CurrentLength=Source.CurrentLength;
 			PrimaryHits=Source.PrimaryHits;
 			HighScore=Source.HighScore;
-			Entropy=Source.Entropy;
+			EDR=Source.EDR;
 			CalcMap=Source.CalcMap;
 			string TempName="none";
 			for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
@@ -240,6 +253,7 @@ public:
 		//after which time the Queue is refreshed
 	bool operator>(const AARecord& RHS)const{
 
+
 		if(CurrentRep==NULL){
 			return false;//LHS cannot be bigger if it has no score
 		}
@@ -256,6 +270,7 @@ public:
 		//< OPERATOR overload
 	bool operator<(const AARecord& RHS)const{
 
+	
 		if(RHS.CurrentRep==NULL){
 			return false;
 		}
@@ -452,14 +467,14 @@ public:
 		else{
 			LengthFrac=double(RHS.CurrentLength-CurrentLength)/double(CurrentLength);
 		}
-		if(Entropy>RHS.Entropy){
-			EntropyFrac=double(Entropy-RHS.Entropy)/double(RHS.Entropy);
+		if(EDR>RHS.EDR){
+			EntropyFrac=double(EDR-RHS.EDR)/double(RHS.EDR);
 		}
 		else{
-			EntropyFrac=double(RHS.Entropy-Entropy)/double(Entropy);
+			EntropyFrac=double(RHS.EDR-EDR)/double(EDR);
 		}
 		if (EntropyFrac>LengthFrac){
-			return (Entropy<RHS.Entropy); //LHS is better than RHS if entropy is lower
+			return (EDR<RHS.EDR); //LHS is better than RHS if entropy is lower
 		}
 		else return (CurrentLength>RHS.CurrentLength); //LHS is better than RHS if length is greater		
 	}// close definition
@@ -496,7 +511,7 @@ public:
 
 
 	double ReportEntropy(){
-		return Entropy;
+		return EDR;
 	}
 
 
@@ -546,12 +561,12 @@ public:
 			FindIt=SubjectNames.find(HID);
 			SeqCalc* CalcPointer= CalcSeqScore(CP,LBase,HBase,Reverse);
 			if(FindIt!=SubjectNames.end()){//if the subject ID is found
-				FindIt->second->AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcPointer->MaxBit,StartScore);//add Alignment
+				FindIt->second->AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcPointer->MaxBit,StartScore, CalcPointer->EDR);//add Alignment
 			}
 			else{//else add a new subject
 				int TempID=PrimaryHits.size();
 				PrimaryHits.push_back(Subject(TempID,HID,HL,Func,HOrg));//add Subject
-				PrimaryHits.back().AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcPointer->MaxBit,StartScore);//add Alignment
+				PrimaryHits.back().AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcPointer->MaxBit,StartScore, CalcPointer->EDR);//add Alignment
 				SubjectNames.insert(map<string,Subject*>::value_type(HID,&PrimaryHits.back()));//insert pointer to Subject based on name
 			}
 		}
@@ -567,8 +582,16 @@ public:
 
 
 	//Calculate the entropy for the current sequence alignment representative
-	int CalcEntropy(CalcPack& CP){
-		Entropy=CP.GetEntropy(LowBase, HighBase,Reverse);
+	int GetEntropy(){
+		if(!Blank && CalcMap.find(CurrentLength)!=CalcMap.end()){
+			EDR=CalcMap.find(CurrentLength)->second.EDR;
+		}
+
+		else if(!Blank){
+			cerr<<"Logic Error:Could not find previously calculated entropy.";
+			throw 20;
+		}
+		return 0;
 	}
 
 	//Switch the representative for the query orf
@@ -577,6 +600,7 @@ public:
 		if(SubjectQ.size()>0){
 			CurrentRep=SubjectQ.top();
 			UpdateCoord();
+			GetEntropy();
 		}
 		else{
 			CurrentRep=NULL;
@@ -694,14 +718,14 @@ public:
 	//over multiple times
 	//Need to clean up this coordinate to string conversion +1 -1 stuff
 	SeqCalc* CalcSeqScore(CalcPack& CP, const long& LowB, const long& HighB, const bool& Rev){
-		double MxB=0;
-		double RawBit=0;
+
 		long LowerBound=0;//lower bound on calc raw bit
 		long UpperBound=0;//upper bound on calc raw bit
 		long Length=HighB-LowB+1;
 		SeqCalcMap::iterator FindIt;
 		SeqCalcMap::iterator MarkIt;
 		FindIt=CalcMap.find(Length);//find according to the offset from stop which is always HighBase-LowBase
+
 
 		//if the score has been found
 		if(FindIt!=CalcMap.end()){
@@ -711,7 +735,8 @@ public:
 		else{
 			CalcMap.insert(map<long,SeqCalc>::value_type(Length,SeqCalc()));//insert new SeqCalc based on this segment of sequence
 			MarkIt=CalcMap.find(Length);
-			if(CalcMap.size()>0){//if the calc map has values
+
+			if(CalcMap.size()>1){//if the calc map has values other than the one just added
 				//check to see if this Length is bigger than previous ones
 				if(Length > CalcMap.begin()->first){ 
 					//if it is, adjust Segment length for RawBit calc so that previous longest can be added to it
@@ -725,16 +750,21 @@ public:
 					}
 					//Rawbit is the sum of both the subsequence and additional sequence
 					MarkIt->second.RawBit=CP.CalcRawBit(LowerBound, UpperBound, Rev)+CalcMap.begin()->second.RawBit;
+					//Calculate frequencies for the new segment
+					CP.GetAACount(MarkIt->second.AACount,LowerBound,UpperBound,Rev);
+					//Add AACounts of the rest of the orf to the current section's
+					MarkIt->second.AddCounts(CalcMap.begin()->second);
 				}
 				else{//not bigger so check to see if there is one small enough
 					//(1)loop to check if there is a previous calc small enough
 					FindIt=CalcMap.begin();
-					while(FindIt!=CalcMap.end() && FindIt->first > Length){
+					while(FindIt!=CalcMap.end() && FindIt->first >= Length){
 						 FindIt++;
 					}
 					//if not small enough do self calc
 					if(FindIt==CalcMap.end()){//if it walked off the end then there wasn't one small enough
 						MarkIt->second.RawBit=CP.CalcRawBit(LowB,HighB,Rev);
+						CP.GetAACount(MarkIt->second.AACount,LowB,HighB,Rev);
 					}
 					//else small enough do additive calc
 					else{
@@ -747,16 +777,21 @@ public:
 							LowerBound=LowB;
 						}
 						//Rawbit is the sum of both the subsequence and additional sequence
-						MarkIt->second.RawBit=CP.CalcRawBit(LowerBound, UpperBound, Rev)+CalcMap.begin()->second.RawBit;
+						MarkIt->second.RawBit=CP.CalcRawBit(LowerBound, UpperBound, Rev)+FindIt->second.RawBit;
+						//Calculate frequencies for the new segment
+						CP.GetAACount(MarkIt->second.AACount,LowerBound,UpperBound,Rev);
+						//Add AACounts of the rest of the orf to the current section's
+						MarkIt->second.AddCounts(FindIt->second);
 					}
 				}
 			}//close if the calc map has values
-			else{
+			else{//no values
 				MarkIt->second.RawBit=CP.CalcRawBit(LowB,HighB,Rev);
+				CP.GetAACount(MarkIt->second.AACount,LowB,HighB,Rev);
 			}
 		}
-		MarkIt->second.MaxBit=((RawBit*CP.Lambda)-log(CP.K))/M_LN2;
-
+		MarkIt->second.MaxBit=((MarkIt->second.RawBit*CP.Lambda)-log(CP.K))/M_LN2;
+		MarkIt->second.EDR=CP.GetEntropy(MarkIt->second.AACount);
 		return (&(MarkIt->second));//return pointer to SeqCalc structure that holds the scores
 	}//close definition
 

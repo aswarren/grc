@@ -54,6 +54,7 @@ public:
 	double StartScore;//frequency of occurence of start score
 	double AlignScore;//Conditional Probability of(BitFrac, StartSite Codon Prob, MaxFrac)
 	double RP;//relative performance of this alignment to all other alignments
+	double EDR;//entropy distance ratio
 
 
 
@@ -77,10 +78,11 @@ public:
 		AlignScore=0;
 		StartScore=0;
 		RP=0;
+		EDR=9999;
 	}
 
 	//parameterized constructor
-	Alignment(long St=0, long Sp=0, double B=0, string ES="none", long AL=0, long QASt=0, long QASp=0, double MxBit=0, double SScore=0){ // parameterized constructor1
+	Alignment(long St=0, long Sp=0, double B=0, string ES="none", long AL=0, long QASt=0, long QASp=0, double MxBit=0, double SScore=0, double EDRatio=9999){ // parameterized constructor1
 		Start=St;
 		Stop=Sp;
 		Bit=B;
@@ -94,7 +96,7 @@ public:
 		AlignScore=0;
 		StartScore=SScore;
 		RP=0;
-
+		EDR=EDRatio;
 		if (Start>Stop){ 
 			Reverse=true;//see if the orf is reversed
 			HighBase=Start;
@@ -146,6 +148,7 @@ public:
 		StartScore=Source.StartScore;
 		RP=Source.RP;
 		Length=Source.Length;
+		EDR=Source.EDR;
 	}// close definition
 
 
@@ -173,6 +176,7 @@ public:
 			StartScore=Source.StartScore;
 			RP=Source.RP;
 			Length=Source.Length;
+			EDR=Source.EDR;
 		}// close self assignment
 		return *this;
 	}// close definition
@@ -298,17 +302,31 @@ public:
 
 
 	//Function that reports the bit ratio of LHS.RelBit to RHS.RelBit
-	//returns a negative bit ratio if LHS.RelBit < RHS.RelBit
+	//returns a negative bit ratio if LHS.RelBit < RHS.RelBit (meaning RHS is better)
 	double BitRatio(Alignment& RHS){//open def
 		double BRatio=0;
 		if (RelBit==0 || RHS.RelBit==0){
 			BRatio=0;
 		}
 		else if(RelBit<RHS.RelBit){
-			BRatio=(RelBit/RHS.RelBit)*-1;
+			BRatio=((RHS.RelBit-RelBit)/RelBit)*-1;
 		}
-		else {BRatio=RHS.RelBit/RelBit;}
+		else {BRatio=(RelBit-RHS.RelBit)/RHS.RelBit;}
 		return BRatio;
+	}
+
+		//Function that reports the ratio of the two ratios
+	//returns a negative  ratio if LHS.EDR > RHS.EDR (meaning RHS is better)
+	double EDRRatio(Alignment& RHS){//open def
+		double ERatio=0;
+		if (EDR==0 || RHS.RelBit==0){
+			ERatio=0;
+		}
+		else if(EDR<RHS.EDR){
+			ERatio=((RHS.EDR-EDR)/EDR);
+		}
+		else {ERatio=(EDR-RHS.EDR)/RHS.EDR*-1;}
+		return ERatio;
 	}
 
 

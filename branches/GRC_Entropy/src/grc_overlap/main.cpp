@@ -219,7 +219,6 @@ int main (int argc, char* argv[]) {   //  Main is open
 		if(PosIt->HasHit()){//if the query has a hit
 			PosIt->UpdateScores();
 		}
-		PosIt->CalcEntropy(InfoPack);
 		PositionMap.insert(RecordMap::value_type(PosIt->ReportLowBase(), &(*PosIt))); //Add to position map
 	}//close for loop
 
@@ -227,10 +226,9 @@ int main (int argc, char* argv[]) {   //  Main is open
 	InfoPack.Genome.clear();//clear the genome (no longer needed)
 	
 	ofstream ChkOut;
-	//ChkOut.open(Positives.c_str());
-	//ChkOut.close();
+
 	//DumpList(InitList);//print out the orfs from initlist
-	//Adjust starts according to aligned regions
+	
 
 
 	//compare the ORFs and remove the ones that conflict due to overlap
@@ -536,7 +534,7 @@ std::ostream& operator<<(std::ostream& ChkOut, AARecord* AC){
 	}
 	else 	ChkOut<<'+'<<"\t";
 
-	ChkOut<<AC->Entropy<<"\t";
+	ChkOut<<AC->EDR<<"\t";
 
 
 	if(!AC->Blank){//if there is a hit

@@ -153,12 +153,10 @@ public:
 			AddPrimary(CP, St,Sp,HID,B,ES,HL,AL,QASt,QASp,Func,HOrg);//add Subject
 		}
 		else{//it is blank set entropy
-			int TempCount[21];
-			for(int t=0; t<21; t++){
-				TempCount[t]=0;
-			}
-			CP.GetAACount(TempCount,LowBase,HighBase,Reverse);
-			EDR=CP.GetEntropy(TempCount);
+			CalcMap.insert(map<long,SeqCalc>::value_type(Length,SeqCalc()));//insert new SeqCalc based on this segment of sequence
+			MarkIt=CalcMap.find(Length);
+			CP.GetAACount(MarkIt->second.AACount,LowBase,HighBase,Reverse);
+			EDR=CP.GetEntropy(MarkIt->second.AACount);
 		}
 	}
 
@@ -811,8 +809,11 @@ public:
 		return 0;
 	}
 
-	
-
+//submits the nucleotide frequencies for creation of new EDP coding/ EDP non-coding
+	int SubmitCount(CalcPack& CP){
+		//submit the frequencies of bases, the length of the orf, and whether it was defeated
+		return 0;
+	}
 
 }; // close prototype
 

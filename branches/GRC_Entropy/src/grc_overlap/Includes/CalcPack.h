@@ -42,7 +42,12 @@ public:
 	int OStartCount;//Count for find starts that keeps track of the number of times original start has been processed
 	double DefaultCProfile[20];
 	double DefaultNCProfile[20];//for non coding genes
+	double CProfile[20];
+	double NCProfile[20];
+	double SmallNCProf[20];
+	double SmallCProf[20];
 	Translate Translator;//for translating nucl. to AA
+	bool UseSmallProf;
 
 
 	CalcPack(){//default constructor
@@ -52,13 +57,23 @@ public:
 		TransFile="";
 		GenomeFile="";
 		OStartCount=0;
+		UseSmallProf=false;
+		for(int t=0; t<20; t++){
+			DefaultCProfile[t]=DefaultNCProfile[t]=CProfile[t]=NCProfile[t]\
+			=SmallNCProf[t]=SmallCProf[t]=0;
+		}
 	}
 
 	CalcPack(string Matx, string GF, string TF){//parameterized constructor
 		TransFile=TF;
 		Matrix=Matx;
 		OStartCount=0;
+		UseSmallProf=false;
 		int Status=InitCodes();//read in the values.
+		for(int t=0; t<20; t++){
+			DefaultCProfile[t]=DefaultNCProfile[t]=CProfile[t]=NCProfile[t]\
+			=SmallNCProf[t]=SmallCProf[t]=0;
+		}
 		if(Status!=0){
 			cout<<"\ngrc_overlap unable to initialize BLAST parameters:exiting...\n";
 			throw 20;
@@ -235,7 +250,7 @@ public:
 
 
 
-	//This function calculates the entropy for the section of the genome specified
+	//This function calculates the entropy distance for the section of the genome specified
 	double GetEntropy(int AACount[]){//open definition
 
 		double Entropy=-1;
@@ -323,6 +338,16 @@ public:
 		CodingDist=sqrt(CodingDist);
 		NonCodingDist=sqrt(NonCodingDist);
 		return CodingDist/NonCodingDist;
+	}
+
+	//total up the EDPs from all the orfs
+	//to come up with a new EDP for coding and noncoding
+	int TotalEDP(int Counts[], const long& Length, Defeated){
+
+	if(Defeated){
+		if (Length<300 && UseSmallProf){
+
+
 	}
 
 

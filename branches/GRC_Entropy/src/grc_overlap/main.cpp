@@ -46,6 +46,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	string GenomeFile= argv[3];//the name of the fna file
 	string Matrix=argv[4];//the matrix used for blast
 	string TransFile=argv[5];//file used for translating sequences in entropy calculations
+	int NumSmall=0;//the number of orfs under 300 bp
 
 
 
@@ -55,6 +56,10 @@ int main (int argc, char* argv[]) {   //  Main is open
 
 	map<string,AARecord*> HitList; //the list of AARecord pointers to ORFs aka pGenes that have hits (hash by ID)
 	RecordMap::iterator MapIt;//pair for keeping track of insertions into the record map
+
+	list<AARecord*> TrainingLosers;//list used to store losers from the initial comparison and train new EDP
+	list<AARecord*> TrainingWinners;
+	CompeteMap TrainingKO;//create map for tracking win/lose relationships
 
 	list<AARecord*> LoserList; //the list of the eliminated records
 	list<AARecord*> WinnerList; //the final list of highest non overlaping blast hits
@@ -74,10 +79,6 @@ int main (int argc, char* argv[]) {   //  Main is open
 	string Pos=".Pos";
 	Negatives+=Neg;//create false/true negatives filename
 	Positives+=Pos;//create fasle/treu positives filename
-
-
-
-
 
 
 	ifstream BlastIn; //input for the blast results
@@ -135,6 +136,10 @@ int main (int argc, char* argv[]) {   //  Main is open
 			LowBase=Stop;
 			HighBase=Start;
 			Rev=true;
+		}
+		//tally up the number of small orfs
+		if((HighBase-LowBase+1)<300){
+			NumSmall++;
 		}
 
 		if (HitID =="No_hits"){//open consq.
@@ -229,6 +234,14 @@ int main (int argc, char* argv[]) {   //  Main is open
 
 	//DumpList(InitList);//print out the orfs from initlist
 	
+	//compare the ORFs and develop a set of training orfs for creating
+	//new entropy density profiles for coding and non coding genes
+	Compare(PositionMap,TrainingWinners,TrainingLosers,TrainingKO);
+	//activate the use of small orf EDP if sufficient number
+	if (NumSmall>20){
+		CP.UseSmallProf=true;
+	}
+	//train new EDP's
 
 
 	//compare the ORFs and remove the ones that conflict due to overlap
@@ -598,8 +611,22 @@ void DisplayKO(ostream& Out, CompeteMap& KOMap){
 	return OrigSize-WinnerList.size();//return number of orfs removed
 }
 
-			
-	
+
+
+//Train new EDPs for coding and noncoding genes based on the
+//training winners and losers
+int TrainEDP(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CalcPack& CP){
+	//submit counts to Calc Pack for averaging
+	list<AARecord*>::iterator It;
+	for(It=WinnerList.begin(); It!=WinnerList.end(); It++){
+		It->SubmitCount(CP);
+	}
+	for(It=LoserrList.begin(); It!=LoserList.end(); It++){
+		It->SubmitCount(CP);
+	}
+	CP.CreateEDPs();//averages entropy profiles for coding and non-coding based on losers and winners
+	return 0;
+}
 
 
 

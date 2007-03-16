@@ -32,7 +32,7 @@ int DumpList(list<AARecord>& InitList);
 int DumpList(list<AARecord*>& InitList, string PosName);
 int Nulify(list<AARecord*>& InitList, list<AARecord*>& InitList2);
 int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CompeteMap& KOMap);
-int EntropyFilter(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CompeteMap& KOMap, double EntCutoff);//removes orfs that are "winners" that have high entropy
+ int EntropyFilter(list<AARecord>& RecordList, list<AARecord*>& LoserList, CompeteMap& KOMap, const double& EntCutoff, const double& BitCutoff);//removes orfs that are "winners" that have high entropy
 int PrintLosers(list<AARecord*>& InitList, string NegName);
 void DisplayKO(ostream& Out, CompeteMap& KOMap);
 int RefreshRecords(list<AARecord>& RecordList, CalcPack& CP);
@@ -242,22 +242,13 @@ int main (int argc, char* argv[]) {   //  Main is open
 	//refresh all records using new EDP
 	RefreshRecords(RecordList,InfoPack);
 
-	//compare the ORFs and remove the ones that conflict due to overlap
-	Compare(PositionMap,WinnerList,LoserList, KOMap);
+
 	
-	//tally the number of winners with hits and
-	//calculate avg. entropy of winners with hits
-	double ConservCutoff=.90;//Bit fraction cutoff for creating the entropy cutoff
+	//calculate avg. entropy of winners with hits from training data using new entropies
+
 	double AvgEntropy=0;//The average entropy
-	int NumWinHits=0;
 	int NumForAvg=0;
-	for (list<AARecord*>::iterator AvgIt =WinnerList.begin(); AvgIt!=WinnerList.end(); AvgIt++ ){
-		if((*AvgIt)->HasHit()){//if this orf has a hit
-			NumWinHits++;
-			//if((*AvgIt)->ReportBitFrac()>ConservCutoff){
-				
-			//}
-		}
+	for (list<AARecord*>::iterator AvgIt =TrainingWinners.begin(); AvgIt!=TrainingWinners.end(); AvgIt++ ){
 		NumForAvg++;
 		AvgEntropy+=(*AvgIt)->ReportEntropy();
 	}
@@ -274,20 +265,34 @@ int main (int argc, char* argv[]) {   //  Main is open
 	double EntropyDev=sqrt((Variance/double(NumForAvg)));//calculate std deviation
 	double EDRCutoff=1.1;
 	//if for some reason the EDRCutoff is too stringent
-	if(EDRCutoff<AvgEntropy+EntropyDev){
-		EDRCutoff=AvgEntropy+EntropyDev;
+	//which would mean that 1.1 is < Avg+2*Std Dev.
+	if(EDRCutoff<AvgEntropy+(2*EntropyDev)){
+		EDRCutoff=AvgEntropy+(2*EntropyDev);
 	}
-	int NumFiltered=EntropyFilter(WinnerList, LoserList, KOMap,EDRCutoff);//filter the orfs based on entropy
+	double ConservCutoff=.50;//Bit fraction cutoff for being evaluated by entropy Bit/MaxBit
+	int NumFiltered=EntropyFilter(RecordList, LoserList,KOMap,EDRCutoff, ConservCutoff);//filter the orfs based on entropy
+
+	//compare the ORFs and remove the ones that conflict due to overlap
+	Compare(PositionMap,WinnerList,LoserList, KOMap);
+	
+
 	//Tally results
-	cout<<"Average entropy is\t"<<AvgEntropy<<"\n";
-	cout<<"Std Dev of entropy is\t"<<EntropyDev<<"\n";
-	cout<<"Number of orfs filtered from entropy\t"<<NumFiltered<<"\n";
+	//cout<<"Average entropy is\t"<<AvgEntropy<<"\n";
+	//cout<<"Std Dev of entropy is\t"<<EntropyDev<<"\n";
+
+	int NumWinHits=0;
+	for (list<AARecord*>::iterator CountIt =WinnerList.begin(); CountIt!=WinnerList.end(); CountIt++ ){
+		if((*CountIt)->HasHit()){//if this orf has a hit
+			NumWinHits++;
+		}
+	}
+
 
 	cout<<"******************GRC v0.01******************"<<"\n";
 	cout<<"Total # of initial ORFS created:   "<<PositionMap.size()<<"\n";
 	cout<<"Total # non-overlapping orfs:   "<<WinnerList.size()<<"\n";
 	cout<<"Total # annotated:   "<<NumWinHits<<"\n\n";
-	
+	cout<<"Number of orfs filtered from entropy\t"<<NumFiltered<<"\n";	
 
 	DumpList(WinnerList, Positives);
 	//DumpList(InitList);
@@ -588,30 +593,27 @@ void DisplayKO(ostream& Out, CompeteMap& KOMap){
 
 //this function removes ORFs that do not have hits from the WinnersList and places them in the losers list
 //it also creates a KO record that the orf was removed due to entropy
- int EntropyFilter(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CompeteMap& KOMap, double EntCutoff){
-	list<AARecord*> NuWinners;
-	int OrigSize=WinnerList.size();
-	//check each winner with no hit for high entropy
-	for (list<AARecord*>::iterator CheckIt=WinnerList.begin(); CheckIt!=WinnerList.end(); CheckIt++){
-		if((*CheckIt)->HasHit()||(*CheckIt)->ReportEntropy()<=EntCutoff){//if the record has a hit OR its entropy is under cutoff
-			NuWinners.push_back((*CheckIt));//add it to the final list
-		}
-		else{
+ int EntropyFilter(list<AARecord>& RecordList, list<AARecord*>& LoserList, CompeteMap& KOMap, const double& EntCutoff, const double& BitCutoff){
+
+	int NumFiltered=0;
+	//check each orf for high EDR
+	for (list<AARecord>::iterator CheckIt=RecordList.begin(); CheckIt!=RecordList.end(); CheckIt++){
+		if(CheckIt->ReportEntropy()>=EntCutoff && (!CheckIt->HasHit() || CheckIt->ReportBitFrac()<BitCutoff)){//if the record has a no/poor hit and its entropy is over cutoff
+			NumFiltered++;
+			CheckIt->KnockOut();//this orf is out of contention
+			LoserList.push_back(&(*CheckIt));//add it to the loser list
 			CompeteMap::iterator TempC=KOMap.find("Entropy");//look for the entropy entry in the KOMap
 			if(TempC!=KOMap.end()){//if its found add another loser
-				(TempC->second).AddLoser(*CheckIt);
+				(TempC->second).AddLoser(&(*CheckIt));
 			}
 			else{//if not found add a new entry
-				KOMap.insert(CompeteMap::value_type("Entropy", Compete(NULL,(*CheckIt))));
+				KOMap.insert(CompeteMap::value_type("Entropy", Compete(NULL,(&(*CheckIt)))));
 			}
-			LoserList.push_back((*CheckIt));//add to the loser list
-			
+		
 		}
-		*CheckIt=NULL;
 	}
-	WinnerList=NuWinners;
-	NuWinners.clear();
-	return OrigSize-WinnerList.size();//return number of orfs removed
+
+	return NumFiltered;//return number of orfs removed
 }
 
 

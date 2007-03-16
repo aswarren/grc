@@ -336,7 +336,11 @@ public:
 		return 0;
 	}
 
-
+	//function for updating the EDR of the alignment
+	int UpdateEDR(const double& UpdatedValue){
+		EDR=UpdatedValue;
+		return 0;
+	}
 
 	//This function returns the value of the lower part of the orf coordinates
 	long ReportLowBase(){

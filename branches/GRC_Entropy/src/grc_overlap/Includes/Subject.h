@@ -184,9 +184,9 @@ public:
 
 
 	//Function for adding alignment to the alignment list
-	int AddAlign(long St, long Sp, double B, string ES, long AL, long QASt, long QASp, double MxBit, double SScore, double EDRatio){
+	Alignment* AddAlign(long St, long Sp, double B, string ES, long AL, long QASt, long QASp, double MxBit, double SScore, double EDRatio){
 		AlignList.push_back(Alignment(St,Sp,B,ES,AL,QASt,QASp,MxBit,SScore,EDRatio));//add Alignment
-		return 0;
+		return &(AlignList.back());//return address to Alignment
 	}
 
 

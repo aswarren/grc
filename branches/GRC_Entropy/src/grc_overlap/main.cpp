@@ -35,6 +35,8 @@ int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>
 int EntropyFilter(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CompeteMap& KOMap, double EntCutoff);//removes orfs that are "winners" that have high entropy
 int PrintLosers(list<AARecord*>& InitList, string NegName);
 void DisplayKO(ostream& Out, CompeteMap& KOMap);
+int RefreshRecords(list<AARecord>& RecordList, CalcPack& CP);
+int TrainEDP(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CalcPack& CP);
 
 
 
@@ -46,7 +48,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	string GenomeFile= argv[3];//the name of the fna file
 	string Matrix=argv[4];//the matrix used for blast
 	string TransFile=argv[5];//file used for translating sequences in entropy calculations
-	int NumSmall=0;//the number of orfs under 300 bp
+
 
 
 
@@ -136,10 +138,6 @@ int main (int argc, char* argv[]) {   //  Main is open
 			LowBase=Stop;
 			HighBase=Start;
 			Rev=true;
-		}
-		//tally up the number of small orfs
-		if((HighBase-LowBase+1)<300){
-			NumSmall++;
 		}
 
 		if (HitID =="No_hits"){//open consq.
@@ -238,11 +236,11 @@ int main (int argc, char* argv[]) {   //  Main is open
 	//new entropy density profiles for coding and non coding genes
 	Compare(PositionMap,TrainingWinners,TrainingLosers,TrainingKO);
 	//activate the use of small orf EDP if sufficient number
-	if (NumSmall>20){
-		CP.UseSmallProf=true;
-	}
-	//train new EDP's
 
+	//train new EDP's
+	TrainEDP(TrainingWinners, TrainingLosers, InfoPack);
+	//refresh all records using new EDP
+	RefreshRecords(RecordList,InfoPack);
 
 	//compare the ORFs and remove the ones that conflict due to overlap
 	Compare(PositionMap,WinnerList,LoserList, KOMap);
@@ -256,25 +254,30 @@ int main (int argc, char* argv[]) {   //  Main is open
 	for (list<AARecord*>::iterator AvgIt =WinnerList.begin(); AvgIt!=WinnerList.end(); AvgIt++ ){
 		if((*AvgIt)->HasHit()){//if this orf has a hit
 			NumWinHits++;
-			if((*AvgIt)->ReportBitFrac()>ConservCutoff){
-				NumForAvg++;
-				AvgEntropy+=(*AvgIt)->ReportEntropy();
-			}
+			//if((*AvgIt)->ReportBitFrac()>ConservCutoff){
+				
+			//}
 		}
+		NumForAvg++;
+		AvgEntropy+=(*AvgIt)->ReportEntropy();
 	}
 	AvgEntropy=AvgEntropy/double(NumForAvg);//finish avg entropy calc. by dividing by number of orfs with hits
 
 	//Calculate the std deviation
 	double Variance=0;
 	for (list<AARecord*>::iterator EntIt =WinnerList.begin(); EntIt!=WinnerList.end(); EntIt++ ){
-		if((*EntIt)->HasHit() && (*EntIt)->ReportBitFrac()>ConservCutoff){//if this orf has a hit
+		//if((*EntIt)->HasHit() && (*EntIt)->ReportBitFrac()>ConservCutoff){//if this orf has a hit
 			double Diff=(*EntIt)->ReportEntropy()-AvgEntropy;//get difference between mean and current
 			Variance+=(Diff*Diff);//square the difference of mean and current and add to total variance
-		}
+		//}
 	}
-	double EntropyDev=sqrt((Variance/(NumWinHits-1)));//calculate std deviation
-
-	int NumFiltered=EntropyFilter(WinnerList, LoserList, KOMap, AvgEntropy+EntropyDev);//filter the orfs based on entropy
+	double EntropyDev=sqrt((Variance/double(NumForAvg)));//calculate std deviation
+	double EDRCutoff=1.1;
+	//if for some reason the EDRCutoff is too stringent
+	if(EDRCutoff<AvgEntropy+EntropyDev){
+		EDRCutoff=AvgEntropy+EntropyDev;
+	}
+	int NumFiltered=EntropyFilter(WinnerList, LoserList, KOMap,EDRCutoff);//filter the orfs based on entropy
 	//Tally results
 	cout<<"Average entropy is\t"<<AvgEntropy<<"\n";
 	cout<<"Std Dev of entropy is\t"<<EntropyDev<<"\n";
@@ -619,15 +622,28 @@ int TrainEDP(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CalcPack& 
 	//submit counts to Calc Pack for averaging
 	list<AARecord*>::iterator It;
 	for(It=WinnerList.begin(); It!=WinnerList.end(); It++){
-		It->SubmitCount(CP);
+		(*It)->SubmitCount(CP);
 	}
-	for(It=LoserrList.begin(); It!=LoserList.end(); It++){
-		It->SubmitCount(CP);
+	for(It=LoserList.begin(); It!=LoserList.end(); It++){
+		(*It)->SubmitCount(CP);
 	}
-	CP.CreateEDPs();//averages entropy profiles for coding and non-coding based on losers and winners
+	CP.CreateOrgEDPs();//averages entropy profiles for coding and non-coding based on losers and winners
 	return 0;
 }
 
+
+//RefreshRecords
+//refresh the EDR after creating new organism specific EDPs
+//and refresh all the queues in all of the records
+int RefreshRecords(list<AARecord>& RecordList, CalcPack& CP){
+	//for every record
+	for(list<AARecord>::iterator It=RecordList.begin(); It!=RecordList.end(); It++){
+		It->RefreshEntropy(CP);
+		It->RefreshAll();
+		It->ResetStatus();
+	}
+	return 0;
+}
 
 
 

@@ -32,6 +32,7 @@ public:
 	double MaxBit;
 	double EDR;//actually the entropy distance ratio
 	int AACount[21];
+	vector<Alignment*> AlignV;//all the alignments for this Record for this segment of sequence
 	//default constructor
 	SeqCalc(){
 		RawBit=0;
@@ -77,6 +78,13 @@ public:
 			AACount[t]+=Source.AACount[t];
 		}
 	}
+	//update the entropies for the alignments here
+	int UpdateEntropy(){
+		for(vector<Alignment*>::iterator It=AlignV.begin(); It!=AlignV.end(); It++){
+			(*It)->UpdateEDR(EDR);
+		}
+		return 0;
+	}
 };//close prototype
 
 typedef map<long,SeqCalc, std::less<long> > SeqCalcMap;
@@ -107,6 +115,7 @@ private:
 	 SeqCalcMap CalcMap;//for storing and retrieving RawBitValues and entropy values stored according to decreasing length
 	double EDR;
 	Subject* CurrentRep;//subject whose alignment is serving as the current representative of this orf
+
 public:
 	
 	AARecord(){//default constructor
@@ -153,8 +162,8 @@ public:
 			AddPrimary(CP, St,Sp,HID,B,ES,HL,AL,QASt,QASp,Func,HOrg);//add Subject
 		}
 		else{//it is blank set entropy
-			CalcMap.insert(map<long,SeqCalc>::value_type(Length,SeqCalc()));//insert new SeqCalc based on this segment of sequence
-			MarkIt=CalcMap.find(Length);
+			CalcMap.insert(map<long,SeqCalc>::value_type(CurrentLength,SeqCalc()));//insert new SeqCalc based on this segment of sequence
+			SeqCalcMap::iterator MarkIt=CalcMap.find(CurrentLength);
 			CP.GetAACount(MarkIt->second.AACount,LowBase,HighBase,Reverse);
 			EDR=CP.GetEntropy(MarkIt->second.AACount);
 		}
@@ -531,6 +540,7 @@ public:
 		long HBase=0;
 		long OrigStart=St;
 		double StartScore=0;
+		Alignment* TempAlign=NULL;
 
 		if(HighScore<B){//record highest bit score for any alignment for this query
 			HighScore=B;
@@ -559,14 +569,15 @@ public:
 			FindIt=SubjectNames.find(HID);
 			SeqCalc* CalcPointer= CalcSeqScore(CP,LBase,HBase,Reverse);
 			if(FindIt!=SubjectNames.end()){//if the subject ID is found
-				FindIt->second->AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcPointer->MaxBit,StartScore, CalcPointer->EDR);//add Alignment
+				TempAlign=FindIt->second->AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcPointer->MaxBit,StartScore, CalcPointer->EDR);//add Alignment
 			}
 			else{//else add a new subject
 				int TempID=PrimaryHits.size();
 				PrimaryHits.push_back(Subject(TempID,HID,HL,Func,HOrg));//add Subject
-				PrimaryHits.back().AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcPointer->MaxBit,StartScore, CalcPointer->EDR);//add Alignment
+				TempAlign=PrimaryHits.back().AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcPointer->MaxBit,StartScore, CalcPointer->EDR);//add Alignment
 				SubjectNames.insert(map<string,Subject*>::value_type(HID,&PrimaryHits.back()));//insert pointer to Subject based on name
 			}
+			CalcPointer->AlignV.push_back(TempAlign);
 		}
 		//No need to add to primaryQ until each Subject has been scored based on HighScore
 		//SubjectQ.push(&PrimaryHits.back());
@@ -684,7 +695,7 @@ public:
 			It->RefreshAlignQ();
 			SubjectQ.push(&(*It));//put the subject back on the queue
 		}
-		CurrentRep=SubjectQ.top();
+		SwitchRep();
 		return 0;
 	}
 
@@ -704,6 +715,30 @@ public:
 			SubjectQ.push(&(*It));//add to the subject Q
 		}
 		SwitchRep();
+		return 0;
+	}
+
+
+	//Refresh entropies
+	//this function refreshes the entropies of all alignments
+	//and resets all the queues
+	int RefreshEntropy(CalcPack& CP){
+		if(Blank){
+			EDR=CalcMap.begin()->second.EDR=CP.GetEntropy(CalcMap.begin()->second.AACount);
+		}
+		else{
+			for(SeqCalcMap::iterator It=CalcMap.begin(); It!=CalcMap.end(); It++){
+				It->second.EDR=CP.GetEntropy(It->second.AACount);
+				It->second.UpdateEntropy();
+			}
+		}
+		return 0;
+	}
+
+	//Reset Status 
+	//reset as to whether this Record has been defeated
+	int ResetStatus(){
+		Defeated=false;
 		return 0;
 	}
 
@@ -811,7 +846,12 @@ public:
 
 //submits the nucleotide frequencies for creation of new EDP coding/ EDP non-coding
 	int SubmitCount(CalcPack& CP){
+		SeqCalcMap::iterator FindIt=CalcMap.find(CurrentLength);
+		if (FindIt==CalcMap.end()){
+			cerr<<"logic error: in finding AA frequencies in AARecord\n";
+		}
 		//submit the frequencies of bases, the length of the orf, and whether it was defeated
+		CP.TotalEDP(FindIt->second.AACount, CurrentLength, Defeated);
 		return 0;
 	}
 

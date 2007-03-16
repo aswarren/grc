@@ -44,23 +44,32 @@ public:
 	double DefaultNCProfile[20];//for non coding genes
 	double CProfile[20];
 	double NCProfile[20];
-	double SmallNCProf[20];
-	double SmallCProf[20];
+	double SmallNCProfile[20];
+	double SmallCProfile[20];
 	Translate Translator;//for translating nucl. to AA
 	bool UseSmallProf;
+	int NumSmallC;//the number of small orfs used to calculate new EDP
+	int NumLargeC;//the number of orfs >300bp used to calculate new EDP
+	int NumLargeNC;
+	int NumSmallNC;
+	double* UseCProfile;//the coding profile in use
+	double* UseNCProfile;//the non coding profile in use
 
 
 	CalcPack(){//default constructor
 		Lambda=0;
 		K=0;
+		NumSmallC=NumLargeC=NumLargeNC=NumSmallNC=0;
 		Genome="";
 		TransFile="";
 		GenomeFile="";
 		OStartCount=0;
+		UseCProfile=DefaultCProfile;
+		UseNCProfile=DefaultNCProfile;
 		UseSmallProf=false;
 		for(int t=0; t<20; t++){
 			DefaultCProfile[t]=DefaultNCProfile[t]=CProfile[t]=NCProfile[t]\
-			=SmallNCProf[t]=SmallCProf[t]=0;
+			=SmallNCProfile[t]=SmallCProfile[t]=0;
 		}
 	}
 
@@ -68,11 +77,14 @@ public:
 		TransFile=TF;
 		Matrix=Matx;
 		OStartCount=0;
+		NumSmallC=NumLargeC=NumLargeNC=NumSmallNC=0;
 		UseSmallProf=false;
+		UseCProfile=DefaultCProfile;
+		UseNCProfile=DefaultNCProfile;
 		int Status=InitCodes();//read in the values.
 		for(int t=0; t<20; t++){
 			DefaultCProfile[t]=DefaultNCProfile[t]=CProfile[t]=NCProfile[t]\
-			=SmallNCProf[t]=SmallCProf[t]=0;
+			=SmallNCProfile[t]=SmallCProfile[t]=0;
 		}
 		if(Status!=0){
 			cout<<"\ngrc_overlap unable to initialize BLAST parameters:exiting...\n";
@@ -254,34 +266,8 @@ public:
 	double GetEntropy(int AACount[]){//open definition
 
 		double Entropy=-1;
-		int t=0;
-		double TotalEntropy=0;
-		int TotalCount=0;
-
-		double TempFreq[21];
-
-		for(int x=0; x<21; x++){
-			TempFreq[x]=0;
-		}
-
-		for(t=0; t<20; t++){
-			TotalCount+=AACount[t];
-		}
-		//convert counts to frequencies
-		for(t=0; t<20; t++){
-			TempFreq[t]=double(AACount[t])/(double(TotalCount));
-		}
-		//convert frequencies to entropies
-		for(t=0; t<20; t++){
-			if(TempFreq[t]!=0){
-				TempFreq[t]=-1*TempFreq[t]*log10(TempFreq[t]);
-				TotalEntropy+=TempFreq[t];
-			}
-		}
-		for(t=0;t<20;t++){
-			TempFreq[t]=TempFreq[t]/TotalEntropy;
-		}
-
+		double TempFreq[20];
+		CountToEDP(AACount,TempFreq);
 		Entropy=GetEDR(TempFreq);
 	
 		/*if ( ( TempF = popen ( Command.c_str(), "r") ) != NULL ){
@@ -299,6 +285,75 @@ public:
 		return Entropy;
 	}//close function
 
+
+
+	//create EDP from AACounts
+	int CountToEDP(int AACount[], double ResultEDP[]){
+		int TotalCount=0;
+		int t=0;
+		double TotalEntropy=0;
+		for(t=0; t<20; t++){
+			TotalCount+=AACount[t];
+		}
+		//convert counts to frequencies
+		for(t=0; t<20; t++){
+			ResultEDP[t]=double(AACount[t])/(double(TotalCount));
+		}
+		//convert frequencies to entropies
+		for(t=0; t<20; t++){
+			if(ResultEDP[t]!=0){
+				ResultEDP[t]=-1*ResultEDP[t]*log10(ResultEDP[t]);
+				TotalEntropy+=ResultEDP[t];
+			}
+		}
+		for(t=0;t<20;t++){
+			ResultEDP[t]=ResultEDP[t]/TotalEntropy;
+		}
+		return 0;
+	}
+
+
+	//Create new EDP for coding and non coding genes specific to this organism
+	int CreateOrgEDPs(){
+		//check to see whether to use small profile
+		if(NumSmallC>20 && NumSmallNC>20){
+			UseSmallProf=true;//default is false
+		}
+		else{//do not use small profile
+			if (NumSmallC>0){
+				for(int t=0; t<20; t++){//if not using small profile incorporate that information into coding profile
+					CProfile[t]+=SmallCProfile[t];
+				}
+				NumLargeC+=NumSmallC;
+			}
+			if (NumSmallNC>0){
+				for(int t=0; t<20; t++){
+					NCProfile[t]+=SmallNCProfile[t];
+				}
+				NumLargeNC+=NumSmallNC;
+			}
+		}//close else do not use small profile
+				
+		if(UseSmallProf){//if small profiles are needed
+			
+			for(int t=0; t<20; t++){
+				SmallCProfile[t]/=double(NumSmallC);
+				SmallNCProfile[t]/=double(NumSmallNC);
+				CProfile[t]/=double(NumLargeC);
+				NCProfile[t]/=double(NumLargeNC);
+			}
+		}
+		else{//calculate EDP's for just Large CProfile and NCProfile
+			for(int t=0; t<20; t++){
+				CProfile[t]/=double(NumLargeC);
+				NCProfile[t]/=double(NumLargeNC);
+			}
+		}
+		//set the pointers to use the new profiles
+		UseCProfile=CProfile;
+		UseNCProfile=NCProfile;
+		return 0;
+	}
 
 	//function for finding setting the frequencies of the amino acids in a sequence
 	int GetAACount(int AACount[],const long& LB, const long& HB, const bool& Reverse){
@@ -330,9 +385,9 @@ public:
 		double CodingDist=0;
 		double NonCodingDist=0;
 		for (x=0; x<20; x++){
-			double CodingDif=EntropyProfile[x]-DefaultCProfile[x];
+			double CodingDif=EntropyProfile[x]-UseCProfile[x];
 			CodingDist+=(CodingDif*CodingDif);
-			double NonCodingDif=EntropyProfile[x]-DefaultNCProfile[x];
+			double NonCodingDif=EntropyProfile[x]-UseNCProfile[x];
 			NonCodingDist+=(NonCodingDif*NonCodingDif);
 		}
 		CodingDist=sqrt(CodingDist);
@@ -342,12 +397,42 @@ public:
 
 	//total up the EDPs from all the orfs
 	//to come up with a new EDP for coding and noncoding
-	int TotalEDP(int Counts[], const long& Length, Defeated){
+	int TotalEDP(int Counts[], const long& Length, const bool& Defeated){
 
-	if(Defeated){
-		if (Length<300 && UseSmallProf){
+		double TempEDP[20];
+		CountToEDP(Counts, TempEDP);
+
+		if (Length<300){
+			if (Defeated){//if its a loser add it to the non-coding profile
+				NumSmallNC++;
+				AddEDP(TempEDP, SmallNCProfile);
+			}
+			else{//if its a winner add it to the coding profile
+				NumSmallC++;
+				AddEDP(TempEDP, SmallCProfile);
+			}
+		}
+		else {
+			if (Defeated){//if its a loser add it to the non-coding profile
+				NumLargeNC++;
+				AddEDP(TempEDP, NCProfile);
+			}
+			else{//if its a winner add it to the coding profile
+				NumLargeC++;
+				AddEDP(TempEDP, CProfile);
+			}
+		}
+		return 0;
+	}
 
 
+//Add the EDP to the profile submitted so that it can be averaged
+	int AddEDP(double TempEDP[], double Profile[]){
+			
+		for(int t=0; t<20; t++){
+			Profile[t]+=TempEDP[t];
+		}
+		return 0;
 	}
 
 

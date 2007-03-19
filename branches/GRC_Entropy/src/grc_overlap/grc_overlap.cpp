@@ -51,8 +51,11 @@ int main (int argc, char* argv[]) {   //  Main is open
 	string GenomeFile= argv[3];//the name of the fna file
 	string Matrix=argv[4];//the matrix used for blast
 	string TransFile=argv[5];//file used for translating sequences in entropy calculations
+	string GOFile="none";
 
-
+	if(argc==7){//if GO.obo specified
+		GOFile=argv[6];
+	}
 
 
 	list<AARecord> RecordList;//storage for all of the records
@@ -84,7 +87,16 @@ int main (int argc, char* argv[]) {   //  Main is open
 	string Pos=".Pos";
 	Negatives+=Neg;//create false/true negatives filename
 	Positives+=Pos;//create fasle/treu positives filename
+	GO Ontology;//ontology object for storing Gene Ontology
 
+	if(GOFile!="none"){//if there is a GO file specified
+		//cout<<"Reading in the ontology file "<<GOFile<<"\n";
+		ifstream GOIn;
+		GOIn.open(GOFile.c_str());
+		Ontology.ReadOBO(&GOIn,true,true,true);
+		GOIn.close();
+		InfoPack.SetGOAccess(&Ontology);//set go access pointer
+	}//close if there is a obo file
 
 	ifstream BlastIn; //input for the blast results
 	BlastIn.open(BlastFile); //open the blast input

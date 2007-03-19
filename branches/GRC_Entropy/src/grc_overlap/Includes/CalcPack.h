@@ -12,6 +12,7 @@
 #include <map>
 #include <sstream>
 #include "Translate.h"
+#include "GO.h"
 
 using std::cout;
 using std::cerr;
@@ -54,7 +55,7 @@ public:
 	int NumSmallNC;
 	double* UseCProfile;//the coding profile in use
 	double* UseNCProfile;//the non coding profile in use
-
+	GO* GOAccess;
 
 	CalcPack(){//default constructor
 		Lambda=0;
@@ -67,6 +68,7 @@ public:
 		UseCProfile=DefaultCProfile;
 		UseNCProfile=DefaultNCProfile;
 		UseSmallProf=false;
+		GOAccess=NULL;
 		for(int t=0; t<20; t++){
 			DefaultCProfile[t]=DefaultNCProfile[t]=CProfile[t]=NCProfile[t]\
 			=SmallNCProfile[t]=SmallCProfile[t]=0;
@@ -81,6 +83,7 @@ public:
 		UseSmallProf=false;
 		UseCProfile=DefaultCProfile;
 		UseNCProfile=DefaultNCProfile;
+		GOAccess=NULL;
 		int Status=InitCodes();//read in the values.
 		for(int t=0; t<20; t++){
 			DefaultCProfile[t]=DefaultNCProfile[t]=CProfile[t]=NCProfile[t]\
@@ -111,6 +114,11 @@ public:
 			throw 15;//throw exception
 		}
 		return *this;
+	}
+
+	//Function for setting ontological access
+	int SetGOAccess(GO* Access){
+		GOAccess=Access;
 	}
 
 

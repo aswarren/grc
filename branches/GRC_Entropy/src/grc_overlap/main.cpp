@@ -10,11 +10,14 @@ REMEMBER TO ADD THIS BACK IN BEFORE RUNNING TESTS
 #include <list>
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <map>
+#include <utility>
 #include "AARecord.h"
 #include "Compete.h"
 #include "CalcPack.h"
-#include <map>
-#include <utility>
+#include "GO.h"
+
+
 
 
 

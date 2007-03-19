@@ -1,9 +1,9 @@
 all: grc_overlap
 
-grc_overlap: main.o
-	g++ -o grc_overlap main.o
-main.o: main.cpp
-	g++ -c -g main.cpp -I ./Includes/
+grc_overlap: grc_overlap.o
+	g++ -o grc_overlap grc_overlap.o
+grc_overlap.o: grc_overlap.cpp
+	g++ -c -g grc_overlap.cpp -I ./Includes/
 GO.o: GO.cpp
 	g++ -c -g GO.cpp -I ./Includes/
 clean:

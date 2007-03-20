@@ -23,8 +23,8 @@
 #include <list>
 #include <sstream>
 #include <queue>
-#include<vector>
-
+#include <vector>
+#include "GO.h"
 
 using std::cout;
 using std::cerr;
@@ -39,6 +39,8 @@ using std::stringstream;
 using std::deque;
 using std::priority_queue;
 using std::vector;
+	typedef set<string> StringSet;
+	typedef map<int,StringSet> FunctionMap;
 
 class Subject {//open prototype
 public:
@@ -51,7 +53,10 @@ public:
 	string HitOrg;//name of the organism in the db hit
 	list<Alignment> AlignList;//the list of alignments for this subject
 	priority_queue<Alignment*,vector<Alignment*>,OrderAlign> AlignQ;
-
+	list<string> Description;
+	FunctionMap GOTerms;//GOTerms,EvidenceCodes assigned to this prediction
+	bool HasGO;
+	double BestBitFrac;
 
 	
 	Subject(){//default constructor
@@ -61,7 +66,8 @@ public:
 		Defeated=false;
 		Function="none";
 		HitOrg="none";
-	
+		HasGO=false;
+		BestBitFrac=0;
 	}
 
 	//parameterized constructor
@@ -71,8 +77,11 @@ public:
 		HLength=HL;
 		Defeated=false;
 		HitID=HID;
+		BestBitFrac=0;
 		HitOrg=HOrg;
+		HasGO=false;
 		Hypot=(Function.npos!=Function.find("hypothetical"));
+		ParseHit();
 
 	}
 
@@ -87,6 +96,10 @@ public:
 		HitOrg=Source.HitOrg;
 		HitID=Source.HitID;
 		AlignList=Source.AlignList;
+		Description=Source.Description;
+		GOTerms=Source.GOTerms;
+		HasGO=Source.HasGO;
+		BestBitFrac=Source.BestBitFrac;
 		if (Source.AlignQ.size()>0){//if there is something to copy
 			for(list<Alignment>::iterator It=AlignList.begin(); It!=AlignList.end(); It++){
 				AlignQ.push(&(*It));
@@ -106,6 +119,10 @@ public:
 			HitOrg=Source.HitOrg;
 			HitID=Source.HitID;
 			AlignList=Source.AlignList;
+			Description=Source.Description;
+			GOTerms=Source.GOTerms;
+			HasGO=Source.HasGO;
+			BestBitFrac=Source.BestBitFrac;
 			if (Source.AlignQ.size()>0){//if there is something to copy
 				for(list<Alignment>::iterator It=AlignList.begin(); It!=AlignList.end(); It++){
 					AlignQ.push(&(*It));
@@ -186,6 +203,9 @@ public:
 	//Function for adding alignment to the alignment list
 	Alignment* AddAlign(long St, long Sp, double B, string ES, long AL, long QASt, long QASp, double MxBit, double SScore, double EDRatio){
 		AlignList.push_back(Alignment(St,Sp,B,ES,AL,QASt,QASp,MxBit,SScore,EDRatio));//add Alignment
+		if(AlignList.back().ReportBitFrac() > BestBitFrac){//record the highest bit fraction
+			BestBitFrac=AlignList.back().ReportBitFrac();
+		}
 		return &(AlignList.back());//return address to Alignment
 	}
 
@@ -209,8 +229,15 @@ public:
 		return HitID;
 	}
 
+	//Report BestBitFrac
+	double ReportTopBitFrac(){
+		return BestBitFrac;
+	}
 
-
+	//Report GOTerms
+	bool ReportGO(){
+		return HasGO;
+	}
 
 
 	//This function returns the value of the lower part of the orf coordinates
@@ -285,6 +312,51 @@ public:
 	//Reports the Bit/MaxBit value for this alignment
 	double ReportBitFrac(){
 		return AlignQ.top()->ReportBitFrac();
+	}
+
+
+
+	//This function breaks up the function description and initializes the various data structures appropriately
+	int ParseHit(){//open definition
+		stringstream Breakup(Function);//term for reading parts of the function
+		string Term;
+		FunctionMap::iterator FindIt;//iterator for finding go id in goterms map
+		StringSet EmptySet;//empty set for initializing in HitParsing
+
+		while (Breakup>>Term){ //read in terms
+			
+			if (GO::StringIsGO(Term)){//if the term is a go term
+				int TempID=GO::StringToID(Term);//get integer value
+				GOTerms.insert(FunctionMap::value_type(TempID,EmptySet));//insert ID (only unique)
+				FindIt=GOTerms.find(TempID);//find the ID key for evidence code insertion
+			}//close go term
+			else if (GO::IsECode(Term)){//if its an evidence code
+				if(FindIt!=GOTerms.end()){
+					FindIt->second.insert(Term);//insert evidence code
+				}
+				else {
+					cerr<<"WARNING: Possible parsing error at "<<Function<<'\n';
+					Description.push_back(Term);
+				}
+				FindIt=GOTerms.end();
+			}//close if evidence code
+			else{//else its a description Term
+				Description.push_back(Term);
+			}
+		}//close while loop
+
+		if (GOTerms.size()>0){
+			HasGO=true;
+		}
+		return 0;
+	}
+
+	//Return GO Terms
+	int GOContent(vector<int>& TermIDs){
+		for(FunctionMap::iterator It=GOTerms.begin(); It!=GOTerms.end(); It++){
+			TermIDs.push_back(It->first);
+		}
+		return 0;
 	}
 
 	//Display the Information about this Subject and its representative

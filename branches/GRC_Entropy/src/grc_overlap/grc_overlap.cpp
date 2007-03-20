@@ -294,14 +294,23 @@ int main (int argc, char* argv[]) {   //  Main is open
 	//Tally results
 	//cout<<"Average entropy is\t"<<AvgEntropy<<"\n";
 	//cout<<"Std Dev of entropy is\t"<<EntropyDev<<"\n";
-
 	int NumWinHits=0;
-	for (list<AARecord*>::iterator CountIt =WinnerList.begin(); CountIt!=WinnerList.end(); CountIt++ ){
-		if((*CountIt)->HasHit()){//if this orf has a hit
-			NumWinHits++;
+	if(InfoPack.GOAccess!=NULL){
+		for (list<AARecord*>::iterator CountIt =WinnerList.begin(); CountIt!=WinnerList.end(); CountIt++ ){
+			if((*CountIt)->HasHit()){//if this orf has a hit
+				NumWinHits++;
+			}
+			(*CountIt)->GOAnalysis(InfoPack);//finalize GO annotations
 		}
 	}
 
+	else{
+		for (list<AARecord*>::iterator CountIt =WinnerList.begin(); CountIt!=WinnerList.end(); CountIt++ ){
+			if((*CountIt)->HasHit()){//if this orf has a hit
+				NumWinHits++;
+			}
+		}
+	}
 
 	cout<<"******************GRC v0.01******************"<<"\n";
 	cout<<"Total # of initial ORFS created:   "<<PositionMap.size()<<"\n";

@@ -89,7 +89,8 @@ public:
 
 typedef map<long,SeqCalc, std::less<long> > SeqCalcMap;
 typedef priority_queue<Subject*,vector<Subject*>,OrderSubject> PQSubject;
-
+typedef set<Subject*> SubjectSet;
+typedef map<GOFunction*,SubjectSet, OrderDepth> FuncToSubject;
 
 class AARecord {//open prototype
 	friend std::ostream& operator<<(std::ostream& ACOut, const AARecord& AC);
@@ -113,8 +114,10 @@ private:
 	map<string,Subject*> SubjectNames;//map of the subject names used to enforce unique subject addition in AddPrimary function
 	//sequence specific calculations are stored here, according to increasing offset from the stop site
 	 SeqCalcMap CalcMap;//for storing and retrieving RawBitValues and entropy values stored according to decreasing length
-	double EDR;
+	double EDR;//entropy distance ratio of (Coding/NonCoding)
 	Subject* CurrentRep;//subject whose alignment is serving as the current representative of this orf
+	FuncToSubject GOTerms;//maps the GO terms to the subjects from which they come (unique GO Terms and Subject pointers enforced)
+	FuncToSubject ConsensusAnnot;//annotations indicated by multiple non-CurrentRep subjects currentRep is excluded becuase this would duplicate information
 
 public:
 	
@@ -186,7 +189,8 @@ public:
 		HighScore=Source.HighScore;
 		EDR=Source.EDR;
 		CalcMap=Source.CalcMap;
-		
+		GOTerms=Source.GOTerms;
+		ConsensusAnnot=Source.ConsensusAnnot;
 		string TempName="none";
 		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
 			SubjectNames.insert(map<string,Subject*>::value_type(It->GetID(),&(*It)));//insert pointer to Subject based on name
@@ -224,6 +228,8 @@ public:
 			EDR=Source.EDR;
 			CalcMap=Source.CalcMap;
 			string TempName="none";
+			GOTerms=Source.GOTerms;
+			ConsensusAnnot=Source.ConsensusAnnot;
 			for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
 				SubjectNames.insert(map<string,Subject*>::value_type(It->GetID(),&(*It)));//insert pointer to Subject based on name
 			}
@@ -487,7 +493,173 @@ public:
 	}// close definition
 
 
+	//Function to build inverted index of functions with pointers to the subjects from which
+	//they come
+	int BuildGOTerms(CalcPack& CP){
+		vector<int> TempIDs;
+		FuncToSubject::iterator FindIt;
+		//for each Subject
+		for(list<Subject>::iterator It= PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
+			//if the Subject has been annotated with GO terms
+			if(It->ReportGO()){
+				It->GOContent(TempIDs);//get go ids
+				//for each go id
+				for(vector<int>::iterator BuildIt=TempIDs.begin(); BuildIt!= TempIDs.end();BuildIt++){
+					GOFunction* TempFunc=CP.GOAccess->Find(*BuildIt);//get pointer to go function
+					if(TempFunc!=NULL){//if it exists in the GO ontology
+						//check for previous existence
+						FindIt=GOTerms.find(TempFunc);
+						//if exists add subject pointer
+						if(FindIt!=GOTerms.end()){
+							FindIt->second.insert(&(*It));
+						}
+						//if not add GOID and pointer
+						else{
+							GOTerms.insert(FuncToSubject::value_type(TempFunc,SubjectSet()));//insert ID
+						}
+					}//close if it exists
+				}//close loop for these functions
+				TempIDs.clear();//clear vector of functions for this subject
+			}//close has GO
+		}//close for loop all subjects
+		return 0;
+	}
 
+	//Function for creating concensus annotations from GO terms in various subjects
+	//Concensus annotations are those functions supported by multiple hits to this
+	//protein but are not supported by the top hit (as returning these functions would
+	//duplicate information already given in the annotation) Consensus annotations
+	//must be of depth >=2 and have support from different subjects >=2
+	//called as post processing for positives in main()
+	int GOAnalysis(CalcPack& CP){
+		ANCESTOR Family;//for retrieving ancestors of a GOID
+		
+		//if the query orf has hits
+		if(!Blank){
+			BuildGOTerms(CP);//create GO term subject map for this orf
+			if(GOTerms.size()>0){//if there are GO terms
+				//Build ancestor group to look for consensus annotations
+				for(FuncToSubject::iterator AddIt=GOTerms.begin(); AddIt!=GOTerms.end(); AddIt++){
+					//only create ancestor group for those do not come from CurrentRep
+					if(AddIt->second.find(CurrentRep)==AddIt->second.end()){
+						CP.GOAccess->GetAllAncestors(AddIt->first->ReportID(), Family);//get the ancestors for this term
+						//add any functions with support>2 that do not come from CurrentRep
+						if(AddIt->second.size()>=2){//check for multiple support in the most specific annotations
+							ConsensusAnnot.insert(*AddIt);//add this function as concensus annotation
+						}
+						//for each of the ancestors retrieved add it to the list
+						for(ANCESTOR::iterator AncIt=Family.begin(); AncIt!=Family.end(); AncIt++){
+							//if the depth>=2 assume top term depth 0
+							if(AncIt->first->ReportDepth()>=2){
+								//check if already exists
+								FuncToSubject::iterator FindIt=ConsensusAnnot.find(AncIt->first);
+								if(FindIt!=ConsensusAnnot.end()){ //if it does exist
+									//add each subject to support set
+									TransferSupport(FindIt->second, AddIt->second);
+								}
+								else{//if it does not exist
+									//create new annotation and add support in the form of subjects with this function
+									ConsensusAnnot.insert(FuncToSubject::value_type(AncIt->first,AddIt->second));
+								}
+							}//close if has depth >=2
+						}//close for each ancestor
+					}//close if not from CurrentRep
+					Family.clear();//clear the ancestors for this term
+				}//close build ancestor group for loop
+				CreateConsensus(CP);//filter concensus annotations
+			}//close if there are GO terms
+		}//close if has hit
+		return 0;
+	}//close definition
+
+
+	//Transfer Support
+	//this function is used by GOAnalysis to tranfer the support 
+	//from a GO Term to one of its ancestors
+	int TransferSupport(SubjectSet& Target, SubjectSet& Source){
+		for(SubjectSet::iterator SIt=Source.begin(); SIt!=Source.end(); SIt++){
+			Target.insert(*SIt);
+		}
+		return 0;
+	}
+
+
+	//Function for creating consensus annotations from a list of putative ones
+	//takes all functions created as TempCon in GOAnalysis function
+	int CreateConsensus(CalcPack& CP){
+		ANCESTOR ConFamily;//ancestors of each consensus annotation
+		set<GOFunction*> ToErase;
+		//find those that do not have sufficient support
+		for(FuncToSubject::iterator It=ConsensusAnnot.begin(); It!=ConsensusAnnot.end(); It++){
+			if(It->second.size()<2){
+				ToErase.insert(It->first);
+			}
+		}
+		//eliminate those that do not have sufficient support
+		for(set<GOFunction*>::iterator EraseIt=ToErase.begin(); EraseIt!=ToErase.end(); EraseIt++){
+			ConsensusAnnot.erase(*EraseIt);
+		}
+		ToErase.clear();//clear erase vector
+
+		//Check for consensus conflicts by getting the ancestors of the consensus functions
+		for(FuncToSubject::iterator AddIt=ConsensusAnnot.begin(); AddIt!=ConsensusAnnot.end(); AddIt++){
+			int TempDepth=AddIt->first->ReportDepth();//this is just for debugging
+			if(ToErase.find(AddIt->first)==ToErase.end()){//if it has not been marked for removal
+				CP.GOAccess->GetAllAncestors(AddIt->first->ReportID(), ConFamily);//get the ancestors for this term
+				for(ANCESTOR::iterator CheckIt=ConFamily.begin(); CheckIt!=ConFamily.end(); CheckIt++){
+					FuncToSubject::iterator FindIt=ConsensusAnnot.find(CheckIt->first);
+					//if one consensus annotation is the ancestor of another then one must go
+					//and it is not already marked for elimination
+					if(FindIt!=ConsensusAnnot.end() && ToErase.find(FindIt->first)==ToErase.end()){
+						//AddIt is the more specific function
+						//LHS<RHS (more specific<ancestor)
+						if(CompareAnnot(AddIt,FindIt)){//if AddIt loses stop checking its ancestors
+							ToErase.insert(AddIt->first);
+							ConFamily.clear();
+							break;
+						}
+						else{//else the ancestor loses
+							ToErase.insert(FindIt->first);
+						}
+					}
+				}//close for each ancestor
+			}//close if not marked for removal
+			ConFamily.clear();
+		}//close for each consensus function
+		//remove defeated annotations
+		for(set<GOFunction*>::iterator EraseIt=ToErase.begin(); EraseIt!=ToErase.end(); EraseIt++){
+			ConsensusAnnot.erase(*EraseIt);
+		}
+		return 0;
+	}
+
+	//Compares the annotations that represented by FuncToSubj iterators
+	//compares the annotations based on depth, support, and conservation
+	//LHS is expected to be the more specific item
+	//This function is called by CreateConsensus
+	//LHS<RHS for (Depth/LHS.Depth)*(Subjects/RHS.Subjects
+	bool CompareAnnot(FuncToSubject::iterator& LHS, FuncToSubject::iterator&RHS){
+		double LHScore=0;
+		double RHScore=0;
+		double RDepth=RHS->first->ReportDepth();
+		double LDepth=LHS->first->ReportDepth();
+		double LBitSum=0;
+		double RBitSum=0;
+		//sum the bit fractions for LHS
+		for(SubjectSet::iterator LIt=LHS->second.begin(); LIt!=LHS->second.end(); LIt++){
+			LBitSum+=(*LIt)->ReportTopBitFrac();
+		}
+		for(SubjectSet::iterator RIt=RHS->second.begin(); RIt!=RHS->second.end(); RIt++){
+			RBitSum+=(*RIt)->ReportTopBitFrac();
+		}
+		LHScore=1*LBitSum/RBitSum;
+		RHScore=(RDepth/LDepth)*((RBitSum-LBitSum)/RBitSum);
+		if(RHScore==LHScore){//if its a tie go with the more specific function
+			return false;//LHS is greater
+		}
+		else return (LHScore<RHScore);
+	}
+		
 	//report ID of the record aka queryID
 	string ReportID(){
 		return ID;

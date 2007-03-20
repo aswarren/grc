@@ -173,6 +173,18 @@ public:
 		}
 		return 0;
 	}//close definition
+
+	//Report Depth
+	int ReportDepth(){
+		return Depth;
+	}
+
+	//Report ID
+	int ReportID(){
+		return ID;
+	}
+
+
 }; //end GOFunction
 
 
@@ -194,6 +206,28 @@ struct LessAncestor {
 			}
 			else {//compare distances
 				return (a1->Distance<a2->Distance);
+			}
+		}
+	}//close def
+};
+
+struct OrderDepth {
+	bool operator()(GOFunction* a1, GOFunction* a2){
+		if(a1==NULL){
+			return false;
+		}
+		else if(a2==NULL){
+			return false;
+		}
+		else{
+			if(a1->ID==a2->ID){//don't allow equivalent Functons
+				return false;
+			}
+			else if(a1->Depth==a1->Depth){//else if the distances are equivalent but the ID's are not
+				return (a1->ID<a2->ID);//ordering depends on ID
+			}
+			else {//compare distances
+				return (a1->Depth<a2->Depth);
 			}
 		}
 	}//close def

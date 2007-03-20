@@ -89,14 +89,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	Positives+=Pos;//create fasle/treu positives filename
 	GO Ontology;//ontology object for storing Gene Ontology
 
-	if(GOFile!="none"){//if there is a GO file specified
-		//cout<<"Reading in the ontology file "<<GOFile<<"\n";
-		ifstream GOIn;
-		GOIn.open(GOFile.c_str());
-		Ontology.ReadOBO(&GOIn,true,true,true);
-		GOIn.close();
-		InfoPack.SetGOAccess(&Ontology);//set go access pointer
-	}//close if there is a obo file
+
 
 	ifstream BlastIn; //input for the blast results
 	BlastIn.open(BlastFile); //open the blast input
@@ -290,6 +283,14 @@ int main (int argc, char* argv[]) {   //  Main is open
 	//compare the ORFs and remove the ones that conflict due to overlap
 	Compare(PositionMap,WinnerList,LoserList, KOMap);
 	
+	if(GOFile!="none"){//if there is a GO file specified
+		//cout<<"Reading in the ontology file "<<GOFile<<"\n";
+		ifstream GOIn;
+		GOIn.open(GOFile.c_str());
+		Ontology.ReadOBO(&GOIn,true,true,true);
+		GOIn.close();
+		InfoPack.SetGOAccess(&Ontology);//set go access pointer
+	}//close if there is a obo file
 
 	//Tally results
 	//cout<<"Average entropy is\t"<<AvgEntropy<<"\n";

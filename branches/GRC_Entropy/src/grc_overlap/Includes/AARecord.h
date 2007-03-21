@@ -607,19 +607,21 @@ public:
 			if(ToErase.find(AddIt->first)==ToErase.end()){//if it has not been marked for removal
 				CP.GOAccess->GetAllAncestors(AddIt->first->ReportID(), ConFamily);//get the ancestors for this term
 				for(ANCESTOR::iterator CheckIt=ConFamily.begin(); CheckIt!=ConFamily.end(); CheckIt++){
-					FuncToSubject::iterator FindIt=ConsensusAnnot.find(CheckIt->first);
-					//if one consensus annotation is the ancestor of another then one must go
-					//and it is not already marked for elimination
-					if(FindIt!=ConsensusAnnot.end() && ToErase.find(FindIt->first)==ToErase.end()){
-						//AddIt is the more specific function
-						//LHS<RHS (more specific<ancestor)
-						if(CompareAnnot(AddIt,FindIt)){//if AddIt loses stop checking its ancestors
-							ToErase.insert(AddIt->first);
-							ConFamily.clear();
-							break;
-						}
-						else{//else the ancestor loses
-							ToErase.insert(FindIt->first);
+					if(CheckIt->second!="self"){
+						FuncToSubject::iterator FindIt=ConsensusAnnot.find(CheckIt->first);
+						//if one consensus annotation is the ancestor of another then one must go
+						//and it is not already marked for elimination
+						if(FindIt!=ConsensusAnnot.end() && ToErase.find(FindIt->first)==ToErase.end()){
+							//AddIt is the more specific function
+							//LHS<RHS (more specific<ancestor)
+							if(CompareAnnot(AddIt,FindIt)){//if AddIt loses stop checking its ancestors
+								ToErase.insert(AddIt->first);
+								ConFamily.clear();
+								break;
+							}
+							else{//else the ancestor loses
+								ToErase.insert(FindIt->first);
+							}
 						}
 					}
 				}//close for each ancestor
@@ -1007,7 +1009,9 @@ public:
 	int DisplayInfo(std::ostream& Out){
 		if(CurrentRep!=NULL){
 			CurrentRep->DisplayInfo(Out);//display the information about the subject
-
+			for(FuncToSubject::iterator It= ConsensusAnnot.begin(); It!= ConsensusAnnot.end(); It++){
+				cout<<It->first->ReportID()<<"\n";
+			}
 		}
 		else{
 			cerr<<"Error in Displaying record information\n";

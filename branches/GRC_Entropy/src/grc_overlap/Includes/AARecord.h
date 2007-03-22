@@ -515,7 +515,8 @@ public:
 						}
 						//if not add GOID and pointer
 						else{
-							GOTerms.insert(FuncToSubject::value_type(TempFunc,SubjectSet()));//insert ID
+							FuncToSubject::iterator MarkIt=(GOTerms.insert(FuncToSubject::value_type(TempFunc,SubjectSet()))).first;//insert Function
+							MarkIt->second.insert(&(*It));
 						}
 					}//close if it exists
 				}//close loop for these functions
@@ -541,29 +542,29 @@ public:
 				//Build ancestor group to look for consensus annotations
 				for(FuncToSubject::iterator AddIt=GOTerms.begin(); AddIt!=GOTerms.end(); AddIt++){
 					//only create ancestor group for those do not come from CurrentRep
-					if(AddIt->second.find(CurrentRep)==AddIt->second.end()){
-						CP.GOAccess->GetAllAncestors(AddIt->first->ReportID(), Family);//get the ancestors for this term
-						//add any functions with support>2 that do not come from CurrentRep
-						if(AddIt->second.size()>=2){//check for multiple support in the most specific annotations
-							ConsensusAnnot.insert(*AddIt);//add this function as concensus annotation
-						}
-						//for each of the ancestors retrieved add it to the list
-						for(ANCESTOR::iterator AncIt=Family.begin(); AncIt!=Family.end(); AncIt++){
-							//if the depth>=2 assume top term depth 0
-							if(AncIt->first->ReportDepth()>=2){
-								//check if already exists
-								FuncToSubject::iterator FindIt=ConsensusAnnot.find(AncIt->first);
-								if(FindIt!=ConsensusAnnot.end()){ //if it does exist
-									//add each subject to support set
-									TransferSupport(FindIt->second, AddIt->second);
-								}
-								else{//if it does not exist
-									//create new annotation and add support in the form of subjects with this function
-									ConsensusAnnot.insert(FuncToSubject::value_type(AncIt->first,AddIt->second));
-								}
-							}//close if has depth >=2
-						}//close for each ancestor
-					}//close if not from CurrentRep
+					//if(AddIt->second.find(CurrentRep)==AddIt->second.end()){
+					CP.GOAccess->GetAllAncestors(AddIt->first->ReportID(), Family);//get the ancestors for this term
+					//add any functions with support>2 that do not come from CurrentRep
+					if(AddIt->second.size()>=2 && AddIt->second.find(CurrentRep)==AddIt->second.end()){//check for multiple support in the most specific annotations
+						ConsensusAnnot.insert(*AddIt);//add this function as concensus annotation
+					}
+					//for each of the ancestors retrieved add it to the list
+					for(ANCESTOR::iterator AncIt=Family.begin(); AncIt!=Family.end(); AncIt++){
+						//if the depth>=2 assume top term depth 0
+						if(AncIt->first->ReportDepth()>=2){
+							//check if already exists
+							FuncToSubject::iterator FindIt=ConsensusAnnot.find(AncIt->first);
+							if(FindIt!=ConsensusAnnot.end()){ //if it does exist
+								//add each subject to support set
+								TransferSupport(FindIt->second, AddIt->second);
+							}
+							else{//if it does not exist
+								//create new annotation and add support in the form of subjects with this function
+								ConsensusAnnot.insert(FuncToSubject::value_type(AncIt->first,AddIt->second));
+							}
+						}//close if has depth >=2
+					}//close for each ancestor
+					//}//close if not from CurrentRep
 					Family.clear();//clear the ancestors for this term
 				}//close build ancestor group for loop
 				CreateConsensus(CP);//filter concensus annotations
@@ -604,10 +605,13 @@ public:
 		//Check for consensus conflicts by getting the ancestors of the consensus functions
 		for(FuncToSubject::iterator AddIt=ConsensusAnnot.begin(); AddIt!=ConsensusAnnot.end(); AddIt++){
 			int TempDepth=AddIt->first->ReportDepth();//this is just for debugging
+			if(AddIt->second.find(CurrentRep)!=AddIt->second.end()){//if this is an annotation that will be made already
+				ToErase.insert(AddIt->first);//then it should not be a consensus annotation
+			}
 			if(ToErase.find(AddIt->first)==ToErase.end()){//if it has not been marked for removal
 				CP.GOAccess->GetAllAncestors(AddIt->first->ReportID(), ConFamily);//get the ancestors for this term
 				for(ANCESTOR::iterator CheckIt=ConFamily.begin(); CheckIt!=ConFamily.end(); CheckIt++){
-					if(CheckIt->second!="self"){
+					if(CheckIt->second!="self"){//ancestors returned include the submitted function
 						FuncToSubject::iterator FindIt=ConsensusAnnot.find(CheckIt->first);
 						//if one consensus annotation is the ancestor of another then one must go
 						//and it is not already marked for elimination
@@ -1008,10 +1012,11 @@ public:
 //this function violates information hiding
 	int DisplayInfo(std::ostream& Out){
 		if(CurrentRep!=NULL){
-			CurrentRep->DisplayInfo(Out);//display the information about the subject
+			//print out any consensus GO annotations
 			for(FuncToSubject::iterator It= ConsensusAnnot.begin(); It!= ConsensusAnnot.end(); It++){
-				cout<<It->first->ReportID()<<"\n";
+				Out<<GO::IDToString(It->first->ReportID())<<" ICA ";//these are all infered by consensus annotation
 			}
+			CurrentRep->DisplayInfo(Out);//display the information about the subject
 		}
 		else{
 			cerr<<"Error in Displaying record information\n";

@@ -496,7 +496,7 @@ int GO::ReadOBO(istream *In, const bool& MFunc, const bool& BProc, const bool& C
 		return (TempS=="IEA" || TempS=="IDA" || TempS=="IMP" || TempS=="IC"
 			|| TempS=="IEP" || TempS=="IGI" || TempS=="IPI" || TempS=="ISS"
 			|| TempS=="NAS" || TempS=="ND" || TempS=="RCA" || TempS=="TAS"
-			|| TempS=="NR");
+			|| TempS=="NR" || TempS=="IGC" || TempS=="ICA");//NOTE ICA stands for inferred by consensus annotation and is grc specific evidence code
 	}
 
 

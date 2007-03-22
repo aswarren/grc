@@ -365,7 +365,19 @@ public:
 			double ALength=AlignQ.top()->GetALength();
 			double OLength=AlignQ.top()->GetLength();
 
-			Out<<Function<<"\t"; //print hit description or no hit line
+			//Out<<Function<<"\t"; //print hit description
+			for(FunctionMap::iterator It= GOTerms.begin(); It!=GOTerms.end(); It++){//Print GO terms if there are any
+				Out<<GO::IDToString(It->first)<<" ";
+				//print evidence codes
+				for(StringSet::iterator It2=It->second.begin(); It2!=It->second.end(); It2++){
+					Out<<*It2<<" ";
+				}
+			}
+			//print out the description "fasta line function"
+			for(list<string>::iterator DIt=Description.begin(); DIt!=Description.end(); DIt++){
+				Out<<*DIt<<" ";
+			}
+			Out<<"\t";
 			Out<<HitID<<"\t";
 			Out<<HitOrg<<"\t";
 			AlignQ.top()->DisplayInfo(Out);

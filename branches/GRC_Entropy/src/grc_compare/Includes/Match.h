@@ -23,8 +23,8 @@ enum GOSTATUS{GRC, Ref, RefGRC, NoGO};//keeps of whether the match involves pred
 class Match {//open prototype
 		friend std::ostream& operator<<(std::ostream& Out, const Match& M);
 public:
-	double RefOLapPercent; //Setubal Sequence percent overlap
-	double GRCOLapPercent; //GRC sequence percent overlap
+	double RefOLapPercent; //Subject Sequence percent overlap
+	double GRCOLapPercent; //Query sequence percent overlap
 	double OverLen; //length of overlap
 	double RefWordMatchPercent; //setubal word percent
 	double GRCWordMatchPercent; //grc word percent

@@ -1,6 +1,9 @@
 // GOMatch.h
-//GOMatch stores the confirmation
-//of a GRCAnnotation by a Reference annotation
+//GOMatch stores pairs of GO terms usually as the result
+//of parent child relationship
+//is used to show confirmation
+//of a GRCAnnotation by a Reference annotation in GRC_compare
+//and for storing conflicts between consensus annotations in grc_overlap
 //It pairs the two together and provides relevant distance/depth information
 
 

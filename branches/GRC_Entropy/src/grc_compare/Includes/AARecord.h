@@ -22,7 +22,7 @@
 #include<set>
 #include <map>
 #include "DirectHash.h"
-#include "GO.h"
+
 using std::setw;
 using std::list;
 using std::cerr;

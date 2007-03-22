@@ -25,6 +25,7 @@ GO::GO(const GO& Source){//copy constructor
 		MFBool=Source.MFBool;
 		CCBool=Source.CCBool;
 		AllAnCounter=Source.AllAnCounter;
+		NotFound=Source.NotFound;
 	}
 
 GO& GO::operator =(const GO& Source){//assignment operator
@@ -41,6 +42,7 @@ GO& GO::operator =(const GO& Source){//assignment operator
 			MFBool=Source.MFBool;
 			CCBool=Source.CCBool;
 			AllAnCounter=Source.AllAnCounter;
+			NotFound=Source.NotFound;
 		}
 		return *this;
 }//close definition
@@ -443,7 +445,10 @@ int GO::ReadOBO(istream *In, const bool& MFunc, const bool& BProc, const bool& C
 			else return (*FindP);
 		}
 		else {
-			cerr<<"WARNING: "<<FindMe<<" could not be found in the ontology.\n";
+			if(NotFound.find(FindMe)==NotFound.end()){//if no error message for this ID
+				cerr<<"WARNING: "<<FindMe<<" could not be found in the ontology.\n";
+				NotFound.insert(FindMe);
+			}
 			return NULL;//else could not find the function
 		}
 	}//close definition
@@ -491,7 +496,7 @@ int GO::ReadOBO(istream *In, const bool& MFunc, const bool& BProc, const bool& C
 		return (TempS=="IEA" || TempS=="IDA" || TempS=="IMP" || TempS=="IC"
 			|| TempS=="IEP" || TempS=="IGI" || TempS=="IPI" || TempS=="ISS"
 			|| TempS=="NAS" || TempS=="ND" || TempS=="RCA" || TempS=="TAS"
-			|| TempS=="NR");
+			|| TempS=="NR" || TempS=="IGC" || TempS=="ICA");//NOTE ICA stands for inferred by consensus annotation and is grc specific evidence code
 	}
 
 

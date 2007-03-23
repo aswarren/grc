@@ -31,7 +31,7 @@ int Compare(list<AARecord*>& GList, list<AARecord*>& RList, list<AARecord*>& NLi
 int PrintCompare(list<Match>& ML);//function for printing out comparison chart of terms and sequence overlap
 int LenVSOLap(list<Match>& ML); //function for printing out data for sequence overlap with respect to length of ORF
 int PrintSeqMatch(list<Match>& ML, char* RInput);//function for printing distribution chart of combined sequence statistic over reference annotations
-int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, GO* GOAccess);//fuction for printing summary statistics based on FP, TP, FN, TN
+int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg, GO* GOAccess);//fuction for printing summary statistics based on FP, TP, FN, TN
 int GetKnock(DirectHash<AARecord*>& Putatives, list<Match>& MList, char* KnockFile);//function to get data for analysis
 int KnockAnalysis(list<Match>& KML);//function to perform Knockout Analysis
 int CountGOStat(Match& TempM, int& GR, int& R, int& G, int& N);//update the total number of cases for all the grc,ref pairs
@@ -343,7 +343,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	GetKnock(IDHash,FNMList, KnockFile); //read in the knock out list of who did what to whom
 	KnockAnalysis(FNMList);
 
-	PrintPositive(MList, NumNO, orfRefList.size(), GOAccess);//Print Summary Statistics
+	PrintPositive(MList, NumNO, orfRefList.size(), NegList.size(), GOAccess);//Print Summary Statistics
 	//print out matches
 	cout<<"RESULTS:\n";
 	cout<<"Stat\tResult\tMatching_terms\tOverlap\n";
@@ -972,7 +972,7 @@ std::ostream& operator<<(std::ostream& Out, const Match& M){
 //PrintPositive Function for printing out statistics in relation to the false positive,
 //false negative, true positive, and true negative numbers
 //GRCRecord is the GRC orf RefRecord is the reference orf
-int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, GO* GOAccess){//open definition
+int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg, GO* GOAccess){//open definition
 //cout<<"made it into PrintPositive\n";
 	int NumFP=0;//counters to keep track of positives and negatives
 	int NumTP=0;
@@ -1136,7 +1136,7 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, GO* GOAccess){//o
 	//WordOut.close();
 	//output summary statistics
 	//cout<<"Made it to summary statisitcs\n";
-	cout<<"\nSummary Statistics:\n"<<"TP:\t"<<NumTP<<"\n"<<"FP:\t"<<NumFP<<"\t\tNRP:\t"<<NumNO<<"\n"<<"TN:\t"<<NumTN<<"\n";
+	cout<<"\nSummary Statistics:\n"<<"TP:\t"<<NumTP<<"\n"<<"FP:\t"<<NumFP<<"\t\tNRP:\t"<<NumNO<<"\n"<<"TN:\t"<<NumNeg-NumFN<<"\n";
 	cout<<"FN:\t"<<NumFN<<"\tDE:\t"<<int(NumRefG-(NumFN+NumTP))<<"\n\n"<<"\nPrecision:\t"<<double(NumTP)/double(NumTP+NumFP)<<"\nSensitivity:\t"<<double(NumTP)/NumRefG<<"\n\n";
 	cout<<"FN w/ hits:\t"<<FNNumwHit<<"\n\n";
 	cout<<"Statistics as to whether a prediction (TP, FP, TN)) overlaps with a Reference ORF that is <300bp\n";
@@ -1283,6 +1283,21 @@ int GetKnock(DirectHash<AARecord*>& Putatives, list<Match>& MList, char* KnockFi
 				else{cerr<<Tg<<" does not exist in hashTable\n";}
 			}//close read in rest of line
 		}//close if not entropy
+		else{//knocked out by entropy
+			stringstream ss(Line);
+			while(ss>>Target){//read in the rest of the line until delimeter
+				Tg=Putatives.HashingKey(Target);//hash target
+				TarPP=(Putatives.FindKey(Tg));//find the putative in the hash
+				if(TarPP!=NULL){//if it exists
+					TarP=*TarPP;
+					if((TarP->Evaluation)==FN){//a putative got knocked out that was not supposed to
+						OLapLen=0;
+						MList.push_back(Match(NULL, TarP, OLapLen, false));//add to match list
+					}//close putative knocked out
+				}//close if TarP exists
+				else{cerr<<Tg<<" does not exist in hashTable\n";}
+			}//close read in rest of line
+		}//close knocked out by entropy
 	}//close get the knocklist
 
 	return 0;
@@ -1309,7 +1324,10 @@ int KnockAnalysis(list<Match>& KML){//
 	int CountFP=0;
 	int CountTN=0;
 	int CountFN=0;
+	int CountEN=0;
 	int FNNoHit=0;
+	int CountNRN=0;
+	int CountNRP=0;
 	double MLSize=KML.size();
 	double NumOL=KML.size();
 	ofstream Out;
@@ -1326,21 +1344,31 @@ int KnockAnalysis(list<Match>& KML){//
 			SumEScore+=(It11->RefRecord->EValue);
 		}
 		else{	FNNoHit++;}
-		
-		switch((It11->GRCRecord->Evaluation)){
-			case TP:
-				CountTP++;
-				break;
-			case FP:
-				CountFP++;
-				break;
-			case TN:
-				CountTN++;
-				break;
-			case FN:
-				CountFN++;
-				break;
-			default: break;
+		if(It11->GRCRecord==NULL){//then it was eliminated by entropy
+			CountEN++;//increase entropy count
+		}
+		else{
+			switch((It11->GRCRecord->Evaluation)){
+				case TP:
+					CountTP++;
+					break;
+				case FP:
+					CountFP++;
+					break;
+				case TN:
+					CountTN++;
+					break;
+				case FN:
+					CountFN++;
+					break;
+				case NRP:
+					CountNRP++;
+					break;
+				case NRN:
+					CountNRN++;
+					break;
+				default: break;
+			}
 		}
 	}//close for loop
 	double AvgEScore=(SumEScore/(MLSize-FNNoHit));
@@ -1356,9 +1384,11 @@ int KnockAnalysis(list<Match>& KML){//
 	Out<<"Avg. Percent Overlap(FN-nt):"<<AvgPerOLap<<"\n\n";
 	Out<<"Total FN Eliminated by TP:"<<CountTP<<"\n";
 	Out<<"Total FN Eliminated by FP:"<<CountFP<<"\n";
+	Out<<"Total FN Eliminated by NRP:"<<CountNRP<<"\n";
 	Out<<"Total FN Eliminated by TN:"<<CountTN<<"\n";
-	Out<<"Total FN Eliminated by FN:"<<CountFN<<"\n\n";
-	
+	Out<<"Total FN Eliminated by FN:"<<CountFN<<"\n";
+	Out<<"Total FN Eliminated by NRN:"<<CountNRN<<"\n";
+	Out<<"Total FN Eliminated by Entropy:"<<CountEN<<"\n\n";
 	//Out.flush();
 	string Delim="-------------------------------------------------------------";
 	//print out knock analysis

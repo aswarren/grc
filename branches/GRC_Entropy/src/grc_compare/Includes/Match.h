@@ -20,6 +20,11 @@ using std::set;
 enum GOSTATUS{GRC, Ref, RefGRC, NoGO};//keeps of whether the match involves prediction/ref with GO terms assigned
 //class AARecord;//forward declaration
 
+	//NOTE The Match record is getting dual use
+	//it could be improved to use inheritance from a base Match class for both uses
+	//(1)Used for storing the pairs of putative orfs and the reference orf that they overlap with the most
+	//(2)Used for storing pairs of orfs in the KnockAnalysis file which tracks the grc_overlap
+	//results of which orf won and lost the contest between to overlapping orfs
 class Match {//open prototype
 		friend std::ostream& operator<<(std::ostream& Out, const Match& M);
 public:
@@ -104,56 +109,60 @@ public:
 		 return *this;
 	 }// close definition
 
-
+	//The Match record is getting dual use
+	//it could be improved to use inheritance from a base Match class for both uses
+	//(1)Used for storing the pairs of putative orfs and the reference orf that they overlap with the most
+	//(2)Used for storing pairs of orfs in the KnockAnalysis file which tracks the grc_overlap
+	//results of which orf won and lost the contest between to overlapping orfs
 
 	 Match(AARecord* BP, AARecord* CP, const double& OLap, bool PosOrNeg, int NumSmall=0, GO* GOAccess=NULL){//parameterized constructor
 		GRCRecord=BP;
 		RefRecord=CP;
 		OverLen=OLap;
-		RefOLapPercent=OverLen/RefRecord->OLength; //reference annotation overlap
-		GRCOLapPercent=OverLen/GRCRecord->OLength; //grc annotation overlap
 		GOStat=NoGO;
 		
 		//Set RefEval Pointer
 		if(RefRecord->Ref){//if the refernece record  really is a reference record and not a GRC record for FNanalysis
+			RefOLapPercent=OverLen/RefRecord->OLength; //reference annotation overlap
+			GRCOLapPercent=OverLen/GRCRecord->OLength; //grc annotation overlap
 			StatScore=GRCRecord->Evaluation;//get the result of the comparison
 			if(StatScore ==TP || StatScore==FN){//if the reference record is worth tracking
 				GRCRecord->RefEval=RefRecord;//set RefEval to be used in FNAnalysis
 				RefRecord->RefMatched=true;//set RefMatched to keep FP and TN from using the reference
 			}
 		}
-		 
-
-		if(StatScore!=TN){
-			FindMatchTerms();//Find which terms match between the two records.
-		 }//close if not TN
-
-		SmallRef=NumSmall;//keep track of the number of Ref. ORFs <300bp that the GRC ORF overlaps with
-		double WMatches=MTerms.size();
-		double GW=BP->Hit.size();
-		double SW=CP->Hit.size();
-		if(GW==0)GRCWordMatchPercent=0;
-		else GRCWordMatchPercent=WMatches/GW;
-		if(SW==0)RefWordMatchPercent=0;	
-		else RefWordMatchPercent=WMatches/SW;
-
-		CombinedOLap=RefOLapPercent*GRCOLapPercent; //keep track of combined overlap
-		if(RefRecord->MaxOLap<CombinedOLap){//if the maximum overlap for the reference orf is less than the current update it
-			RefRecord->MaxOLap=CombinedOLap;
-			RefRecord->MaxTerms=RefWordMatchPercent;
+		 //if GRCRecord is not null which is the case if this match object is being used to record a knockout for entropy
+		if(GRCRecord!=NULL){
+			if(StatScore!=TN){
+				FindMatchTerms();//Find which terms match between the two records.
+			}//close if not TN
+	
+			SmallRef=NumSmall;//keep track of the number of Ref. ORFs <300bp that the GRC ORF overlaps with
+			double WMatches=MTerms.size();
+			double GW=BP->Hit.size();
+			double SW=CP->Hit.size();
+			if(GW==0)GRCWordMatchPercent=0;
+			else GRCWordMatchPercent=WMatches/GW;
+			if(SW==0)RefWordMatchPercent=0;	
+			else RefWordMatchPercent=WMatches/SW;
+	
+			CombinedOLap=RefOLapPercent*GRCOLapPercent; //keep track of combined overlap
+			if(RefRecord->MaxOLap<CombinedOLap){//if the maximum overlap for the reference orf is less than the current update it
+				RefRecord->MaxOLap=CombinedOLap;
+				RefRecord->MaxTerms=RefWordMatchPercent;
+			}
+			if(GRCRecord->MaxOLap<CombinedOLap){//if the overlap with respect to the grc set orf is the greatest so far update it
+				GRCRecord->MaxOLap=CombinedOLap;//update the maximum overlap for this GRC predicted orf
+				GRCRecord->MaxTerms=GRCWordMatchPercent;//update the percentage of terms that cooresponds to the maxolap
+				
+			}
+			if(GOAccess!=NULL && StatScore==TP){//if the ontology is available
+				FindGOStat();//check the status of the match
+				if(GOStat==RefGRC){//if the annotations can be verified
+					CheckGO(GOAccess);//run checkGO for each of the TP orfs with GO terms
+				}//close if verifiable
+			}//close ontology available
 		}
-		if(GRCRecord->MaxOLap<CombinedOLap){//if the overlap with respect to the grc set orf is the greatest so far update it
-			GRCRecord->MaxOLap=CombinedOLap;//update the maximum overlap for this GRC predicted orf
-			GRCRecord->MaxTerms=GRCWordMatchPercent;//update the percentage of terms that cooresponds to the maxolap
-			
-		}
-		if(GOAccess!=NULL && StatScore==TP){//if the ontology is available
-			FindGOStat();//check the status of the match
-			if(GOStat==RefGRC){//if the annotations can be verified
-				CheckGO(GOAccess);//run checkGO for each of the TP orfs with GO terms
-			}//close if verifiable
-		}//close ontology available
-
 	 }//close definition
 
 
@@ -308,8 +317,13 @@ public:
 		}
 
 		Out<<OverLen<<'\t'<<RefOLapPercent<<'\n';
-		Out<<PrintEval(GRCRecord->Evaluation)<<"\t";
-		GRCRecord->RecordOut(Out);
+		if(GRCRecord==NULL){
+			Out<<"ENTROPY\n";
+		}
+		else{
+			Out<<PrintEval(GRCRecord->Evaluation)<<"\t";
+			GRCRecord->RecordOut(Out);
+		}
 		Out<<PrintEval(RefRecord->Evaluation)<<"\t";
 		RefRecord->RecordOut(Out);
 		Out<<"NA\t";

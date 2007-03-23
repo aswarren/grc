@@ -18,11 +18,12 @@
 #include <cmath>
 #include <list>
 #include <iomanip>
-#include<sstream>
-#include<set>
+#include <sstream>
+#include <set>
 #include <map>
 #include "DirectHash.h"
-
+#include "GO.h"
+		
 using std::setw;
 using std::list;
 using std::cerr;

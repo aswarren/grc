@@ -471,6 +471,7 @@ public:
 		//return (Entropy<RHS.Entropy);
 		//return (CurrentLength>RHS.CurrentLength);//LHS.QueryLength>RHS.QueryLength
 		//return (Entropy<RHS.Entropy);
+
 		double LengthFrac=0;
 		double EntropyFrac=0;
 		//create discriminator fractions by using (difference/Min(value1, value2))
@@ -486,7 +487,7 @@ public:
 		else{
 			EntropyFrac=double(RHS.EDR-EDR)/double(EDR);
 		}
-		if (EntropyFrac>LengthFrac){
+		if (EntropyFrac*2>LengthFrac){//the difference in length has to 2 times the difference in entropy
 			return (EDR<RHS.EDR); //LHS is better than RHS if entropy is lower
 		}
 		else return (CurrentLength>RHS.CurrentLength); //LHS is better than RHS if length is greater		

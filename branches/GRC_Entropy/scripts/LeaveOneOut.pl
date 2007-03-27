@@ -10,7 +10,7 @@ $MinSize=99;
 $BHits=10;
 
 my $CDir=getcwd;#get current working directory
-getopt('gdr');# get and assign the command line parameters $opt_g $opt_d
+getopt('gdrmb');# get and assign the command line parameters $opt_g $opt_d
 
 unless (-e $opt_g && -e $opt_d) { #check for command line parameter existence
 	die "Either $opt_g or $opt_d does not exist\n";
@@ -27,6 +27,14 @@ if(defined $opt_r){
 	closedir Direc;
 	@rcontentsort = sort @rcontents;#sort the names
 	chdir("$CDir"); #change back to orig wd
+}
+
+if(defined $opt_m){
+    $MinSize=$opt_m;
+}
+
+if(defined $opt_b){
+    $BHits=$opt_b;
 }
 
 chdir("$opt_d");

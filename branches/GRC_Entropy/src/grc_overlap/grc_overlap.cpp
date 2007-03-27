@@ -152,7 +152,8 @@ int main (int argc, char* argv[]) {   //  Main is open
 			//In>>ES; //read in the delimiter
 			//Insert Record into Initial RecordMap
 			BlastIn>>LowComplexity;
-			RecordList.push_back(AARecord(InfoPack, ID, Start, Stop, HitID));//add record to the list
+			RecordList.push_back(AARecord());//add record to the list
+			RecordList.back().InitRecord(InfoPack, ID, Start, Stop, HitID);
 			//EditList.push_back(&((MapIt.first)->second));//add a pointer to the location of the record
 		}//close consq.
 		else {//there is a hit
@@ -204,7 +205,8 @@ int main (int argc, char* argv[]) {   //  Main is open
 					FindID->second->AddPrimary(InfoPack, Start, Stop, HitID, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, Function, HitOrg);
 				}
 				else{//else there has not been a hit for this orf so far. so create a new AARecord
-					RecordList.push_back(AARecord(InfoPack, ID, Start, Stop, HitID, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, Function, HitOrg));
+					RecordList.push_back(AARecord());
+					RecordList.back().InitRecord(InfoPack, ID, Start, Stop, HitID, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, Function, HitOrg);
 					HitList.insert(IDMap::value_type(ID,&RecordList.back()));//add pointer to the record to the hit list
 				}
 			}

@@ -32,7 +32,7 @@ public:
 	double MaxBit;
 	double EDR;//actually the entropy distance ratio
 	int AACount[21];
-	vector<Alignment*> AlignV;//all the alignments for this Record for this segment of sequence
+	list<Alignment*> AlignV;//all the alignments for this Record for this segment of sequence
 	//default constructor
 	SeqCalc(){
 		RawBit=0;
@@ -42,7 +42,7 @@ public:
 			AACount[t]=0;
 		}
 	}
-	//paramaterized constructor
+	
 	SeqCalc(double RB, double MB, double E){
 		RawBit=RB;
 		EDR=E;
@@ -59,6 +59,7 @@ public:
 		for(int t=0; t<21; t++){
 			AACount[t]=Source.AACount[t];
 		}
+		AlignV=Source.AlignV;
 	}
 // 	//assignment operator
 	SeqCalc& operator =(const SeqCalc &Source){// open defintion
@@ -66,6 +67,7 @@ public:
 			RawBit=Source.RawBit;
 			MaxBit=Source.MaxBit;
 			EDR=Source.EDR;
+			AlignV=Source.AlignV;
 			for(int t=0; t<21; t++){
 				AACount[t]=Source.AACount[t];
 			}
@@ -80,7 +82,7 @@ public:
 	}
 	//update the entropies for the alignments here
 	int UpdateEntropy(){
-		for(vector<Alignment*>::iterator It=AlignV.begin(); It!=AlignV.end(); It++){
+		for(list<Alignment*>::iterator It=AlignV.begin(); It!=AlignV.end(); It++){
 			(*It)->UpdateEDR(EDR);
 		}
 		return 0;
@@ -134,8 +136,8 @@ public:
 		CurrentRep=NULL;
 	}
 
-	//parameterized constructor
-	AARecord( CalcPack& CP, string TID="unassigned", long St=0, long Sp=0, string HID="none", double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, string Func="none", string HOrg="none"){ // parameterized constructor1
+	//Initialize the Values for the record
+	int InitRecord( CalcPack& CP, string TID="unassigned", long St=0, long Sp=0, string HID="none", double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, string Func="none", string HOrg="none"){ // parameterized constructor1
 		ID=TID;
 		Start=St;
 		Stop=Sp;
@@ -145,6 +147,7 @@ public:
 		HighScore=0;//highest score so far 
 		Blank=(B==0); //if the bit score is 0 then blank is true
 		CurrentRep=NULL;
+		CalcMap.clear();
 		if (Start>Stop){ 
 			Reverse=true;//see if the orf is reversed
 			HighBase=Start;
@@ -170,6 +173,7 @@ public:
 			CP.GetAACount(MarkIt->second.AACount,LowBase,HighBase,Reverse);
 			EDR=CP.GetEntropy(MarkIt->second.AACount);
 		}
+		return 0;
 	}
 
 
@@ -250,11 +254,7 @@ public:
 		return *this;
 	}// close definition
 	
-	 //destructor
-	 ~AARecord(){
-		//SubjectQ.clear();
-		SubjectNames.clear();
-	 }
+
 
 	 	//> OPERATOR overload
 		//Both operators use the CurrentRep for the following two cases
@@ -745,17 +745,21 @@ public:
 			map<string,Subject*>::iterator FindIt;
 			//Search for the subject ID
 			FindIt=SubjectNames.find(HID);
-			SeqCalc* CalcPointer= CalcSeqScore(CP,LBase,HBase,Reverse);
+			SeqCalcMap::iterator CalcIt=CalcSeqScore(CP,LBase,HBase,Reverse);
 			if(FindIt!=SubjectNames.end()){//if the subject ID is found
-				TempAlign=FindIt->second->AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcPointer->MaxBit,StartScore, CalcPointer->EDR);//add Alignment
+				TempAlign=FindIt->second->AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcIt->second.MaxBit,StartScore, CalcIt->second.EDR);//add Alignment
+				int SizeAlignV=CalcIt->second.AlignV.size();
+				CalcIt->second.AlignV.push_back(TempAlign);
 			}
 			else{//else add a new subject
 				int TempID=PrimaryHits.size();
 				PrimaryHits.push_back(Subject(TempID,HID,HL,Func,HOrg));//add Subject
-				TempAlign=PrimaryHits.back().AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcPointer->MaxBit,StartScore, CalcPointer->EDR);//add Alignment
+				TempAlign=PrimaryHits.back().AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcIt->second.MaxBit,StartScore, CalcIt->second.EDR);//add Alignment
 				SubjectNames.insert(map<string,Subject*>::value_type(HID,&PrimaryHits.back()));//insert pointer to Subject based on name
+				int SizeAlignV=CalcIt->second.AlignV.size();
+				CalcIt->second.AlignV.push_back(TempAlign);
 			}
-			CalcPointer->AlignV.push_back(TempAlign);
+
 		}
 		//No need to add to primaryQ until each Subject has been scored based on HighScore
 		//SubjectQ.push(&PrimaryHits.back());
@@ -928,7 +932,7 @@ public:
 	//Calculates the rawbit additively so that the same sequence is not iterated
 	//over multiple times
 	//Need to clean up this coordinate to string conversion +1 -1 stuff
-	SeqCalc* CalcSeqScore(CalcPack& CP, const long& LowB, const long& HighB, const bool& Rev){
+	SeqCalcMap::iterator CalcSeqScore(CalcPack& CP, const long& LowB, const long& HighB, const bool& Rev){
 
 		long LowerBound=0;//lower bound on calc raw bit
 		long UpperBound=0;//upper bound on calc raw bit
@@ -940,12 +944,12 @@ public:
 
 		//if the score has been found
 		if(FindIt!=CalcMap.end()){
-			return (&(FindIt->second));//return address of the Calculation container
+			return ((FindIt));//return address of the Calculation container
 		}
 		//else calculate the score and create new SeqCalc object
 		else{
-			CalcMap.insert(map<long,SeqCalc>::value_type(Length,SeqCalc()));//insert new SeqCalc based on this segment of sequence
-			MarkIt=CalcMap.find(Length);
+			MarkIt=CalcMap.insert(map<long,SeqCalc>::value_type(Length,SeqCalc())).first;//insert new SeqCalc based on this segment of sequence
+			int TempSize=MarkIt->second.AlignV.size();
 
 			if(CalcMap.size()>1){//if the calc map has values other than the one just added
 				//check to see if this Length is bigger than previous ones
@@ -1003,7 +1007,7 @@ public:
 		}
 		MarkIt->second.MaxBit=((MarkIt->second.RawBit*CP.Lambda)-log(CP.K))/M_LN2;
 		MarkIt->second.EDR=CP.GetEntropy(MarkIt->second.AACount);
-		return (&(MarkIt->second));//return pointer to SeqCalc structure that holds the scores
+		return ((MarkIt));//return pointer to SeqCalc structure that holds the scores
 	}//close definition
 
 

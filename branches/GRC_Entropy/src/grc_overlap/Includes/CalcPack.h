@@ -241,7 +241,7 @@ public:
 	//this function returns the coordinate of the amino acid in the array
 	//expects that any non-AA coding seq. enountered will be translated to '*'
 	int MapAA(char AA){
-		int Value=21;
+		int Value=20;
 		if(AA=='*'){
 			return Value;
 		}
@@ -381,7 +381,13 @@ public:
 		
 		//for each amino acid in the sequence
 		for (int t=0; t<Translation.size(); t++){
-			AACount[MapAA(Translation[t])]++;
+			int Coord=MapAA(Translation[t]);
+			if(Coord>=0&&Coord<=20){
+				AACount[Coord]++;
+			}
+			else{
+				cerr<<"logic error in grc_overlap translation\n";
+			}
 		}
 		return 0;
 	}
@@ -550,8 +556,8 @@ public:
 		long HB=HighB;
 		long StartSearch=LB-1;//Subtract one to convert to string coordinates
 		long Length=HB-LB+1;
-		string Codon;
-		double RawBit;
+		string Codon="";
+		double RawBit=0;
 		map <string,int>::iterator FindIt;		
 	//even though its in reverse go forward through the sequence and get reverse complement
 		if(Rev){

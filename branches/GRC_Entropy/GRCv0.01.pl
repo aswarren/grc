@@ -295,8 +295,8 @@ if(defined $opt_r){#if there is a reference file to compare to
 		$CompareCommand=$CompareCommand." $OntFile";
 	}
 	$status = system($CompareCommand);
-	$ParseCommand=$BinDir."/scripts/ParseCompare.pl ./$GenomeName".".compare >$GenomeName".".comparsed";
-	system($ParseCommand);
+	#$ParseCommand=$BinDir."/scripts/ParseCompare.pl ./$GenomeName".".compare >$GenomeName".".comparsed";
+	#system($ParseCommand);
 	if ($status != 0){
 		die "grc_compare did not run successfully";
 	}

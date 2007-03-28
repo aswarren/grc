@@ -491,7 +491,7 @@ public:
 		else if (Codon=="ttg"||Codon=="caa"){
 			return (.08);
 		}
-		return 0;
+		return .08;
 	}
 
 
@@ -627,7 +627,7 @@ public:
 			}
 			else{//start from the position of the last start found
 				StartSearch=Start+2;//next codon 
-				Halt=OrigStart-Start-3;//room left between orig and current search position
+				Halt=OrigStart-Start;//room left between orig and current search position
 			}
 	
 			for (int s=0; s<=Halt; s=s+3){//search codons in the upstream direction
@@ -664,7 +664,10 @@ public:
 				}//close if next codon
 			}//close search next codons
 		}//close not reversed
-		return false;
+		//Default just return original start
+		St=OrigStart;
+		OStartCount++;
+		return true;
 	}//close defintion
 
 

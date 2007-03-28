@@ -888,7 +888,7 @@ public:
 	//It will pass in the highest BitScore out of all the alignments for this query so that
 	//each (alignment,start site) pair can be scored according to its individual and relative characteristics
 	int UpdateScores(){
-
+	
 		while(!SubjectQ.empty()){//clear the alignQ
 			SubjectQ.pop();
 		}

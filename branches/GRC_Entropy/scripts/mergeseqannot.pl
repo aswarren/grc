@@ -84,6 +84,9 @@ if($ARGV[1]=~/.ptt/){
 
 
 elsif($ARGV[1]=~/.goa/){
+	$IDPosition=1;
+	$GOPosition=4;
+	$ECodePosition=6;
 	$a=0;
 	while($a+1<$NumParam && $ARGV[$a+1]=~/goa$/i){#open parameter loop
 		$InHandle=$ARGV[$a+1];#set the input file name
@@ -96,12 +99,13 @@ elsif($ARGV[1]=~/.goa/){
 		#Create hash
 		while ($count<@Lines) {#for each line of the goa file
 			local @Terms=split(/\t/, $Lines[$count]);
-			if(defined $Annotation{$Terms[2]}){#if this ID is in the hash
-				$Annotation{$Terms[2]}="$Annotation{$Terms[2]} $Terms[4] $Terms[6]"; #hash the goa line to the ID
+			#print "$Terms[$IDPosition] $Terms[$GOPosition] $Terms[$ECodePosition] \n";
+			if(defined $Annotation{$Terms[$IDPosition]}){#if this ID is in the hash
+				$Annotation{$Terms[$IDPosition]}="$Annotation{$Terms[$IDPosition]} $Terms[$GOPosition] $Terms[$ECodePosition]"; #hash the goa line to the ID
 			}
 			else{
-				$Annotation{$Terms[2]}="";#clear the string
-				$Annotation{$Terms[2]}="$Terms[4] $Terms[6]";
+				$Annotation{$Terms[$IDPosition]}="";#clear the string
+				$Annotation{$Terms[$IDPosition]}="$Terms[$GOPosition] $Terms[$ECodePosition]";
 			}
 			
 			$count++;
@@ -122,6 +126,13 @@ elsif($ARGV[1]=~/.goa/){
 					local @Terms=split(/\s+/, $_);#break up line on whitespace to get ID
 					local $ID=$Terms[0];
 					$ID=~s/>//;#remove '>'
+					if($ID=~/\|/){#if the ID contains a seperator
+						@IDSplit=split(/\|/,$ID);
+						$SecondID=$IDSplit[1];
+						$ID=~s/\|$SecondID//g;#remove everything after seperator
+						#print "$ID\n";
+					}
+					
 					$OtherFunc=$_;
 					$OtherFunc=~s/>$ID//; #remove ID from the rest of the annotation
 					$OtherFunc=~s/\|+|\-+/ /g; #replace | or - with a space

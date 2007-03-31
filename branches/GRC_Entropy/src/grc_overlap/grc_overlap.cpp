@@ -230,7 +230,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	for(list<AARecord>::iterator PosIt=RecordList.begin(); PosIt!=RecordList.end(); PosIt++){
 
 		if(PosIt->HasHit()){//if the query has a hit
-			PosIt->UpdateScores();
+			PosIt->UpdateScores();//now that all blast scores have been read in for each record create priority queues for start sites
 		}
 		PositionMap.insert(RecordMap::value_type(PosIt->ReportLowBase(), &(*PosIt))); //Add to position map
 	}//close for loop
@@ -474,7 +474,7 @@ int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>
 int DumpList(list<AARecord*>& InitList, string PosName){//open definition
 		ofstream ChkOut;
 		ChkOut.open(PosName.c_str());
-		ChkOut<<"ID\tStart\tStop\tLength(nt)\tStrand\tDBFunc.\tDBID\t DBOrg\tBit\tEScore\tHitLength\t%QueryAligned\t%HSPAligned\n";
+		ChkOut<<"ID\tStart\tStop\tLength(nt)\tStrand\EDR\tDBFunc.\tDBID\t DBOrg\tBit\tEScore\tHitLength\t%QueryAligned\t%HSPAligned\n";
 	
 		for (list<AARecord*>::iterator It1 =InitList.begin(); It1!=InitList.end(); It1++ ){
 			if(*It1!=NULL){
@@ -494,7 +494,7 @@ int PrintLosers(list<AARecord*>& InitList, string NegName){//open definition
 	Out.open(NegName.c_str());
 	int count=0; //for printing delimeters for pair
 	//list<compete>::iterator It2 =TR.begin();
-	Out<<"ID\tStart\tStop\tLength(nt)\tStrand\tDBFunc.\tDBID\t DBOrg\tBit\tEScore\tHitLength\t%QueryAligned\t%HSPAligned\n";
+	Out<<"ID\tStart\tStop\tLength(nt)\tStrand\tEDR\tDBFunc.\tDBID\t DBOrg\tBit\tEScore\tHitLength\t%QueryAligned\t%HSPAligned\n";
 	for (list<AARecord*>::iterator It1 =InitList.begin(); It1!=InitList.end(); It1++ ){
 		Out<<*It1;
 		/*switch(*It2){//depending on win loss print appropriate message

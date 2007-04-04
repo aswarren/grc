@@ -203,7 +203,7 @@ chdir("$glimdir");
 
 #Run Glimmer.longorfs (modified to put header in GlimStats) to get ORF's
 print "Running long-orfs:\n";
-$status = system("./long-orfs $GFile -p 100 -g $MinLength >$partdir$glimout");
+$status = system("./long-orfs $GFile -l -p 100 -g $MinLength >$partdir$glimout");
 
 if ($status != 0){
 	die "glimmer did not run successfully";

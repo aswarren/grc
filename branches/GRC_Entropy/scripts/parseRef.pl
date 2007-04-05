@@ -106,7 +106,7 @@ if($opt_i=~/.goa/){
 	@Lines=<$IPfile>;#get contents
 	while($count<@Lines){#open while loop
 		local @Terms=split(/\t/, $Lines[$count]);
-		local $ID=$Terms[8];
+		local $ID=$Terms[9];
 		local $Info=$Annotation{$ID};#find the ID
 		$OtherFunc=$Terms[-2];#get the function
 		$OtherFunc=~s/\|+|\-+/ /g; #replace | or - with a space
@@ -115,9 +115,9 @@ if($opt_i=~/.goa/){
 		$OtherFunc=~s/ protein +| and +| the +/ /g; #remove undesirable annotations
 		$OtherFunc=~ s/^\s+//gm; #remove leading whitespace
 		$OtherFunc=~ s/\s+$//; #remove trailing whitespace
-		$Start=$Terms[4];#get the Start                          PARSE OTHER FUNCTION
-		$Length=$Terms[5];#get the Length
-		$Direction=$Terms[6];#get the Direction
+		$Start=$Terms[5];#get the Start                          PARSE OTHER FUNCTION
+		$Length=$Terms[6];#get the Length
+		$Direction=$Terms[7];#get the Direction
 		if($Direction eq "F"){#if forward
 			$Stop=$Start+$Length;
 		}

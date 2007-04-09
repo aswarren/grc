@@ -335,7 +335,7 @@ public:
 					FindIt->second.insert(Term);//insert evidence code
 				}
 				else {
-					cerr<<"WARNING: Possible parsing error at "<<Function<<'\n';
+					cerr<<"WARNING: Possible parsing error in grc_overlap at "<<Function<<'\n';
 					Description.push_back(Term);
 				}
 				FindIt=GOTerms.end();

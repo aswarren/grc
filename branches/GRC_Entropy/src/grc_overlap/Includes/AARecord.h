@@ -612,10 +612,10 @@ public:
 			if(ToErase.find(AddIt->first)==ToErase.end()){//if it has not been marked for removal
 				CP.GOAccess->GetAllAncestors(AddIt->first->ReportID(), ConFamily);//get the ancestors for this term
 				for(ANCESTOR::iterator CheckIt=ConFamily.begin(); CheckIt!=ConFamily.end(); CheckIt++){
-					if(CheckIt->second!="self"){//ancestors returned include the submitted function
-						FuncToSubject::iterator FindIt=ConsensusAnnot.find(CheckIt->first);
-						//if one consensus annotation is the ancestor of another then one must go
-						//and it is not already marked for elimination
+					if(CheckIt->first!=AddIt->first){//if the ancestor is not the current term
+						FuncToSubject::iterator FindIt=ConsensusAnnot.find(CheckIt->first);//look for the ancestor in the concensus annotations
+						//if one consensus annotation is the ancestor of another 
+						//and it is not already marked for elimination then one must go
 						if(FindIt!=ConsensusAnnot.end() && ToErase.find(FindIt->first)==ToErase.end()){
 							//AddIt is the more specific function
 							//LHS<RHS (more specific<ancestor)

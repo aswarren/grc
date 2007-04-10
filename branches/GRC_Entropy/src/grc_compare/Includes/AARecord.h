@@ -441,7 +441,7 @@ public:
 					FindIt->second.insert(Term);//insert evidence code
 				}
 				else {
-					cerr<<"WARNING: Possible parsing error at "<<Hit<<'\n';
+					cerr<<"WARNING: Possible parsing error in grc_compare at "<<Hit<<'\n';
 					Description.push_back(Term);
 				}
 				FindIt=GOTerms.end();

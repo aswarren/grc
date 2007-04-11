@@ -272,8 +272,12 @@ unless (-e "$ResultDir$GenomeName" && -d "$ResultDir$GenomeName") { #check if th
 
 $ResultDir= "$ResultDir$GenomeName"."/";
 
+$OverlapCommand=$BinDir."/grc_overlap $partdir"."$BHName $GenomeName $GFile $MaxFile $transdir$TransFile";
+if($UseGO==1){
+	$OverlapCommand=$OverlapCommand." $OntFile";
+}
 
-print "$BinDir /grc_overlap$partdir$BHName $GenomeName $GFile $MaxFile\n";
+print "$OverlapCommand\n";
 #Run GRC_overlap c++ function to remove blast results that are not relevant
 #grc_overlap <ParsedBlast> <GenomeName> <Genome.fna>  Output is to cout
 print "grc_overlap: adjusting and removing orfs.\n";

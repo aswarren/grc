@@ -9,8 +9,9 @@ use Cwd;
 $MinSize=99;
 $BHits=10;
 
+my $MainScript = "../GRCv0.01.pl";
 my $CDir=getcwd;#get current working directory
-getopt('gdrmb');# get and assign the command line parameters $opt_g $opt_d
+getopt('gdrmbs');# get and assign the command line parameters $opt_g $opt_d
 
 unless (-e $opt_g && -e $opt_d) { #check for command line parameter existence
 	die "Either $opt_g or $opt_d does not exist\n";
@@ -27,6 +28,10 @@ if(defined $opt_r){
 	closedir Direc;
 	@rcontentsort = sort @rcontents;#sort the names
 	chdir("$CDir"); #change back to orig wd
+}
+
+if(defined $opt_s){
+	$MainScript=$opt_s;
 }
 
 if(defined $opt_m){
@@ -100,7 +105,7 @@ foreach $Genome(@gcontentsort){#for each file in the genomes folder
 			}
 		}
 
-		$RunCommand="../GRCv0.01.pl -g $GenomeFolder"."/$Genome -d $DBFolder -m $MinSize -h $BHits -k $GenomeName";
+		$RunCommand="$MainScript -g $GenomeFolder"."/$Genome -d $DBFolder -m $MinSize -h $BHits -k $GenomeName";
 		if(defined $opt_r){
 			$RunCommand=$RunCommand." -r $ReferenceFolder"."/$RefFileName >$GenomeName$MinSize$BHits".".TimeSize";
 		}

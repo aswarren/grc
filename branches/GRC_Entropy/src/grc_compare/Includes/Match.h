@@ -11,14 +11,14 @@
 #ifndef Match_H
 #define Match_H
 
-#include "AARecord.h"
+#include "Record.h"
 #include "GO.h"
 #include "GOMatch.h"
 #include <set>
 using std::set;
 
 enum GOSTATUS{GRC, Ref, RefGRC, NoGO};//keeps of whether the match involves prediction/ref with GO terms assigned
-//class AARecord;//forward declaration
+//class Record;//forward declaration
 
 	//NOTE The Match record is getting dual use
 	//it could be improved to use inheritance from a base Match class for both uses
@@ -36,8 +36,8 @@ public:
 	double CombinedOLap; //keep track of combined overlap
 	result StatScore; //tracks the result for this match
 	list<string> MTerms; //Terms that match
-	AARecord* GRCRecord;//GRC prediction ORF
-	AARecord* RefRecord;//Ref ORF
+	Record* GRCRecord;//GRC prediction ORF
+	Record* RefRecord;//Ref ORF
 	int SmallRef; //tracks if the Reference ORF is less than 300 bp
 	set<GOMatch> Confirmed;//GO annotations that are confirmed (ancestor of a MostSpecificAnnotation)
 	FunctionMap NotCompatible;//Annotations that are not compatible (do not contain a msa on path to root)
@@ -115,7 +115,7 @@ public:
 	//(2)Used for storing pairs of orfs in the KnockAnalysis file which tracks the grc_overlap
 	//results of which orf won and lost the contest between to overlapping orfs
 
-	 Match(AARecord* BP, AARecord* CP, const double& OLap, bool PosOrNeg, int NumSmall=0, GO* GOAccess=NULL){//parameterized constructor
+	 Match(Record* BP, Record* CP, const double& OLap, bool PosOrNeg, int NumSmall=0, GO* GOAccess=NULL){//parameterized constructor
 		GRCRecord=BP;
 		RefRecord=CP;
 		OverLen=OLap;

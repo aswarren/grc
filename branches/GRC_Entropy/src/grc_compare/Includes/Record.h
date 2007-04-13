@@ -1,4 +1,4 @@
-// AARecord.h
+// Record.h
 
 
 //Programmer: Andrew Warren
@@ -8,8 +8,8 @@
 
 
 
-#ifndef AARecord_H
-#define AARecord_H
+#ifndef Record_H
+#define Record_H
 
 #include <iostream>
 #include <string>
@@ -43,8 +43,8 @@ using std::map;
 
 	//class Match;//foward declaration
 
-class AARecord {//open prototype
-	friend std::ostream& operator<<(std::ostream& ACOut, const AARecord& AC);
+class Record {//open prototype
+	friend std::ostream& operator<<(std::ostream& ACOut, const Record& AC);
 
 
 //private:
@@ -79,10 +79,10 @@ public:
 	
 //public:
 	result Evaluation;//is this orf a TP,FP,FN,TN??
-	AARecord* RefEval;//pointer so that Reference can be present in the FNAnalysis
+	Record* RefEval;//pointer so that Reference can be present in the FNAnalysis
 	//this pointer can and should be removed in favor of a better designed Match class
 	
-	AARecord(){//default constructor
+	Record(){//default constructor
 		Sequence="blah";
 		ID="unassigned";
 		//Hit="unassigned";
@@ -113,7 +113,7 @@ public:
 
 
 	//parameterized constructor
-	AARecord(string TID="unassigned", long St=0, long Sp=0, string H="No_hits", double Ent=9999, bool R=false, double B=0, string ES="none", long L=0, double QP=0, double HP=0, string DID= "none", string DOrg="none"){ // parameterized constructor1
+	Record(string TID="unassigned", long St=0, long Sp=0, string H="No_hits", double Ent=9999, bool R=false, double B=0, string ES="none", long L=0, double QP=0, double HP=0, string DID= "none", string DOrg="none"){ // parameterized constructor1
 		ID=TID;
 		Start=St;
 		Stop=Sp;
@@ -167,7 +167,7 @@ public:
 
 
 		//Copy Constructor
-	 AARecord(const AARecord &Source){// open defintion
+	 Record(const Record &Source){// open defintion
 		 Sequence=Source.Sequence;
 		 Strand=Source.Strand;
 		 ID=Source.ID; //unique for each record
@@ -200,17 +200,17 @@ public:
 	}// close definition
 
 	 	//> OPERATOR overload
-	bool operator>(const AARecord& RHS)const{
+	bool operator>(const Record& RHS)const{
 		return(Bit>RHS.Bit);
 	}
 
 		//< OPERATOR overload
-	bool operator<(const AARecord& RHS)const{
+	bool operator<(const Record& RHS)const{
 		return(Bit<RHS.Bit);
 	}
 	
 	 //Assignment Operator
-	 AARecord& operator =(const AARecord &Source){// open defintion
+	 Record& operator =(const Record &Source){// open defintion
 		if (this!= &Source){// open non-self assignment consq.
 		 Sequence=Source.Sequence;
 		 ID=Source.ID; //unique for each record
@@ -247,7 +247,7 @@ public:
 	//bool Overlap
 	//returns the bool status of there being an overlap of ORFs
 	//RHS is Setubal/reference annotation
-	 bool Overlap(AARecord& RHS, double& OverLen){//open def
+	 bool Overlap(Record& RHS, double& OverLen){//open def
 		bool OLap=false;
 		//double OverLen=0;
 		long LStart=0;
@@ -294,7 +294,7 @@ public:
 	//bool JustOverlap
 	//returns the bool status of there being an overlap of ORFs
 	//RHS is Setubal/reference annotation
-	 bool JustOverlap(AARecord& RHS, bool& SameDirec, double& OverLen){//open def
+	 bool JustOverlap(Record& RHS, bool& SameDirec, double& OverLen){//open def
 		bool OLap=false;
 		OverLen=0;
 		long LStart=0;
@@ -323,7 +323,7 @@ public:
 		return OLap;
 	 }// close defintion
 //Function to determine if the predicted ORF is true with respect to the reference ORF it is overlapping with
-	 bool SameFrame(AARecord& RHS){//open def
+	 bool SameFrame(Record& RHS){//open def
 		bool Pos=false;
 		//modified 10/19/06 due to observed inconsistency of including stop codons in chromosome tables
 		//Pos=(Reverse==RHS.Reverse)&&(Stop==RHS.Stop);//true positive or false negative
@@ -332,7 +332,7 @@ public:
 	 }// close defintion
 
 //Default destructor
-	 ~AARecord(){
+	 ~Record(){
 		 RefEval=NULL;
 	 }
 
@@ -340,7 +340,7 @@ public:
 //This is just to evaluate whether this orf is a better match
 //than the one that was selected by grc
 //This program is starting to get unweildy
-	 bool OverMax(AARecord& RHS){//open def
+	 bool OverMax(Record& RHS){//open def
 		bool OLap=false;
 		double OverLen=0;
 		long LStart=0;
@@ -386,7 +386,7 @@ public:
 	 }// close defintion
 
 
-	bool operator ^(const AARecord& RHS)const{//open definition
+	bool operator ^(const Record& RHS)const{//open definition
 		return (OLength>RHS.OLength);
 	}// close definition
 

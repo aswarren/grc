@@ -5,7 +5,7 @@ USAGE: grc_compare input1 input2
 This component of the GRC program compares GRC performance to a given reference file
 NOTE: There are lots of inefficiencies in this code.  For instance when checking for overlaps
 the orfs should be orded by low base similar to grc_overlap.  This is not done here.
-Also there are some polymorphic issues with AARecord functioning as the class for
+Also there are some polymorphic issues with Record functioning as the class for
 a Reference record and a GRC prediction.  Also Match pairs up (GRC, Ref) as well as (GRC, GRC) for
 FN analysis.  Some inheritance would be nice here.
 */
@@ -13,7 +13,7 @@ FN analysis.  Some inheritance would be nice here.
 
 
 
-#include "AARecord.h"
+#include "Record.h"
 #include "Match.h"
 #include "MatchStats.h"
 #include "DirectHash.h"
@@ -24,15 +24,15 @@ struct OLapID{
 	string ID1;
 	string ID2;
 };
-int DumpList(list<AARecord>& InitList);
-int DumpList(list<AARecord*>& InitList);
-int Nulify(list<AARecord*>& InitList, list<AARecord*>& InitList2);
-int Compare(list<AARecord*>& GList, list<AARecord*>& RList, list<AARecord*>& NList, list<Match>& MList, int& NumNO, GO* GOAccess);
+int DumpList(list<Record>& InitList);
+int DumpList(list<Record*>& InitList);
+int Nulify(list<Record*>& InitList, list<Record*>& InitList2);
+int Compare(list<Record*>& GList, list<Record*>& RList, list<Record*>& NList, list<Match>& MList, int& NumNO, GO* GOAccess);
 int PrintCompare(list<Match>& ML);//function for printing out comparison chart of terms and sequence overlap
 int LenVSOLap(list<Match>& ML); //function for printing out data for sequence overlap with respect to length of ORF
 int PrintSeqMatch(list<Match>& ML, char* RInput);//function for printing distribution chart of combined sequence statistic over reference annotations
 int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg, GO* GOAccess);//fuction for printing summary statistics based on FP, TP, FN, TN
-int GetKnock(DirectHash<AARecord*>& Putatives, list<Match>& MList, char* KnockFile);//function to get data for analysis
+int GetKnock(DirectHash<Record*>& Putatives, list<Match>& MList, char* KnockFile);//function to get data for analysis
 int KnockAnalysis(list<Match>& KML);//function to perform Knockout Analysis
 int CountGOStat(Match& TempM, int& GR, int& R, int& G, int& N);//update the total number of cases for all the grc,ref pairs
 
@@ -61,18 +61,18 @@ int main (int argc, char* argv[]) {   //  Main is open
 	ifstream In2; //input for the GRC results
 	In.open(InFile); //open the blast input
 
-	list<AARecord> orfRefList; //the Reference List of AA records
-	list<AARecord*> RefList; //the Reference annotations pointer list
-	list<AARecord> PositiveList; //the GRC list for the aa records
-	list<AARecord*> PosList; //the GRC list pointers that will be edited
+	list<Record> orfRefList; //the Reference List of AA records
+	list<Record*> RefList; //the Reference annotations pointer list
+	list<Record> PositiveList; //the GRC list for the aa records
+	list<Record*> PosList; //the GRC list pointers that will be edited
 	list<Match> MList; //list for matches pairs up a putative orf and orf from reference file
 	list<Match> FNMList;//the FN knockout list pairs up two orfs involved in knockout
-	list<AARecord> NegativeList; //the negative list
-	list<AARecord*> NegList; //the negative list pointers that will be edited
+	list<Record> NegativeList; //the negative list
+	list<Record*> NegList; //the negative list pointers that will be edited
 	long GFMinLength=300; //the minimum gene finding length
 	long ORFLength=0;
 	int NumLessML=0; //the number of Reference orfs less than the minimum finding length
-	DirectHash<AARecord*> IDHash(20000, NULL);//Tracks the predicted orfs based on ID
+	DirectHash<Record*> IDHash(20000, NULL);//Tracks the predicted orfs based on ID
 	GO Ontology;
 	GO* GOAccess=NULL;//pointer passed to functions for GO access
 
@@ -115,7 +115,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 		getline(In,Hit,'\t');//skip next tab
 		getline(In,Hit,'\n');//get the function
 
-		orfRefList.push_back(AARecord(ID, Start, Stop, Hit, 9999, true)); //add a hit record
+		orfRefList.push_back(Record(ID, Start, Stop, Hit, 9999, true)); //add a hit record
 		RefList.push_back(&(orfRefList.back()));//add pointer to the record
 	}// close read input
 	In.close();
@@ -150,7 +150,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	
 		if(Tag=="No_hits"){//no hit
 			getline(In2,Hit,'\n');
-			PositiveList.push_back(AARecord(ID, Start, Stop, Tag, Entropy, false)); //add a no-hit record
+			PositiveList.push_back(Record(ID, Start, Stop, Tag, Entropy, false)); //add a no-hit record
 			PosList.push_back(&(PositiveList.back()));//add pointer to the record
 		}//end of no hit
 
@@ -166,7 +166,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 			In2>>QPercent;
 			In2>>HPercent; //read in hsp percent
 			
-			PositiveList.push_back(AARecord(ID, Start, Stop, Hit, Entropy, false, Bit, ES, Length, QPercent, HPercent,DBID,DBOrg)); //add a hit record
+			PositiveList.push_back(Record(ID, Start, Stop, Hit, Entropy, false, Bit, ES, Length, QPercent, HPercent,DBID,DBOrg)); //add a hit record
 			PosList.push_back(&(PositiveList.back()));//add pointer to the record
 		}
 		//add a pointer to hash table that uses ID to generate key
@@ -203,7 +203,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 
 		if(Tag=="No_hits"){//no hit
 			getline(In3,Hit,'\n');
-			NegativeList.push_back(AARecord(ID, Start, Stop, Tag, Entropy, false)); //add a hit record
+			NegativeList.push_back(Record(ID, Start, Stop, Tag, Entropy, false)); //add a hit record
 			NegList.push_back(&(NegativeList.back()));//add pointer to the record
 			unsigned int Position = IDHash.HashingKey(ID);
 			IDHash.InsertKey(Position,&(NegativeList.back()));
@@ -220,7 +220,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 			In3>>Length;//read in HSP length
 			In3>>QPercent;
 			In3>>HPercent; //read in hsp percent
-			NegativeList.push_back(AARecord(ID, Start, Stop, Hit, Entropy, false, Bit, ES, Length, QPercent, HPercent,DBID,DBOrg)); //add a hit record
+			NegativeList.push_back(Record(ID, Start, Stop, Hit, Entropy, false, Bit, ES, Length, QPercent, HPercent,DBID,DBOrg)); //add a hit record
 			NegList.push_back(&(NegativeList.back()));//add pointer to the record
 			unsigned int Position = IDHash.HashingKey(ID);
 			IDHash.InsertKey(Position,&(NegativeList.back()));
@@ -265,14 +265,14 @@ int main (int argc, char* argv[]) {   //  Main is open
 	int NumDExist=0;//keeps track of the number of reference orfs whose stop and frame dont exist in the pool of orfs generated by long_orfs
 	int NumDExistSmall=0;//keeps track of ref. that small and don't exist
 
-	for (list<AARecord>::iterator It11 =orfRefList.begin(); It11!=orfRefList.end(); It11++ ){//outer loop
+	for (list<Record>::iterator It11 =orfRefList.begin(); It11!=orfRefList.end(); It11++ ){//outer loop
 		RefORFLength=It11->OLength;
 		if(RefORFLength<300){NumSmall++;}//count the number of reference ORFs less than 300
 		if(!It11->RefMatched){
 			NumDExist++;
 			if (RefORFLength<300){NumDExistSmall++;}
 		}
-		for (list<AARecord>::iterator It22 =It11; It22!=orfRefList.end(); It22++){ //inner loop
+		for (list<Record>::iterator It22 =It11; It22!=orfRefList.end(); It22++){ //inner loop
 			CurOLap=0;//reset the current Overlap value
 			bool SameDirec=false;
 			if((It11)!=(It22) && It11->JustOverlap(*It22, SameDirec, CurOLap)){
@@ -315,7 +315,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 
 	//Tally results
 	//int NumOrfs=0;
-	//for (list<AARecord*>::iterator It1 =FinalList.begin(); It1!=FinalList.end(); It1++ ){
+	//for (list<Record*>::iterator It1 =FinalList.begin(); It1!=FinalList.end(); It1++ ){
 	//	if((**It1).ReportHit()){ NumOrfs++;}
 	//}
 	cout<<"******************GRC_COMPARISON v0.01******************"<<"\n";
@@ -386,10 +386,10 @@ int main (int argc, char* argv[]) {   //  Main is open
 
 
 //function to print out master list of ORFS
-int DumpList(list<AARecord>& InitList){//open definition
+int DumpList(list<Record>& InitList){//open definition
 	ofstream Out;
 	Out.open("x2blastparse.txt");
-		for (list<AARecord>::iterator It1 =InitList.begin(); It1!=InitList.end(); It1++ ){
+		for (list<Record>::iterator It1 =InitList.begin(); It1!=InitList.end(); It1++ ){
 			Out<<*It1;//print out the Records
 		}
 		Out.close();
@@ -611,12 +611,12 @@ int LenVSOLap(list<Match>& ML){//open definition
 	return 0; //return zero function complete
 }
 
-// NULL OUT lists of AARecord pointers
-int Nulify(list<AARecord*>& InitList, list<AARecord*>& InitList2){
-		for (list<AARecord*>::iterator It1 =InitList.begin(); It1!=InitList.end(); It1++ ){
+// NULL OUT lists of Record pointers
+int Nulify(list<Record*>& InitList, list<Record*>& InitList2){
+		for (list<Record*>::iterator It1 =InitList.begin(); It1!=InitList.end(); It1++ ){
 			*It1=NULL;//set to null
 		}
-		for (list<AARecord*>::iterator It2 =InitList2.begin(); It2!=InitList2.end(); It2++ ){
+		for (list<Record*>::iterator It2 =InitList2.begin(); It2!=InitList2.end(); It2++ ){
 			*It2=NULL;//set to null
 		}
 		return 0;
@@ -626,7 +626,7 @@ int Nulify(list<AARecord*>& InitList, list<AARecord*>& InitList2){
 //Compares the GRC orfs versus the Reference ORFs to see if they are overlapping
 //The program can be simplified by having this function put Matches for TP, FP, FN, TN on separate lists**********************************
 // THIS FUNCTION NO Longer tracks all overlaps with matches It only keeps track of those overlaps that meet the criteria for TP, FP, TN, FN
-int Compare(list<AARecord*>& GList, list<AARecord*>& RList, list<AARecord*>& NList, list<Match>& MList, int& NumNO, GO* GOAccess){//open defintion
+int Compare(list<Record*>& GList, list<Record*>& RList, list<Record*>& NList, list<Match>& MList, int& NumNO, GO* GOAccess){//open defintion
 	int count=0;
 	bool TruePos=false;//keep track of whether there has been a TruePositive for a GRC ORF
 	double MaxPercent=0;
@@ -635,8 +635,8 @@ int Compare(list<AARecord*>& GList, list<AARecord*>& RList, list<AARecord*>& NLi
 	double NRPEntropy=0;//Temp variable for outputing average no reference entropy
 	double HighOLap;
 	int NumSmall;//for keeping track of the number of Ref orfs <300bp that a GRC orf overlaps with
-	AARecord* HighFP=NULL;//for keeping track of the highest overlapping false positive
-	for (list<AARecord*>::iterator It1 =GList.begin(); It1!=GList.end(); It1++ ){
+	Record* HighFP=NULL;//for keeping track of the highest overlapping false positive
+	for (list<Record*>::iterator It1 =GList.begin(); It1!=GList.end(); It1++ ){
 		if(*It1 !=NULL){// if It1 isn't on a null spot
 			TruePos=false;
 			MaxPercent=0;
@@ -646,7 +646,7 @@ int Compare(list<AARecord*>& GList, list<AARecord*>& RList, list<AARecord*>& NLi
 			HighOLap=0;
 			NumSmall=0;
 			double OLap=0;
-			for (list<AARecord*>::iterator It2 =RList.begin(); It2!=RList.end(); It2++ ){//inner loop only needs to go through list from position It1
+			for (list<Record*>::iterator It2 =RList.begin(); It2!=RList.end(); It2++ ){//inner loop only needs to go through list from position It1
 				if(*It2 !=NULL && *It1 !=NULL){//if its ok to compare
 					double GRCOLapPercent;
 					double RefOLapPercent;
@@ -691,9 +691,9 @@ int Compare(list<AARecord*>& GList, list<AARecord*>& RList, list<AARecord*>& NLi
 
 	cout<<"NRP AVERAGE ENTROPY:\t"<<NRPEntropy/double(NumNO)<<"\n";
 	bool FalseNeg=false;
-	AARecord* HighTN=NULL;
+	Record* HighTN=NULL;
 	//for finding the True and false Negatives
-	for (list<AARecord*>::iterator It3 =NList.begin(); It3!=NList.end(); It3++ ){
+	for (list<Record*>::iterator It3 =NList.begin(); It3!=NList.end(); It3++ ){
 		if(*It3 !=NULL){// if It3 isn't on a null spot
 			MaxPercent=0;
 			FalseNeg=false;
@@ -703,7 +703,7 @@ int Compare(list<AARecord*>& GList, list<AARecord*>& RList, list<AARecord*>& NLi
 			HighOLap=0;
 			NumSmall=0;
 			double OLap=0;
-			for (list<AARecord*>::iterator It4 =RList.begin(); It4!=RList.end(); It4++ ){//inner loop 
+			for (list<Record*>::iterator It4 =RList.begin(); It4!=RList.end(); It4++ ){//inner loop 
 				if(*It4 !=NULL && *It3 !=NULL){//if its ok to compare
 					double GRCOLapPercent=0;
 					double RefOLapPercent=0;
@@ -748,8 +748,8 @@ int Compare(list<AARecord*>& GList, list<AARecord*>& RList, list<AARecord*>& NLi
 
 
 //function to print out master list of ORFS
-int DumpList(list<AARecord*>& InitList){//open definition
-		for (list<AARecord*>::iterator It1 =InitList.begin(); It1!=InitList.end(); It1++ ){
+int DumpList(list<Record*>& InitList){//open definition
+		for (list<Record*>::iterator It1 =InitList.begin(); It1!=InitList.end(); It1++ ){
 			if(*It1!=NULL){
 				cout<<**It1;//print out the Records
 			}
@@ -897,7 +897,7 @@ int PrintSeqMatch(list<Match>& ML, char* RInput){//open definition
 
 //outstream overload for record
 
-std::ostream& operator<<(std::ostream& ACOut, const AARecord& AC){
+std::ostream& operator<<(std::ostream& ACOut, const Record& AC){
 	if (AC.Ref){ACOut<<"Reference_PPCG**"<<"\n";}
 	else {ACOut<<"GRC_PPCG**"<<"\n";}
 	ACOut<<"Result:\t"<<AC.Evaluation<<"\n";
@@ -1237,7 +1237,7 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg
 //Knock Analysis function reads in the KnockList from GRC_Overlap that
 //specifies who knocked out who and does analysis find
 //the characteristics of what caused the elimination
-int GetKnock(DirectHash<AARecord*>& Putatives, list<Match>& MList, char* KnockFile){//open def.
+int GetKnock(DirectHash<Record*>& Putatives, list<Match>& MList, char* KnockFile){//open def.
 	ifstream GetK;
 	string Tyson="nothing";//the ID of the one doing the knocking out
 	string Target="nothing";//the ID of the thing knocked out
@@ -1245,10 +1245,10 @@ int GetKnock(DirectHash<AARecord*>& Putatives, list<Match>& MList, char* KnockFi
 	GetK>>Tyson;//read in the delimiter
 	unsigned int Ty=0;
 	unsigned int Tg=0;
-	AARecord** TarPP=NULL;
-	AARecord* TarP=NULL;
-	AARecord* TyP=NULL;
-	AARecord** TyPP=NULL;
+	Record** TarPP=NULL;
+	Record* TarP=NULL;
+	Record* TyP=NULL;
+	Record** TyPP=NULL;
 	double OLapLen=0;//the length of an overlap
 	bool SameDirec=false;//bool value if the two orf's that overlap do so in the same direction
 	string Header;

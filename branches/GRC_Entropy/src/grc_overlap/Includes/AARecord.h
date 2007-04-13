@@ -592,8 +592,9 @@ public:
 		ANCESTOR ConFamily;//ancestors of each consensus annotation
 		set<GOFunction*> ToErase;
 		//find those that do not have sufficient support
+		//must have support of 2 alignments and one of those has to be at least 50% of the conservation potential for the query
 		for(FuncToSubject::iterator It=ConsensusAnnot.begin(); It!=ConsensusAnnot.end(); It++){
-			if(It->second.size()<2){
+			if(It->second.size()<2 || AnnotScore(It)<.50){
 				ToErase.insert(It->first);
 			}
 		}
@@ -666,7 +667,22 @@ public:
 		}
 		else return (LHScore<RHScore);
 	}
-		
+
+	//This function returns the TopScore (bitFrac) of all Subjects
+	//that align to this query ORF that have the function Represented by the iterator
+	double AnnotScore(FuncToSubject::iterator& Source){
+		double MaxScore=0;
+		double CurrentScore=0;
+		for(SubjectSet::iterator It=Source->second.begin(); It!=Source->second.end(); It++){
+			CurrentScore=(*It)->ReportTopBitFrac();
+			if(CurrentScore>MaxScore){//if it is the highest score so far
+				MaxScore=CurrentScore;
+			}
+		}
+		return MaxScore;
+	}
+
+
 	//report ID of the record aka queryID
 	string ReportID(){
 		return ID;

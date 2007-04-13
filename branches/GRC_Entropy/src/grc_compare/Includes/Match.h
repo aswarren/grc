@@ -297,6 +297,7 @@ public:
 					Out<<"\t"<<*GIt;
 				}
 			}//close inner for loop
+			Out<<"\n";
 		}//close outer for loop
 		Out<<Delim<<"\n";
 

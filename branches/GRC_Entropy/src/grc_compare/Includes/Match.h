@@ -189,6 +189,7 @@ public:
 
 	 //This function performs checks to see if annotation is Confirmed, Compatible, or NotCompatible
 	 int CheckGO(GO* GOAccess){//open def.
+		//RefRecord->RemoveAncestor(GOAccess);//remove any non-msp ref. annotations
 		 ANCESTOR RefAncestors;
 		 set<int> Verified;//all the grc annotations that are confirmed or compatible
 		 //get all reference annotation ancestors
@@ -201,7 +202,7 @@ public:
 		 for(ANCESTOR::iterator AncIt=RefAncestors.begin(); AncIt!=RefAncestors.end();AncIt++){
 			 if(AncIt->first!=NULL){//NULL check
 				 FunctionMap::iterator GRCIt=GRCRecord->GOTerms.find(AncIt->first->ID);//if any of GRC terms are ancestors of any Ref term
-				 if(GRCIt!=GRCRecord->GOTerms.end()){//if its an ancestor
+				 if(GRCIt!=GRCRecord->GOTerms.end() && Verified.find(AncIt->first->ID)==Verified.end()){//if its an ancestor and has not been verified already
 					 GOFunction* OrigRef=GOAccess->Find(AncIt->first->DistID);//find the original Ref. that created this ancestor
 					 FunctionMap::iterator RefIt=RefRecord->GOTerms.find(AncIt->first->DistID);//find the original in the refernce
 					 if (OrigRef !=NULL && RefIt!=RefRecord->GOTerms.end()){
@@ -221,23 +222,25 @@ public:
 		 //are contained therein
 
 		 for(FunctionMap::iterator GRCIt=GRCRecord->GOTerms.begin(); GRCIt!=GRCRecord->GOTerms.end(); GRCIt++){
-			 ANCESTOR GRCAncestors;
-			 GRCAncestors=GOAccess->GetAncestors(GRCIt->first);//get the ancestors of the GRC id
-			 for(ANCESTOR::iterator AncIt=GRCAncestors.begin(); AncIt!=GRCAncestors.end();AncIt++){
-				 if(AncIt->first!=NULL){//NULL check
-					 FunctionMap::iterator RefIt=RefRecord->GOTerms.find(AncIt->first->ID);//if any of Ref terms are ancestors of any GRC term
-					 if(RefIt!=RefRecord->GOTerms.end()){//if its an ancestor
-						 GOFunction* OrigGRC=GOAccess->Find(AncIt->first->DistID);//find the original GRC. that created this ancestor
-						 if (OrigGRC !=NULL){//if the original exists in hierarchy
-							 Verified.insert(GRCIt->first);//insert id as being verified
-							 Compatible.insert(GOMatch(RefIt->first, RefIt->second, (OrigGRC->Depth)-(AncIt->first->Distance), GRCIt->first, GRCIt->second, OrigGRC->Depth, AncIt->first->Distance));
-						 }
-						 else{
-							 cerr<<"WARNING: Error in GOCheck Analysis at "<<AncIt->first->DistID<<'\n';
-						 }
-					 }//close if ancestor
-				 }//close null check
-			 }//close ancestor loop
+			if(Verified.find(GRCIt->first)==Verified.end()){//if the term has not yet been verified
+				ANCESTOR GRCAncestors;
+				GRCAncestors=GOAccess->GetAncestors(GRCIt->first);//get the ancestors of the GRC id
+				for(ANCESTOR::iterator AncIt=GRCAncestors.begin(); AncIt!=GRCAncestors.end();AncIt++){
+					if(AncIt->first!=NULL){//NULL check 
+						FunctionMap::iterator RefIt=RefRecord->GOTerms.find(AncIt->first->ID);//if any of Ref terms are ancestors of any GRC term
+						if(RefIt!=RefRecord->GOTerms.end()){//if its an ancestor
+							GOFunction* OrigGRC=GOAccess->Find(AncIt->first->DistID);//find the original GRC. that created this ancestor
+							if (OrigGRC !=NULL){//if the original exists in hierarchy
+								Verified.insert(GRCIt->first);//insert id as being verified
+								Compatible.insert(GOMatch(RefIt->first, RefIt->second, (OrigGRC->Depth)-(AncIt->first->Distance), GRCIt->first, GRCIt->second, OrigGRC->Depth, AncIt->first->Distance));
+							}
+							else{
+								cerr<<"WARNING: Error in GOCheck Analysis at "<<AncIt->first->DistID<<'\n';
+							}
+						}//close if ancestor
+					}//close null check
+				}//close ancestor loop
+			}//close if not verified
 		 }//close compatibility loop
 
          

@@ -440,11 +440,7 @@ public:
 				if(FindIt!=GOTerms.end()){
 					FindIt->second.insert(Term);//insert evidence code
 				}
-				else {
-					cerr<<"WARNING: Possible parsing error in grc_compare at "<<Hit<<'\n';
-					Description.push_back(Term);
-				}
-				FindIt=GOTerms.end();
+		
 			}//close if evidence code
 			else{//else its a description Term
 				Description.push_back(Term);
@@ -456,7 +452,35 @@ public:
 		}
 		return 0;
 	}
+
+	//This function removes any ancestors from the reference annotation so that only the
+	//most specifc functions are used to test annotation
+	int RemoveAncestor(GO* GOAccess){
+		ANCESTOR RefAncestors;
+		set<int> ToRemove;
 		
+		 //get all reference annotation ancestors
+		 for(FunctionMap::iterator It=GOTerms.begin(); It!=GOTerms.end(); It++){//open for
+			 RefAncestors=GOAccess->GetAncestors(It->first);
+		 
+			//check for ancestor relationship
+			for(ANCESTOR::iterator AncIt=RefAncestors.begin(); AncIt!=RefAncestors.end();AncIt++){
+				if(AncIt->first!=NULL){//NULL check
+					FunctionMap::iterator GRCIt=GOTerms.find(AncIt->first->ID);//if any of ref terms are ancestors of any other Ref term
+					if(GRCIt!=GOTerms.end()){
+						ToRemove.insert(GRCIt->first);
+					}
+				}
+			}
+			RefAncestors.clear();
+		}
+		
+		//remove the non-most specific annotations
+		for(set<int>::iterator RIt=ToRemove.begin(); RIt!=ToRemove.end(); RIt++){
+			GOTerms.erase(*RIt);
+		}
+		return 0;
+	}
 	//string ReportAcc ()const{//open definition
 	//	return Accession;
 	//}// close definition

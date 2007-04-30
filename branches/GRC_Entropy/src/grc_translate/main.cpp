@@ -10,6 +10,8 @@ The default is to use the bacteria map but a command line parameter is available
 #include <string>
 #include <fstream>
 #include <stdio.h>
+#include "FastaRead.h"
+#include "Translate.h"
 
 using std::map;
 using std::cout;
@@ -25,22 +27,23 @@ int InitCodes(map <string,char>* CodeArray);
 
 //run as grc_translate extract.out <tablenum> 
 int main (int argc, char* argv[]) {   //  Main is open
+	FastaRead Reader;//object for reading in fasta files
+	
+
 	char* InFile = argv[1]; //get the name of the input file to translate
+	string InCode="GCode.txt";//translation tables
 	char* TCode = "11"; //the number of the translation to use Default 11
-	int TransCode;
+	
 	if(argc>2){
 		TCode = argv[2];//assign the translation code to use
 	}
-		
-
+	int TransCode =atoi(TCode); //convert the translation parameter to an int
+	Translate Translator(TransCode,InCode);//object for translating nucleotide sequences to AA
 	ifstream In; //input for the 
 	In.open(InFile); //open the input file
+	Reader.SetInput(&In);//set the input file in the reader
 
-	TransCode =atoi(TCode); //convert the translation parameter to an int
-	TransCode--;//decrease to match indicies
-
-	map <string,char> TTables[23]; //translation tables
-	InitCodes(TTables);
+	
 
 
 	//Output written to cout
@@ -50,16 +53,17 @@ int main (int argc, char* argv[]) {   //  Main is open
 	//cout.open(OutName.c_str());// open the output file
 
 	//Begin Read/Write/Translation Loop
-	string Line;
+	string ID;
 	string Sequence;
+	string Translation;
 	string SubSeq;
 	const int LineLength=70;//number of AA per line
 	const int len=3; //length of codon
 	char AA='*';
 	bool EndLine=true;
 	map<string,char>::iterator FindIt;//iterator for finding amino acid
-	while(In){
-		Line="!!!";
+	while(Reader.ReadFasta(ID,Sequence)){
+		/*Line="!!!";
 		In >>Line;
 		if(!In){
 			break;
@@ -69,36 +73,17 @@ int main (int argc, char* argv[]) {   //  Main is open
 			getline(In,Line,'\n');
 			cout << Line << "\n";
 		}
-		else { //get the Sequence
-			Sequence=Line;
-			
-			for (int s=0; s<Sequence.size(); s=s+3){
-				if((s)%3==0){//if its the end of the next codon
-					SubSeq=Sequence.substr(s,len);
-					if(s==0){//if its the first codon set to M
-						AA='M';
-					}
-					else{
-						FindIt=TTables[TransCode].find(SubSeq);//look for the codon
-						if(FindIt!=TTables[TransCode].end()){//if found
-							AA=FindIt->second;
-						}
-					}
-					if(((s+3)/3)%LineLength ==0){//if there have been the specified number of aa displayed
-						cout<<AA<<'\n';
-						EndLine=false;
-					}
-					else{
-						cout<<AA;
-						EndLine=true;
-					}
-					AA='*';
+		else { //get the Sequence*/
+			cout << ID <<"\n";
+			Translation=Translator.TranslateSeq(Sequence);
+			for (int s=0; s<Translation.size(); s+=LineLength){
+				if((Translation.size()-s)>=LineLength){//if its the end of the next codon
+					cout<<Translation.substr(s,LineLength)<<"\n";
+				}
+				else{
+					cout<<Translation.substr(s,Translation.size()-s)<<"\n";
 				}
 			}
-			if(EndLine){
-				cout<<"\n";//next line
-			}
-		}//close get the sequence
 	}//close while
 
 	//Out.close();

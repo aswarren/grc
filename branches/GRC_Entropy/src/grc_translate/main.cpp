@@ -76,14 +76,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 		else { //get the Sequence*/
 			cout << ID <<"\n";
 			Translation=Translator.TranslateSeq(Sequence);
-			for (int s=0; s<Translation.size(); s+=LineLength){
-				if((Translation.size()-s)>=LineLength){//if its the end of the next codon
-					cout<<Translation.substr(s,LineLength)<<"\n";
-				}
-				else{
-					cout<<Translation.substr(s,Translation.size()-s)<<"\n";
-				}
-			}
+			Reader.OutputSeq(Translation, cout);
 	}//close while
 
 	//Out.close();

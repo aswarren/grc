@@ -1,67 +1,11 @@
-//CalcPack.h
-//The following is a container class
-//holds needed values to calculate various scores throughout the program
+//CalckPack.cpp
+//This file is for calculating various sequence and genome statistics
+#include "CalcPack.h"
 
-
-#ifndef CalcPack_H
-#define CalcPack_H
-
-#include <iostream>
-#include <string>
-#include <fstream>
-#include <map>
-#include <sstream>
-#include "Translate.h"
-#include "GO.h"
-
-using std::cout;
-using std::cerr;
-using std::string;
-using std::ostream;
-using std::ofstream;
-using std::ifstream;
-using std::map;
-using std::stringstream;
-
-//Values obtained from Glimmer 3.02
-/*#define  DEFAULT_POS_ENTROPY_PROF  {0.08468,0.01606,0.05739,0.05752,0.04328,\
-  0.07042,0.02942,0.05624,0.04442,0.05620,0.03029,0.03975,0.05116,0.04098,\
-  0.05989,0.08224,0.05660,0.06991,0.02044,0.03310}
-#define  DEFAULT_NEG_ENTROPY_PROF  {0.07434,0.03035,0.05936,0.04729,0.05662,\
-  0.07704,0.05777,0.05328,0.03360,0.05581,0.01457,0.03718,0.04594,0.05977,\
-  0.08489,0.05990,0.04978,0.07227,0.01050,0.01974}*/
-
-class CalcPack{//open prototype
-public:
-	double Lambda;//constant in MaxBit calculation
-	double K;//constant in MaxBit calculation
-	map <string,int> ConsValue;//map for storing the max value of a conserved amino acid
-	string Genome; //for storing the genome
-	string TransFile;//the command for running entropy-calc
-	string Matrix;
-	string GenomeFile;
-	int OStartCount;//Count for find starts that keeps track of the number of times original start has been processed
-	double DefaultCProfile[20];
-	double DefaultNCProfile[20];//for non coding genes
-	double CProfile[20];
-	double NCProfile[20];
-	double SmallNCProfile[20];
-	double SmallCProfile[20];
-	Translate Translator;//for translating nucl. to AA
-	bool UseSmallProf;
-	int NumSmallC;//the number of small orfs used to calculate new EDP
-	int NumLargeC;//the number of orfs >300bp used to calculate new EDP
-	int NumLargeNC;
-	int NumSmallNC;
-	double* UseCProfile;//the coding profile in use
-	double* UseNCProfile;//the non coding profile in use
-	GO* GOAccess;
-
-	CalcPack(){//default constructor
+	CalcPack::CalcPack(){//default constructor
 		Lambda=0;
 		K=0;
 		NumSmallC=NumLargeC=NumLargeNC=NumSmallNC=0;
-		Genome="";
 		TransFile="";
 		GenomeFile="";
 		OStartCount=0;
@@ -69,13 +13,14 @@ public:
 		UseNCProfile=DefaultNCProfile;
 		UseSmallProf=false;
 		GOAccess=NULL;
+		CurrentGenomeID="NONE";
 		for(int t=0; t<20; t++){
 			DefaultCProfile[t]=DefaultNCProfile[t]=CProfile[t]=NCProfile[t]\
 			=SmallNCProfile[t]=SmallCProfile[t]=0;
 		}
 	}
 
-	CalcPack(string Matx, string GF, string TF){//parameterized constructor
+	CalcPack::CalcPack(string Matx, string GF, string TF){//parameterized constructor
 		TransFile=TF;
 		Matrix=Matx;
 		OStartCount=0;
@@ -84,6 +29,7 @@ public:
 		UseCProfile=DefaultCProfile;
 		UseNCProfile=DefaultNCProfile;
 		GOAccess=NULL;
+		CurrentGenomeID="NONE";
 		int Status=InitCodes();//read in the values.
 		for(int t=0; t<20; t++){
 			DefaultCProfile[t]=DefaultNCProfile[t]=CProfile[t]=NCProfile[t]\
@@ -102,13 +48,13 @@ public:
 
 	//Copy Constructor
 	//Should not be USED!! pack contains GENOME
-	 CalcPack(const CalcPack &Source){// open defintion
+	 CalcPack::CalcPack(const CalcPack &Source){// open defintion
 		cerr<<"Error Trying to copy CalcPack object";
 		throw 15;//throw exception
 	}
 
 	//Assignment operator
-	CalcPack& operator =(const CalcPack &Source){// open defintion
+	CalcPack& CalcPack::operator =(const CalcPack &Source){// open defintion
 		if (this!= &Source){// open non-self assignment consq.
 			cerr<<"Error trying to copy calcpack object";
 			throw 15;//throw exception
@@ -117,13 +63,13 @@ public:
 	}
 
 	//Function for setting ontological access
-	int SetGOAccess(GO* Access){
+	int CalcPack::SetGOAccess(GO* Access){
 		GOAccess=Access;
 	}
 
 
 	//Function to initialize parameters based on blast matrix used
-	int InitCodes(){//open definition
+	int CalcPack::InitCodes(){//open definition
 		ifstream InCode;
 		InCode.open(Matrix.c_str());//open matrix specified
 		if(!InCode.is_open()){
@@ -189,7 +135,7 @@ public:
 	}//close definition
 
 
-	int SetDefaultEDP(){
+	int CalcPack::SetDefaultEDP(){
 	//Annoying
 	//no list initialization of non-static data member....
 		DefaultCProfile[0]=0.08468;
@@ -240,7 +186,7 @@ public:
 
 	//this function returns the coordinate of the amino acid in the array
 	//expects that any non-AA coding seq. enountered will be translated to '*'
-	int MapAA(char AA){
+	int CalcPack::MapAA(char AA){
 		int Value=20;
 		if(AA=='*'){
 			return Value;
@@ -271,7 +217,7 @@ public:
 
 
 	//This function calculates the entropy distance for the section of the genome specified
-	double GetEntropy(int AACount[]){//open definition
+	double CalcPack::GetEntropy(int AACount[]){//open definition
 
 		double Entropy=-1;
 		double TempFreq[20];
@@ -296,7 +242,7 @@ public:
 
 
 	//create EDP from AACounts
-	int CountToEDP(int AACount[], double ResultEDP[]){
+	int CalcPack::CountToEDP(int AACount[], double ResultEDP[]){
 		int TotalCount=0;
 		int t=0;
 		double TotalEntropy=0;
@@ -322,7 +268,7 @@ public:
 
 
 	//Create new EDP for coding and non coding genes specific to this organism
-	int CreateOrgEDPs(){
+	int CalcPack::CreateOrgEDPs(){
 		//check to see whether to use small profile
 		if(NumSmallC>20 && NumSmallNC>20){
 			UseSmallProf=true;//default is false
@@ -364,18 +310,18 @@ public:
 	}
 
 	//function for finding setting the frequencies of the amino acids in a sequence
-	int GetAACount(int AACount[],const long& LB, const long& HB, const bool& Reverse){
+	int CalcPack::GetAACount(int AACount[],const long& LB, const long& HB, const bool& Reverse){
 		long Length=HB-LB+1;
 		long Begin=LB-1;
 		string Translation="";
 
 
 		if(Reverse){//if the pGene is reversed
-			Translation=Translator.TranslateSeq(ReverseComp(Genome.substr(Begin,Length)));
+			Translation=Translator.TranslateSeq(ReverseComp((CurrentGenome->second).substr(Begin,Length)));
 			//Command=Command+ReverseComp(Genome.substr(Begin, Length));	
 		}
 		else{//not reverse complement
-			Translation=Translator.TranslateSeq(Genome.substr(Begin, Length));
+			Translation=Translator.TranslateSeq((CurrentGenome->second).substr(Begin, Length));
 			//Command=Command+Genome.substr(Begin, Length);
 		}
 		
@@ -391,10 +337,22 @@ public:
 		}
 		return 0;
 	}
+	
+	//function for retrieving the Gene's sequence from the genome given the LowBase HighBase and Reverse status
+	string CalcPack::GeneSequence(const string& GenomeSeq, const long& LB, const long& HB, const bool& Reverse){
+		long Length=HB-LB+1;
+		long Begin=LB-1;
+		if(Reverse){
+			return(ReverseComp(GenomeSeq.substr(Begin,Length)));
+		}
+		else{
+			return(GenomeSeq.substr(Begin, Length));
+		}
+	}
 
 
 	//Get the Entropy Distance Ratio
-	double GetEDR(double EntropyProfile[]){
+	double CalcPack::GetEDR(double EntropyProfile[]){
 		int x=0;
 		double CodingDist=0;
 		double NonCodingDist=0;
@@ -411,7 +369,7 @@ public:
 
 	//total up the EDPs from all the orfs
 	//to come up with a new EDP for coding and noncoding
-	int TotalEDP(int Counts[], const long& Length, const bool& Defeated){
+	int CalcPack::TotalEDP(int Counts[], const long& Length, const bool& Defeated){
 
 		double TempEDP[20];
 		CountToEDP(Counts, TempEDP);
@@ -441,7 +399,7 @@ public:
 
 
 //Add the EDP to the profile submitted so that it can be averaged
-	int AddEDP(double TempEDP[], double Profile[]){
+	int CalcPack::AddEDP(double TempEDP[], double Profile[]){
 			
 		for(int t=0; t<20; t++){
 			Profile[t]+=TempEDP[t];
@@ -451,7 +409,7 @@ public:
 
 
 	//function to lower the case of all characters in a string
-	int LowerTheCase(string & Seq){
+	int CalcPack::LowerTheCase(string & Seq){
 		for(int i=0; i<Seq.length(); i++){
 			Seq[i]=tolower(Seq[i]);
 		}
@@ -461,7 +419,7 @@ public:
 
 	
 	//This function is designed to check if submitted string is reverse codon
-	bool ReverseStart(const string& Codon){//open definition
+	bool CalcPack::ReverseStart(const string& Codon){//open definition
 		if(Codon=="cat"||Codon=="cac"||Codon=="caa"){
 			return true;
 		}
@@ -470,8 +428,8 @@ public:
 	
 
 
-	//This function is designed to check if submitted string is reverse codon
-	bool ForwardStart(const string& Codon){//open definition
+	//This function is designed to check if submitted string is forward start
+	bool CalcPack::ForwardStart(const string& Codon){//open definition
 		if(Codon=="atg"||Codon=="gtg"||Codon=="ttg"){
 			return true;
 		}
@@ -479,9 +437,24 @@ public:
 	}
 	
 
+	//This function is designed to check if submitted string a forward stop
+	bool CalcPack::ForwardStop(const string& Codon){//open definition
+		if(Codon=="taa"||Codon=="tag"||Codon=="tga"){
+			return true;
+		}
+		else return false;
+	}
+	//This function is designed to check if submitted string a forward stop
+	bool CalcPack::ReverseStop(const string& Codon){//open definition
+		if(Codon=="tta"||Codon=="cta"||Codon=="tca"){
+			return true;
+		}
+		else return false;
+	}
+	
 
 	//This function is intended to give a likelihood of correctness relative to other starts
-	double CalcSS(const string& Codon){//open definition
+	double CalcPack::CalcSS(const string& Codon){//open definition
 		if (Codon=="atg"||Codon=="cat"){
 			return (.77);
 		}
@@ -497,7 +470,7 @@ public:
 
 
 	//This function returns the complement of a nucleotide passed as a parameter
-	char Complement(const char& Base){//open definition
+	char CalcPack::Complement(const char& Base){//open definition
 		switch(Base){
 			case 'a':
 				return 't';
@@ -515,20 +488,19 @@ public:
 	}//close definition
 
 	//This function gets the genome based on the genome file name
-	int GetGenome(){
+	int CalcPack::GetGenome(){
 		ifstream In2;//ofstream operator for reading in the genomic sequence
 		In2.open(GenomeFile.c_str());//open up the translated file
+		Reader.SetInput(&In2);
 		
 		string GenomeID;//for reading in the id
-		getline(In2,GenomeID); //get line for description
 		string Seq;//for reading in the sequence
-		Genome="";//Initialize to empty string
+		string GenomeSeq="";//Initialize to empty string
 	
-		while(In2){//read in the genome file
+		while(Reader.ReadFasta(GenomeID, GenomeSeq)){//read in the genome file
 	
-			In2>>Seq; //read in the genomic sequence
-			LowerTheCase(Seq);
-			Genome+=Seq;//concat. each line to Genome
+			GenomeID=Reader.HeaderToID(GenomeID);//Parse the unessary information from the GenomeID
+			Genomes.insert(map<string,string>::value_type(GenomeID, GenomeSeq));//keep track of all the genomes
 	
 			/*FindIt=HitList.find(ID.substr(1,(ID.length())-1));
 	
@@ -537,10 +509,12 @@ public:
 			}*/
 		}
 		In2.close();//close the input stream
+		SelectGenome(CurrentGenomeID);
+		return 0;
 	}
 
 	//This function returns the reverse complement of a given sequence
-	string ReverseComp(const string& Forward){
+	string CalcPack::ReverseComp(const string& Forward){
 	
 		string Comp="";
 		for(int s= int(Forward.length())-1; s>=0; s--){
@@ -551,7 +525,7 @@ public:
 
 
 	//Calculate the RawBit score from sequence coordinates
-	double CalcRawBit(const long& LowB, const long& HighB, const bool& Rev){
+	double CalcPack::CalcRawBit(const long& LowB, const long& HighB, const bool& Rev){
 		long LB=LowB;
 		long HB=HighB;
 		long StartSearch=LB-1;//Subtract one to convert to string coordinates
@@ -563,7 +537,7 @@ public:
 		if(Rev){
 			for (long s=0; s<Length; s=s+3){//calc max possible score
 				if(s%3==0){//if its the next codon
-					Codon=ReverseComp(Genome.substr(StartSearch+s, 3));//get reverse complement
+					Codon=ReverseComp((CurrentGenome->second).substr(StartSearch+s, 3));//get reverse complement
 					FindIt=ConsValue.find(Codon);//find the score of this codon
 					if(FindIt!=ConsValue.end()){
 						RawBit=RawBit+FindIt->second;//add up score
@@ -575,7 +549,7 @@ public:
 		else {
 			for (long s=0; s<Length; s=s+3){//calc max possible score
 				if(s%3==0){//if its the next codon
-					Codon=Genome.substr(StartSearch+s, 3);//codon
+					Codon=(CurrentGenome->second).substr(StartSearch+s, 3);//codon
 					FindIt=ConsValue.find(Codon);//find the score of this codon
 					if(FindIt!=ConsValue.end()){
 						RawBit=RawBit+(FindIt->second);//add up score
@@ -586,10 +560,45 @@ public:
 		return RawBit;
 	}//close definition
 
-
+	//Function for setting the current Genome to be used based on that genomes fasta ID
+	int CalcPack::SelectGenome(string& SeqID){
+		if(SeqID==CurrentGenomeID && SeqID!="NONE"){
+			return 0;
+		}
+		if(Genomes.size()>0){
+			if(SeqID=="NONE"){
+				CurrentGenome=Genomes.begin();
+				CurrentGenomeID=Genomes.begin()->first;
+			}
+			else{
+				CurrentGenome=Genomes.find(SeqID);
+				if(CurrentGenome==Genomes.end()){
+					cerr<<"error in setting genome to be used in calcpack\n";
+					throw 20;
+				}
+				else{
+					CurrentGenomeID=CurrentGenome->first;
+				}
+			}
+		}
+		else{
+			cerr<<"Error: trying to select a genome when none exists\n";
+			throw 20;
+		}
+		return 0;
+	}
+	
+	//Free memory associate with genome
+	//Clear Genome free memory associated with genomes
+	int CalcPack::ClearGenome(){
+		Genomes.clear();
+		CurrentGenome=Genomes.end();
+		return 0;
+	}
 
 	//This function continually adjusts the start site until its back at the original
-	bool FindStarts(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, double& StartScore){//open definition
+	//assumes there is a query alignment offset to start at and an original start site to come back to
+	bool CalcPack::FindStarts(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, double& StartScore){//open definition
 		long Start=St;
 		long Stop=Sp;
 		long OrigStart=OSt;
@@ -611,10 +620,10 @@ public:
 			else if(QAlignStart<2){//if there isn't any room for finding another start return true this time and false next time
 				OStartCount++;
 				if(Reverse){
-					StartScore=CalcSS(Genome.substr(Start-3, 3));//get the probability of the codon being start site
+					StartScore=CalcSS((CurrentGenome->second).substr(Start-3, 3));//get the probability of the codon being start site
 				}
 				else{
-					StartScore=CalcSS(Genome.substr(Start-1, 3));//get the probability of the codon being start site
+					StartScore=CalcSS((CurrentGenome->second).substr(Start-1, 3));//get the probability of the codon being start site
 				}
 				return true;
 			} 
@@ -632,8 +641,8 @@ public:
 	
 			for (int s=0; s<=Halt; s=s+3){//search codons in the upstream direction
 				if(s%3==0){//if its the next codon
-					if(ReverseStart(Genome.substr(StartSearch+s-2, 3))){//if its a start -2 because looking in forward direction
-						StartScore=CalcSS(Genome.substr(StartSearch+s-2, 3));//get the probability of the codon being start site
+					if(ReverseStart((CurrentGenome->second).substr(StartSearch+s-2, 3))){//if its a start -2 because looking in forward direction
+						StartScore=CalcSS((CurrentGenome->second).substr(StartSearch+s-2, 3));//get the probability of the codon being start site
 						St=StartSearch+s+1;
 						return true;//if back to original start, stop searching
 						//}//close max start score
@@ -655,8 +664,8 @@ public:
 	
 			for (int s=0; s<=Halt; s=s+3){//search 3 codons in the upstream direction
 				if(s%3==0){//if its the next codon
-					if(ForwardStart(Genome.substr(StartSearch-s, 3))){//if its a start
-						StartScore=CalcSS(Genome.substr(StartSearch-s, 3));//get the probability of the codon being start site
+					if(ForwardStart((CurrentGenome->second).substr(StartSearch-s, 3))){//if its a start
+						StartScore=CalcSS((CurrentGenome->second).substr(StartSearch-s, 3));//get the probability of the codon being start site
 						St=StartSearch-s+1;
 						return true;
 						//}//close if max score
@@ -713,8 +722,4 @@ int AdjustStart1(long& St, const long& Sp, const long& QAS, const bool& Reverse,
 		}//close search next codons
 	}//close not reversed
 	return 1;
-}//close defintion*/
-
-};//close prototype
-
-#endif
+}//close defintion*/ 

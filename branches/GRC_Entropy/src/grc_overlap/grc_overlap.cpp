@@ -2,10 +2,6 @@
 This component of the GRC program finds the ORFs that overlap from the BLAST results file
 and eliminates all but the one with the best BLAST hit.*/
 
-/*********************************NOTE
-REMOVING LOWCOMPLEXITY READ SO THAT CAN USE OLDER BLAST FILES
-REMEMBER TO ADD THIS BACK IN BEFORE RUNNING TESTS
-**********************************/
 
 #include <list>
 #define _USE_MATH_DEFINES
@@ -236,7 +232,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	}//close for loop
 
 
-	InfoPack.Genome.clear();//clear the genome (no longer needed)
+	InfoPack.ClearGenome();//clear the genome (no longer needed)
 	
 	ofstream ChkOut;
 

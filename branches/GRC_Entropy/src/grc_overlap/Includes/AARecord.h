@@ -101,6 +101,7 @@ class AARecord {//open prototype
 private:
 //public:
 	string ID; //unique for each record
+	string GenomeID;
 	long Start;//these coordinates are stored here when the query orf has no hit
 	long Stop;
 	long LowBase;
@@ -126,6 +127,7 @@ public:
 	AARecord(){//default constructor
 
 		ID="unassigned";
+		GenomeID="NONE";
 		Reverse =false;
 		Blank =true;
 		Defeated=false;
@@ -139,6 +141,19 @@ public:
 	//Initialize the Values for the record
 	int InitRecord( CalcPack& CP, string TID="unassigned", long St=0, long Sp=0, string HID="none", double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, string Func="none", string HOrg="none"){ // parameterized constructor1
 		ID=TID;
+		unsigned int ChPosition=ID.find('_');//look for '_' in ID indicating that there is a genome ID attached
+		if(ChPosition!=string::npos){
+			string TempID=ID;
+			TempID.replace(ChPosition,1," ");//replace '_' with a space
+			stringstream ParseSS;
+			ParseSS<<TempID;
+			ParseSS>>GenomeID;//pass orf id through
+			ParseSS>>GenomeID; //assign genome id
+		}
+		else{
+			GenomeID="NONE";
+		}
+		CP.SelectGenome(GenomeID);
 		Start=St;
 		Stop=Sp;
 		Reverse =false;
@@ -731,6 +746,7 @@ public:
 
 	//Adds Subjects to OtherHits and makes top RelBit value Subject to be Record Rep.
 	int AddPrimary(CalcPack& CP, long St, long Sp, string& HID, double& B, string& ES, long& HL, long& AL, long& QASt, long& QASp, string& Func, string& HOrg){
+		CP.SelectGenome(GenomeID);
 		long LBase=0;
 		long HBase=0;
 		long OrigStart=St;
@@ -950,7 +966,7 @@ public:
 	//over multiple times
 	//Need to clean up this coordinate to string conversion +1 -1 stuff
 	SeqCalcMap::iterator CalcSeqScore(CalcPack& CP, const long& LowB, const long& HighB, const bool& Rev){
-
+		CP.SelectGenome(GenomeID);
 		long LowerBound=0;//lower bound on calc raw bit
 		long UpperBound=0;//upper bound on calc raw bit
 		long Length=HighB-LowB+1;

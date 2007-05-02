@@ -106,6 +106,7 @@ private:
 	long Stop;
 	long LowBase;
 	long HighBase;
+	long Offset;
 	bool Reverse; //Is it in a - frame
 	bool Blank; //indicates whether the was a hit to this orf in the DB
 	long QLength; //the length of the query orf
@@ -133,6 +134,7 @@ public:
 		Defeated=false;
 		QLength=0;
 		CurrentLength=0;
+		Offset=0;
 		EDR=0;
 		Start=Stop=LowBase=HighBase=0;
 		CurrentRep=NULL;
@@ -141,19 +143,8 @@ public:
 	//Initialize the Values for the record
 	int InitRecord( CalcPack& CP, string TID="unassigned", long St=0, long Sp=0, string HID="none", double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, string Func="none", string HOrg="none"){ // parameterized constructor1
 		ID=TID;
-		unsigned int ChPosition=ID.find('_');//look for '_' in ID indicating that there is a genome ID attached
-		if(ChPosition!=string::npos){
-			string TempID=ID;
-			TempID.replace(ChPosition,1," ");//replace '_' with a space
-			stringstream ParseSS;
-			ParseSS<<TempID;
-			ParseSS>>GenomeID;//pass orf id through
-			ParseSS>>GenomeID; //assign genome id
-		}
-		else{
-			GenomeID="NONE";
-		}
-		CP.SelectGenome(GenomeID);
+		ParseID();//parse the query ID
+		//CP.SelectGenome(GenomeID);
 		Start=St;
 		Stop=Sp;
 		Reverse =false;
@@ -209,6 +200,7 @@ public:
 		EDR=Source.EDR;
 		CalcMap=Source.CalcMap;
 		GOTerms=Source.GOTerms;
+		Offset=Source.Offset;
 		ConsensusAnnot=Source.ConsensusAnnot;
 		string TempName="none";
 		for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
@@ -238,6 +230,7 @@ public:
 			HighBase=Source.HighBase;
 			ID=Source.ID; //unique for each record
 			Defeated=Source.Defeated;
+			Offset=Source.Offset;
 			Reverse=Source.Reverse; //Is it in a - frame
 			Blank=Source.Blank;
 			QLength=Source.QLength;//Orf length
@@ -269,7 +262,25 @@ public:
 		return *this;
 	}// close definition
 	
-
+	//This function repalces all underscores with spaces
+	int ParseID(){
+		unsigned int ChPosition=ID.find("**");//look for '_' in ID indicating that there is a genome ID attached
+		if(ChPosition!=string::npos){
+			string TempID=ID;
+			TempID.replace(ChPosition,2," ");//replace '_' with a space
+			ChPosition=ID.find("**");
+			TempID.replace(ChPosition,2," ");//replace '_' with a space
+			stringstream ParseSS;
+			ParseSS<<TempID;
+			ParseSS>>GenomeID;//pass orf id through
+			ParseSS>>GenomeID; //assign genome id
+			ParseSS>>Offset;//assign offset value for contig coordinate conversion
+		}
+		else{
+			GenomeID="NONE";
+		}
+		return 0;
+	}
 
 	 	//> OPERATOR overload
 		//Both operators use the CurrentRep for the following two cases
@@ -746,7 +757,7 @@ public:
 
 	//Adds Subjects to OtherHits and makes top RelBit value Subject to be Record Rep.
 	int AddPrimary(CalcPack& CP, long St, long Sp, string& HID, double& B, string& ES, long& HL, long& AL, long& QASt, long& QASp, string& Func, string& HOrg){
-		CP.SelectGenome(GenomeID);
+		//CP.SelectGenome(GenomeID);
 		long LBase=0;
 		long HBase=0;
 		long OrigStart=St;
@@ -966,7 +977,7 @@ public:
 	//over multiple times
 	//Need to clean up this coordinate to string conversion +1 -1 stuff
 	SeqCalcMap::iterator CalcSeqScore(CalcPack& CP, const long& LowB, const long& HighB, const bool& Rev){
-		CP.SelectGenome(GenomeID);
+		//CP.SelectGenome(GenomeID);
 		long LowerBound=0;//lower bound on calc raw bit
 		long UpperBound=0;//upper bound on calc raw bit
 		long Length=HighB-LowB+1;
@@ -1053,7 +1064,9 @@ public:
 			for(FuncToSubject::iterator It= ConsensusAnnot.begin(); It!= ConsensusAnnot.end(); It++){
 				Out<<GO::IDToString(It->first->ReportID())<<" ICA ";//these are all infered by consensus annotation
 			}
+			
 			CurrentRep->DisplayInfo(Out);//display the information about the subject
+			
 		}
 		else{
 			cerr<<"Error in Displaying record information\n";

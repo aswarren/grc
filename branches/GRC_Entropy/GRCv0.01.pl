@@ -27,10 +27,7 @@ $BinDir=getcwd;#get absolute path for script
 
 
 $OntFile=$BinDir."/GO/$OntFile";#set absolute ontology filename
-my $glimout ="glimGRC.out";#variable specifying long-orf results
-my $glimin; #file handle to read in glim results
-my $extractout ="extract.out";
-my $glimdir=$BinDir."/longorfs/";
+my $orfsout ="grc_orfs.out";#variable specifying long-orf results
 my $transdir=$BinDir."/translate/";
 my $blastdir=$BinDir."/fsablast/";
 my $partdir=$BinDir."/temp/";
@@ -199,35 +196,23 @@ if(defined $opt_r && -e $opt_r){#if there is a reference file to compare to
 }
 
 #change directory to glimmer bin
-chdir("$glimdir");
-
-#Run Glimmer.longorfs (modified to put header in GlimStats) to get ORF's
-print "Running long-orfs:\n";
-$status = system("./long-orfs $GFile -l -p 100 -g $MinLength >$partdir$glimout");
-
-if ($status != 0){
-	die "glimmer did not run successfully";
-}
-
-
-#change directory to the parent dir of the location of the script
 chdir("$BinDir");
 
-#run Extract(modified to put out in fasta format) to get ORFs for FSA-BLASt 
-$status = system("$glimdir".'extract'." $GFile $partdir$glimout >$partdir$extractout");
+#Run Glimmer.longorfs (modified to put header in GlimStats) to get ORF's
+print "Running grc_orfs:\n";
+$status = system("./grc_orfs $GFile $MinLength >$partdir$orfsout");
 
 if ($status != 0){
-	die "extract did not run successfully";
+	die "grc_orfs did not run successfully";
 }
-
 
 
 #run grc_translate to translate ORFs to AA
-#$extractout is the ouput from glimmer.extract(modified)
+#$orfsout is the ouput from glimmer.extract(modified)
 #table 11 use bacterial translation table NO OTHER TABLES SUPPORTED YET
 print "\nTranslating sequences.\n";
 chdir("$transdir");
-$status = system("./grc_translate $partdir$extractout >$partdir$transeqout");
+$status = system("./grc_translate $partdir$orfsout >$partdir$transeqout");
 
 if ($status != 0){
 	die "grc_translate did not run successfully";

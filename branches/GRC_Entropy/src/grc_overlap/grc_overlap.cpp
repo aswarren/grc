@@ -569,8 +569,8 @@ std::ostream& operator<<(std::ostream& Out, const Compete& C){
 std::ostream& operator<<(std::ostream& ChkOut, AARecord* AC){
 	//ChkOut<<"PPCG**"<<"\t";
 	ChkOut<<AC->ID<<"\t";
-	ChkOut<<AC->Start<<"\t";
-	ChkOut<<AC->Stop<<"\t";
+	ChkOut<<((AC->Start)-(AC->Offset))<<"\t";
+	ChkOut<<((AC->Stop)-(AC->Offset))<<"\t";
 	ChkOut<<AC->CurrentLength<<"\t";
 	
 	if (AC->Reverse){

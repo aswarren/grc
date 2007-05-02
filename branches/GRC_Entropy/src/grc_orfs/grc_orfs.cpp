@@ -43,9 +43,11 @@ int main (int argc, char* argv[]) {   //  Main is open
 	map<string,string> IDToSeq;//map that provides access to nucleotide sequence based on ID ASSUMES unique FASTA style ID
 	string Header="";
 	string Sequence="";
+	int Offset=0;//the number of bases processed so far (from previous contigs/genomes)
 	//for each nucleotide sequence in the file
 	while(Reader.ReadFasta(Header,Sequence)){
 		//find +1 orfs
+		
 		int Start=-1;
 		int Stop=-1;
 		string SeqTag=Reader.HeaderToID(Header);
@@ -53,39 +55,40 @@ int main (int argc, char* argv[]) {   //  Main is open
 		while(Finder.OrfsForwardFrame(Sequence,Start,Stop,1)){
 			//construct string with orf information
 			string OrfInfo="";
-			OrfInfo+=SeqTag+"\t"+itos(Start)+"\t"+itos(Stop);//string will be SeqID\tStart\tStop
-			StartStopMap.insert(multimap<int,string>::value_type(Start,OrfInfo));
+			OrfInfo+=SeqTag+"\t"+itos(Start)+"\t"+itos(Stop)+"\t"+itos(Offset);//string will be SeqID\tStart\tStop\tOffset
+			StartStopMap.insert(multimap<int,string>::value_type(Start+Offset,OrfInfo));
 		}
 		while(Finder.OrfsForwardFrame(Sequence,Start,Stop,2)){
 			//construct string with orf information
 			string OrfInfo="";
-			OrfInfo+=SeqTag+"\t"+itos(Start)+"\t"+itos(Stop);//string will be SeqID\tStart\tStop
-			StartStopMap.insert(multimap<int,string>::value_type(Start,OrfInfo));
+			OrfInfo+=SeqTag+"\t"+itos(Start)+"\t"+itos(Stop)+"\t"+itos(Offset);//string will be SeqID\tStart\tStop\tOffset
+			StartStopMap.insert(multimap<int,string>::value_type(Start+Offset,OrfInfo));
 		}
 		while(Finder.OrfsForwardFrame(Sequence,Start,Stop,3)){
 			//construct string with orf information
 			string OrfInfo="";
-			OrfInfo+=SeqTag+"\t"+itos(Start)+"\t"+itos(Stop);//string will be SeqID\tStart\tStop
-			StartStopMap.insert(multimap<int,string>::value_type(Start,OrfInfo));
+			OrfInfo+=SeqTag+"\t"+itos(Start)+"\t"+itos(Stop)+"\t"+itos(Offset);//string will be SeqID\tStart\tStop\tOffset
+			StartStopMap.insert(multimap<int,string>::value_type(Start+Offset,OrfInfo));
 		}
 		while(Finder.OrfsReverseFrame(Sequence,Start,Stop,1)){
 			//construct string with orf information
 			string OrfInfo="";
-			OrfInfo+=SeqTag+"\t"+itos(Start)+"\t"+itos(Stop);//string will be SeqID\tStart\tStop
-			StartStopMap.insert(multimap<int,string>::value_type(Stop,OrfInfo));
+			OrfInfo+=SeqTag+"\t"+itos(Start)+"\t"+itos(Stop)+"\t"+itos(Offset);//string will be SeqID\tStart\tStop\tOffset
+			StartStopMap.insert(multimap<int,string>::value_type(Stop+Offset,OrfInfo));
 		}
 		while(Finder.OrfsReverseFrame(Sequence,Start,Stop,2)){
 			//construct string with orf information
 			string OrfInfo="";
-			OrfInfo+=SeqTag+"\t"+itos(Start)+"\t"+itos(Stop);//string will be SeqID\tStart\tStop
-			StartStopMap.insert(multimap<int,string>::value_type(Stop,OrfInfo));
+			OrfInfo+=SeqTag+"\t"+itos(Start)+"\t"+itos(Stop)+"\t"+itos(Offset);//string will be SeqID\tStart\tStop\tOffset
+			StartStopMap.insert(multimap<int,string>::value_type(Stop+Offset,OrfInfo));
 		}
 		while(Finder.OrfsReverseFrame(Sequence,Start,Stop,3)){
 			//construct string with orf information
 			string OrfInfo="";
-			OrfInfo+=SeqTag+"\t"+itos(Start)+"\t"+itos(Stop);//string will be SeqID\tStart\tStop
-			StartStopMap.insert(multimap<int,string>::value_type(Stop,OrfInfo));
+			OrfInfo+=SeqTag+"\t"+itos(Start)+"\t"+itos(Stop)+"\t"+itos(Offset);//string will be SeqID\tStart\tStop\tOffset
+			StartStopMap.insert(multimap<int,string>::value_type(Stop+Offset,OrfInfo));
 		}
+		Offset+=Sequence.size();//set offset so the start stop coordinates can be adjusted for a concatenated genome
 	}
 
 
@@ -99,10 +102,13 @@ int main (int argc, char* argv[]) {   //  Main is open
 		int HB=-1;
 		int StartOut=-1;
 		int StopOut=-1;
+		int OffsetOut=-1;
 		string LookupID="";
 		InfoSS>>LookupID;//get the lookup ID
 		InfoSS>>StartOut;
 		InfoSS>>StopOut;//get the stop coordinate
+		InfoSS>>OffsetOut;
+		
 		if(StartOut>StopOut){//if the gene is reverse frame
 			LB=StopOut;
 			HB=StartOut;
@@ -124,7 +130,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 			string GeneSeq=Calculator.GeneSequence(SeqFinder->second,LB,HB,Reverse);
 			string OutID="";
 			if(IDToSeq.size()>1){//if there is more than one genome adjust IDs to indicate
-				cout<<">T"<<OrfCounter<<"_"<<LookupID<<"\t"<<StartOut<<"\t"<<StopOut<<"\n";
+				cout<<">T"<<OrfCounter<<"**"<<LookupID<<"**"<<OffsetOut<<"\t"<<StartOut+OffsetOut<<"\t"<<StopOut+OffsetOut<<"\n";
 			}
 			else {//else no need
 				cout<<">T"<<OrfCounter<<"\t"<<StartOut<<"\t"<<StopOut<<"\n";

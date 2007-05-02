@@ -500,7 +500,16 @@
 		while(Reader.ReadFasta(GenomeID, GenomeSeq)){//read in the genome file
 	
 			GenomeID=Reader.HeaderToID(GenomeID);//Parse the unessary information from the GenomeID
-			Genomes.insert(map<string,string>::value_type(GenomeID, GenomeSeq));//keep track of all the genomes
+			
+			//used to do individual lookup of each contig/genome based on GenomeID
+			//but that is not possible since the overlap function needs relative coordinates
+			//from each ORF to correctly judge overlap
+			if(Genomes.size()==0){
+				Genomes.insert(map<string,string>::value_type(GenomeID, GenomeSeq));//keep track of all the genomes
+			}
+			else {
+				(Genomes.begin()->second)+=GenomeSeq;//cat to create genome
+			}
 	
 			/*FindIt=HitList.find(ID.substr(1,(ID.length())-1));
 	

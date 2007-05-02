@@ -2,27 +2,15 @@
 use Getopt::Std;
 #the following is a perl script to compile and copy various components of GRC
 
-print "compiling long-orfs\n";
-chdir("../src/longorfs/");
+print "compiling grc_orfs\n";
+chdir("../src/grc_orfs/");
 $status = system("make clean");
 $status = $status + system("make");
-$status = $status + system("cp ./long-orfs ../../longorfs/");
+$status = $status + system("cp ./grc_orfs ../../");
 
 
 if ($status != 0){
-	die "long-orfs did not compile successfully";
-}
-
-
-print "compiling extract\n";
-chdir("../extract/");
-$status = system("make clean");
-$status = $status + system("make");
-$status = $status + system("cp ./extract ../../longorfs/");
-
-
-if ($status != 0){
-	die "extract did not compile successfully";
+	die "grc_orfs did not compile successfully";
 }
 
 

@@ -267,14 +267,19 @@ public:
 		unsigned int ChPosition=ID.find("**");//look for '_' in ID indicating that there is a genome ID attached
 		if(ChPosition!=string::npos){
 			string TempID=ID;
-			TempID.replace(ChPosition,2," ");//replace '_' with a space
-			ChPosition=ID.find("**");
-			TempID.replace(ChPosition,2," ");//replace '_' with a space
+			//TempID.replace(ChPosition,2," ");//replace '_' with a space
+			//ChPosition=ID.find("**");
+			//TempID.replace(ChPosition,2," ");//replace '_' with a space
 			stringstream ParseSS;
 			ParseSS<<TempID;
-			ParseSS>>GenomeID;//pass orf id through
-			ParseSS>>GenomeID; //assign genome id
-			ParseSS>>Offset;//assign offset value for contig coordinate conversion
+			getline(ParseSS,ID,'*');
+			ParseSS.ignore();//ignore the next *
+			//ParseSS>>ID;//pass orf id through
+			getline(ParseSS,GenomeID,'*');
+			//ParseSS>>GenomeID; //assign genome id
+			ParseSS.ignore();//ignore next *
+			ParseSS>>Offset;//assign offset value for contig coordinate conversioni
+			ID+="_"+GenomeID;//reassign ORF ID to be orf_contig
 		}
 		else{
 			GenomeID="NONE";

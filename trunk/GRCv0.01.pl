@@ -24,7 +24,7 @@ chomp($BinDir);
 chdir("$BinDir");
 $BinDir=getcwd;#get absolute path for script
 
-
+#added this comment to see if S status will go away after svn switch
 
 $OntFile=$BinDir."/GO/$OntFile";#set absolute ontology filename
 my $glimout ="glimGRC.out";#variable specifying long-orf results

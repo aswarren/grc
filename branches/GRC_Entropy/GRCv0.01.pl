@@ -24,7 +24,7 @@ chomp($BinDir);
 chdir("$BinDir");
 $BinDir=getcwd;#get absolute path for script
 
-
+#adding this comment as a subversion test
 
 $OntFile=$BinDir."/GO/$OntFile";#set absolute ontology filename
 my $orfsout ="grc_orfs.out";#variable specifying long-orf results

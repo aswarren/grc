@@ -94,6 +94,16 @@ typedef priority_queue<Subject*,vector<Subject*>,OrderSubject> PQSubject;
 typedef set<Subject*> SubjectSet;
 typedef map<GOFunction*,SubjectSet, OrderDepth> FuncToSubject;
 
+//AARecord is a class representing the query ORF that is aligned in the BLAST search
+//It contains a priority queue of Subjects to which the query ORF was aligned
+//These subjects are ranked according to their alignments
+//So each subject contains alignments. An alignment object is created
+//for each possible start site suggested by the actual alignment.
+//When a pop of the queue occurs the top (alignment,start) pair is removed
+//from the queue until no more alignments to that subject exist
+//then that subject is popped off the queue. This repeats untill all
+//subjects are removed.
+
 class AARecord {//open prototype
 	friend std::ostream& operator<<(std::ostream& ACOut, const AARecord& AC);
 	friend std::ostream& operator<<(std::ostream& ACOut, AARecord* AC);
@@ -482,7 +492,7 @@ public:
 			}
 		}
 
-		if(OverLen>OLapThreshold && OverLen>12){
+		if((OverLen>OLapThreshold && OverLen>12) || OverLen>45){
 			return true;
 		}
 		else if(OverLen<=0){

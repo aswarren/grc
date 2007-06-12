@@ -474,30 +474,39 @@ public:
 	//modified for different threshold overlaps based on blast score
 	bool ToKnockOut(AARecord& RHS, int OverLen){//open def
 		if(RHS.ID==ID){return true;}//if the same id then one has to go
+		if(OverLen<=0){//else the overlap is negative which is distance between two no_hit orfs Possible intergenic region
+				cerr<<"Logic error:ToKnockOut called on orfs that do not overlap.\n";
+				throw 20;
+		}
 
 		bool NoScore =(RHS.Blank || Blank);//if either ORF does not have a score
-		double MaxOverlap=120;
+		double MaxOverlap=45;
 		float OEFactor=.05/3;//E-score to overlap threshold converstion factor 
-		double OLapThreshold=12;//default overlap threshold is 12 nucl.
+		double OLapThreshold=15;//default overlap threshold is 12 nucl.
 
 		if(!NoScore){
 			OLapThreshold=CurrentRep->OverlapThreshold(*RHS.CurrentRep,MaxOverlap);
 		}//close if both have score
-		else if(OverLen>12){return true;}// If two putative ORFs overlap and one has no hits it must overlap very little
+
 		else if(RHS.Blank && Blank){
-			if(OverLen>0){return true;}
-			else{//else the overlap is negative which is distance between two no_hit orfs Possible intergenic region
-				cerr<<"Logic error:ToKnockOut called on orfs that do not overlap.\n";
-				throw 20;
+			if(RHS.EDR>EDR){
+				OLapThreshold=MaxOverlap*(1-RHS.EDR);
 			}
+			else {
+				OLapThreshold=MaxOverlap*(1-EDR);
+			}
+			
+		}
+		else if(RHS.Blank){
+			OLapThreshold=MaxOverlap*(1-RHS.EDR);
+		}
+		else{//LHS has no hit
+			OLapThreshold=MaxOverlap*(1-EDR);
 		}
 
-		if((OverLen>OLapThreshold && OverLen>12) || OverLen>45){
+
+		if(OverLen>OLapThreshold || OverLen>45){
 			return true;
-		}
-		else if(OverLen<=0){
-			cerr<<"Logic error:ToKnockOut called on orfs that do not overlap.\n";
-			throw 20;
 		}
 		else return false;
 	}//close definition

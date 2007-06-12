@@ -270,7 +270,7 @@ public:
 		//double Diff=0;
 		//BitFrac1=BitFrac1*Bit;
 		//BitFrac2=BitFrac2*RHS.Bit;
-		if(Length<300 || RHS.Length<300){ //if the length of one of the orfs is less than 300 decrease maxoverlap
+		/*if(Length<300 || RHS.Length<300){ //if the length of one of the orfs is less than 300 decrease maxoverlap
 			if(Length<RHS.Length){
 				MaxOverlap=MaxOverlap*(Length/300);
 				//MaxOverlap=0.4*QLength;
@@ -279,17 +279,17 @@ public:
 				MaxOverlap=MaxOverlap*(RHS.Length/300);
 				//MaxOverlap=0.4*RHS.QLength;
 			}
-		}
+		}*/
 			
 		if(BitFrac1<BitFrac2){
 			//Diff=(Bit/RHS.Bit)*2;
 			//ScoreFactor=(Bit/1000)+1;
-			OLapThreshold=(BitFrac1*MaxOverlap);
+			OLapThreshold=((BitFrac1+(1-EDR))*MaxOverlap);
 		}
 		else{
 			//Diff=(RHS.Bit/Bit)*2;
 			//ScoreFactor=(RHS.Bit/1000)+1;
-			OLapThreshold=(BitFrac2*MaxOverlap);
+			OLapThreshold=((BitFrac2+(1-RHS.EDR))*MaxOverlap);
 		}
 
 		return OLapThreshold;

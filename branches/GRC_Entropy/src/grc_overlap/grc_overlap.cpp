@@ -270,8 +270,8 @@ int main (int argc, char* argv[]) {   //  Main is open
 	}
 	double EntropyDev=sqrt((Variance/double(NumForAvg)));//calculate std deviation
 	double EDRCutoff=1.0;
-	//if for some reason the EDRCutoff is too stringent
-	//which would mean that 1.1 is < Avg+2*Std Dev.
+	//if for some reason the EDRCutoff is too lenient
+	//that 1.1 is < Avg+2*Std Dev.
 	if(EDRCutoff<AvgEntropy+(2*EntropyDev)){
 		EDRCutoff=AvgEntropy+(2*EntropyDev);
 	}

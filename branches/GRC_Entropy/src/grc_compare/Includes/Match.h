@@ -203,8 +203,8 @@ public:
 			 if(AncIt->first!=NULL){//NULL check
 				 FunctionMap::iterator GRCIt=GRCRecord->GOTerms.find(AncIt->first->ID);//if any of GRC terms are ancestors of any Ref term
 				 if(GRCIt!=GRCRecord->GOTerms.end() && Verified.find(AncIt->first->ID)==Verified.end()){//if its an ancestor and has not been verified already
-					 GOFunction* OrigRef=GOAccess->Find(AncIt->first->DistID);//find the original Ref. that created this ancestor
-					 FunctionMap::iterator RefIt=RefRecord->GOTerms.find(AncIt->first->DistID);//find the original in the refernce
+					 GOFunction* OrigRef=GOAccess->Find(AncIt->first->DistID);//find the original Ref. that created this ancestor in the GO heirarchy
+					 FunctionMap::iterator RefIt=RefRecord->GOTerms.find(AncIt->first->DistID);//find the same term in the refernce record so can access the evidence code information
 					 if (OrigRef !=NULL && RefIt!=RefRecord->GOTerms.end()){
 						 Verified.insert(GRCIt->first);//insert id as being verified
 						 Confirmed.insert(GOMatch(OrigRef->ID, RefIt->second, OrigRef->Depth, GRCIt->first, GRCIt->second, (OrigRef->Depth)-(AncIt->first->Distance), AncIt->first->Distance));
@@ -229,7 +229,7 @@ public:
 					if(AncIt->first!=NULL){//NULL check 
 						FunctionMap::iterator RefIt=RefRecord->GOTerms.find(AncIt->first->ID);//if any of Ref terms are ancestors of any GRC term
 						if(RefIt!=RefRecord->GOTerms.end()){//if its an ancestor
-							GOFunction* OrigGRC=GOAccess->Find(AncIt->first->DistID);//find the original GRC. that created this ancestor
+							GOFunction* OrigGRC=GOAccess->Find(AncIt->first->DistID);//get access to the original GRC. that created this ancestor
 							if (OrigGRC !=NULL){//if the original exists in hierarchy
 								Verified.insert(GRCIt->first);//insert id as being verified
 								Compatible.insert(GOMatch(RefIt->first, RefIt->second, (OrigGRC->Depth)-(AncIt->first->Distance), GRCIt->first, GRCIt->second, OrigGRC->Depth, AncIt->first->Distance));
@@ -245,9 +245,15 @@ public:
 
          
 		 //else they are NotCompatible
-		 for(FunctionMap::iterator FindIt=GRCRecord->GOTerms.begin(); FindIt!=GRCRecord->GOTerms.end(); FindIt++){
-			 if(Verified.find(FindIt->first)==Verified.end()){//if the term is not found in the verified set
-				 NotCompatible.insert(*FindIt);
+		 for(FunctionMap::iterator It=GRCRecord->GOTerms.begin(); It!=GRCRecord->GOTerms.end(); It++){
+			GOFunction* TermPtr=GOAccess->Find(It->first);//setup access the GO term information
+			if(TermPtr!=NULL){
+				//check to see if the reference record uses the same ontology this term is from
+				if( (RefRecord->GOCat.find(TermPtr->Category)) != RefRecord->GOCat.end() ){
+					if(Verified.find(It->first)==Verified.end()){//if the term is not found in the verified set
+						NotCompatible.insert(*It);
+					}
+				}
 			 }
 		 }//close for every GRC GOTerm
 		 return 0;

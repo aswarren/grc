@@ -76,6 +76,7 @@ public:
 	FunctionMap GOTerms;//GOTerms,EvidenceCodes assigned to this prediction
 	bool HasGO;
 	double Entropy;//entropy distance ratio
+	set<string> GOCat; //tracks the GO ontologies used for this ORF Biological process 'b', molecular function 'f', cellular component 'c'
 	
 //public:
 	result Evaluation;//is this orf a TP,FP,FN,TN??
@@ -113,7 +114,7 @@ public:
 
 
 	//parameterized constructor
-	Record(string TID="unassigned", long St=0, long Sp=0, string H="No_hits", double Ent=9999, bool R=false, double B=0, string ES="none", long L=0, double QP=0, double HP=0, string DID= "none", string DOrg="none"){ // parameterized constructor1
+	Record(string TID="unassigned", long St=0, long Sp=0, string H="No_hits", double Ent=9999, bool R=false, double B=0, string ES="none", long L=0, double QP=0, double HP=0, string DID= "none", string DOrg="none", GO* GOAccess=NULL){ // parameterized constructor1
 		ID=TID;
 		Start=St;
 		Stop=Sp;
@@ -140,7 +141,7 @@ public:
 			stringstream TempSS(EScore);
 			TempSS>>EValue;
 		}
-		ParseHit();//Parse the Hit description
+		ParseHit(GOAccess);//Parse the Hit description
 		Ref=R;
 		MaxOLap=0;
 		RefEval=NULL;
@@ -196,7 +197,7 @@ public:
 		GOTerms=Source.GOTerms;
 		HasGO=Source.HasGO;
 		Entropy=Source.Entropy;
-		
+		GOCat=Source.GOCat;
 	}// close definition
 
 	 	//> OPERATOR overload
@@ -240,6 +241,7 @@ public:
 		GOTerms=Source.GOTerms;
 		HasGO=Source.HasGO;
 		Entropy=Source.Entropy;
+		GOCat=Source.GOCat;
 		}// close self assignment
 		return *this;
 	}// close definition
@@ -422,19 +424,26 @@ public:
 	}//close def
 
 
-	//This function breaks up the hit line and initializes the various data structures appropriately
-	int ParseHit(){//open definition
+	//This function breaks up the function description line and initializes the various data structures appropriately
+	int ParseHit(GO* GOAccess){//open definition
 		stringstream Breakup(Hit);//term for reading parts of the function
 		string Term;
 		FunctionMap::iterator FindIt;//iterator for finding go id in goterms map
 		StringSet EmptySet;//empty set for initializing in HitParsing
+		GOFunction* TermPtr=NULL;
 
 		while (Breakup>>Term){ //read in terms
 			
 			if (GO::StringIsGO(Term)){//if the term is a go term
 				int TempID=GO::StringToID(Term);//get integer value
-				GOTerms.insert(FunctionMap::value_type(TempID,EmptySet));//insert ID (only unique)
-				FindIt=GOTerms.find(TempID);//find the ID key for evidence code insertion
+				if(GOAccess!=NULL){
+					TermPtr=GOAccess->Find(TempID);
+				}
+				if(TermPtr!=NULL){
+					GOCat.insert(TermPtr->Category);//track all the ontology cat.s used to describe this orf
+				}
+					
+				FindIt=(GOTerms.insert(FunctionMap::value_type(TempID,EmptySet))).first;//insert ID (only unique)
 			}//close go term
 			else if (GO::IsECode(Term)){//if its an evidence code
 				if(FindIt!=GOTerms.end()){

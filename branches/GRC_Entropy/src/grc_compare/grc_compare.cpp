@@ -76,6 +76,16 @@ int main (int argc, char* argv[]) {   //  Main is open
 	GO Ontology;
 	GO* GOAccess=NULL;//pointer passed to functions for GO access
 
+
+	if(GOFile!="none"){//if there is a GO file specified
+		cerr<<"Reading in the ontology file "<<GOFile<<"\n";
+		ifstream GOIn;
+		GOIn.open(GOFile);
+		Ontology.ReadOBO(&GOIn,true,true,true);
+		GOIn.close();
+		GOAccess=&Ontology;//set go access pointer
+	}//close if there is a obo file
+
 	string ID;
 	long Stop;
 	long Start;
@@ -228,14 +238,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	}//close while loop for negatives input
 	
 	//cout<<"have read in negatives\n";
-	if(GOFile!="none"){//if there is a GO file specified
-		cerr<<"Reading in the ontology file "<<GOFile<<"\n";
-		ifstream GOIn;
-		GOIn.open(GOFile);
-		Ontology.ReadOBO(&GOIn,true,true,true);
-		GOIn.close();
-		GOAccess=&Ontology;//set go access pointer
-	}//close if there is a obo file
+
 
 	//DumpList(orfRefList);//print out the orfs from initlist
 //cout<<"have made it past refernce statistics\n";

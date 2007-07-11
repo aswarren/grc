@@ -114,7 +114,7 @@ public:
 
 
 	//parameterized constructor
-	Record(string TID="unassigned", long St=0, long Sp=0, string H="No_hits", double Ent=9999, bool R=false, double B=0, string ES="none", long L=0, double QP=0, double HP=0, string DID= "none", string DOrg="none", GO* GOAccess=NULL){ // parameterized constructor1
+	Record(string TID="unassigned", long St=0, long Sp=0, string H="No_hits", double Ent=9999, bool R=false, GO* GOAccess=NULL, double B=0, string ES="none", long L=0, double QP=0, double HP=0, string DID= "none", string DOrg="none"){ // parameterized constructor1
 		ID=TID;
 		Start=St;
 		Stop=Sp;

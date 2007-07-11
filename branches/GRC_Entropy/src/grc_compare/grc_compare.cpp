@@ -34,7 +34,7 @@ int PrintSeqMatch(list<Match>& ML, char* RInput);//function for printing distrib
 int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg, GO* GOAccess);//fuction for printing summary statistics based on FP, TP, FN, TN
 int GetKnock(DirectHash<Record*>& Putatives, list<Match>& MList, char* KnockFile);//function to get data for analysis
 int KnockAnalysis(list<Match>& KML);//function to perform Knockout Analysis
-int CountGOStat(Match& TempM, int& GR, int& R, int& G, int& N);//update the total number of cases for all the grc,ref pairs
+int CountGOStat(Match& TempM, int& GR, int& R, int& G, int& N, int& V);//update the total number of cases for all the grc,ref pairs
 
 //run as GRC_overlap -i BlastResults.txt
 int main (int argc, char* argv[]) {   //  Main is open
@@ -125,7 +125,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 		getline(In,Hit,'\t');//skip next tab
 		getline(In,Hit,'\n');//get the function
 
-		orfRefList.push_back(Record(ID, Start, Stop, Hit, 9999, true)); //add a hit record
+		orfRefList.push_back(Record(ID, Start, Stop, Hit, 9999, true, GOAccess)); //add a hit record
 		RefList.push_back(&(orfRefList.back()));//add pointer to the record
 	}// close read input
 	In.close();
@@ -176,7 +176,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 			In2>>QPercent;
 			In2>>HPercent; //read in hsp percent
 			
-			PositiveList.push_back(Record(ID, Start, Stop, Hit, Entropy, false, Bit, ES, Length, QPercent, HPercent,DBID,DBOrg)); //add a hit record
+			PositiveList.push_back(Record(ID, Start, Stop, Hit, Entropy, false, GOAccess, Bit, ES, Length, QPercent, HPercent,DBID,DBOrg)); //add a hit record
 			PosList.push_back(&(PositiveList.back()));//add pointer to the record
 		}
 		//add a pointer to hash table that uses ID to generate key
@@ -230,7 +230,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 			In3>>Length;//read in HSP length
 			In3>>QPercent;
 			In3>>HPercent; //read in hsp percent
-			NegativeList.push_back(Record(ID, Start, Stop, Hit, Entropy, false, Bit, ES, Length, QPercent, HPercent,DBID,DBOrg)); //add a hit record
+			NegativeList.push_back(Record(ID, Start, Stop, Hit, Entropy, false, NULL, Bit, ES, Length, QPercent, HPercent,DBID,DBOrg)); //add a hit record
 			NegList.push_back(&(NegativeList.back()));//add pointer to the record
 			unsigned int Position = IDHash.HashingKey(ID);
 			IDHash.InsertKey(Position,&(NegativeList.back()));
@@ -1003,6 +1003,7 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg
 	int TPGOGRC=0;//just GRC
 	int TPGORef=0;//just Ref
 	int TPGONone=0;//neither
+	int TPGOVerify=0;//counter that keeps track of the number of TP where at least one GO cat used is the same as GO cat used for Ref
 	int TPConfirmed=0;//number of TP with confirmed annotations 
 	int TPCompatible=0;//number of TP with compatible annotations
 	int TPNotCompat=0;//number with not compatible
@@ -1071,7 +1072,7 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg
 				break;
 			case TP:
 				if(GOAccess!=NULL){//if GO analysis is turned on
-					CountGOStat(*It1,TPGORefGRC,TPGORef,TPGOGRC,TPGONone);//update go statistics
+					CountGOStat(*It1,TPGORefGRC,TPGORef,TPGOGRC,TPGONone, TPGOVerify);//update go statistics
 					if(It1->GOCompatible()>0){//if there are compatible terms
 						TPCompatible++;
 						TPTotalCompat=TPTotalCompat+It1->GOCompatible();
@@ -1212,6 +1213,7 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg
 	if(GOAccess!=NULL){//if there is GO analysis
 		cout<<"TP Gene Ontology Stats:\n";
 		cout<<"Number of TP w/ both GRC and Ref. GO Terms(verifiable)\t"<<TPGORefGRC<<'\n';
+		cout<<"Number of TP w/ same category GO Terms(verifiable)\t"<<TPGOVerify<<'\n';
 		cout<<"Number of TP w/ just GRC GO Terms\t"<<TPGOGRC<<'\n';
 		cout<<"Number of TP w/ just Ref. GO Terms\t"<<TPGORef<<'\n';
 		cout<<"Number of TP w/ no GO Terms\t"<<TPGONone<<'\n'<<'\n';
@@ -1279,11 +1281,11 @@ int GetKnock(DirectHash<Record*>& Putatives, list<Match>& MList, char* KnockFile
 						}
 						else{
 							//Eliminated by entropy
-							cerr<<Ty<<" does not exist in hashTable\n";
+							cerr<<Ty<<" does not exist in KnockOut hashTable\n";
 						}
 					}//close putative knocked out
 				}//close if TarP exists
-				else{cerr<<Tg<<" does not exist in hashTable\n";}
+				else{cerr<<Tg<<" does not exist in KnockOut hashTable\n";}
 			}//close read in rest of line
 		}//close if not entropy
 		else{//knocked out by entropy
@@ -1409,7 +1411,7 @@ int KnockAnalysis(list<Match>& KML){//
 
 //This function updates a running count of how many Matches have
 //GO terms for both the GRC and Reference Records
-int CountGOStat(Match& TempM, int& GR, int& R, int& G, int& N){//open definition
+int CountGOStat(Match& TempM, int& GR, int& R, int& G, int& N, int& V){//open definition
 	switch(TempM.GOStat){
 		case NoGO:
 			N++;
@@ -1422,6 +1424,9 @@ int CountGOStat(Match& TempM, int& GR, int& R, int& G, int& N){//open definition
 			break;
 		case RefGRC:
 			GR++;
+			if(TempM.SameGO){
+				V++;
+			}
 			break;
 		default: break;
 	}//close switch

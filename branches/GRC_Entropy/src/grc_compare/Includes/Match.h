@@ -43,6 +43,7 @@ public:
 	FunctionMap NotCompatible;//Annotations that are not compatible (do not contain a msa on path to root)
 	set<GOMatch> Compatible; //annotations that have a msa as an ancestor
 	GOSTATUS GOStat;//reports of go status of the match
+	bool SameGO;//records whether records matched are described by at least one same ontology
 	
 
 
@@ -58,6 +59,7 @@ public:
 		StatScore=TN;
 		SmallRef=0;
 		GOStat=NoGO;
+		SameGO=false;
 	}// close default
 
 	~Match(){//default destructor
@@ -84,6 +86,7 @@ public:
 		 NotCompatible=Source.NotCompatible;
 		 Confirmed=Source.Confirmed;
 		 GOStat=Source.GOStat;
+		 SameGO=Source.SameGO;
 	 }// close definition
 
 
@@ -105,6 +108,7 @@ public:
 			NotCompatible=Source.NotCompatible;
 			Confirmed=Source.Confirmed;
 			GOStat=Source.GOStat;
+			SameGO=Source.SameGO;
 			}
 		 return *this;
 	 }// close definition
@@ -120,7 +124,7 @@ public:
 		RefRecord=CP;
 		OverLen=OLap;
 		GOStat=NoGO;
-		
+		SameGO=false;
 		//Set RefEval Pointer
 		if(RefRecord->Ref){//if the refernece record  really is a reference record and not a GRC record for FNanalysis
 			RefOLapPercent=OverLen/RefRecord->OLength; //reference annotation overlap
@@ -158,7 +162,7 @@ public:
 			}
 			if(GOAccess!=NULL && StatScore==TP){//if the ontology is available
 				FindGOStat();//check the status of the match
-				if(GOStat==RefGRC){//if the annotations can be verified
+				if(GOStat==RefGRC && SameGO){//if the annotations can be verified
 					CheckGO(GOAccess);//run checkGO for each of the TP orfs with GO terms
 				}//close if verifiable
 			}//close ontology available
@@ -172,6 +176,14 @@ public:
 		if (GRCRecord->HasGO){//if the GRC prediction has GO term
 			if(RefRecord->HasGO){
 				GOStat=RefGRC;
+				//check to see if the two ORFs are described by at least one same ontology
+				for(set<string>::iterator It=GRCRecord->GOCat.begin(); It!=GRCRecord->GOCat.end(); It++){
+					string GRCat=*It;
+					if(RefRecord->GOCat.find(GRCat)!=RefRecord->GOCat.end()){
+						SameGO=true;//set boolean value
+						break;
+					}
+				}
 			}
 			else {
 				GOStat=GRC;
@@ -183,6 +195,7 @@ public:
 		else{
 			GOStat=NoGO;
 		}
+
 		return 0;
 	 }//close defintion
 

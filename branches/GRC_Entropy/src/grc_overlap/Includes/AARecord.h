@@ -1083,10 +1083,16 @@ public:
 //and its current representatives
 //this function violates information hiding
 	int DisplayInfo(std::ostream& Out){
+		double ConsensusConfidence=0;
 		if(CurrentRep!=NULL){
 			//print out any consensus GO annotations
 			for(FuncToSubject::iterator It= ConsensusAnnot.begin(); It!= ConsensusAnnot.end(); It++){
-				Out<<GO::IDToString(It->first->ReportID())<<" ICA ";//these are all infered by consensus annotation
+				for(SubjectSet::iterator SIt=(It->second).begin(); SIt!=(It->second).end(); SIt++){
+					if(ConsensusConfidence < (*SIt)->ReportTopBitFrac()){
+						ConsensusConfidence= (*SIt)->ReportTopBitFrac();
+					}
+				}
+				Out<<GO::IDToString(It->first->ReportID())<<" ( "<<ConsensusConfidence<<" ICA) ";//these are all infered by consensus annotation
 			}
 			
 			CurrentRep->DisplayInfo(Out);//display the information about the subject

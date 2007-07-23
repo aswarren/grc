@@ -27,6 +27,12 @@ string itos(int i)	// convert int to string
 		return s.str();
 	}
 
+string dtos(double d)	// convert int to string
+	{
+		stringstream s;
+		s << d;
+		return s.str();
+	}
 
 class GOMatch {//open prototype
 public:
@@ -37,6 +43,7 @@ public:
 	int Distance;//distance from one another
 	int GRCDepth;
 	int RefDepth;
+	double Confidence;
 	GOFunction* RefTerm;
 	GOFunction* GRCTerm;
 
@@ -61,6 +68,7 @@ public:
 		RefDepth=Source.RefDepth;
 		RefTerm=Source.RefTerm;
 		GRCTerm=Source.GRCTerm;
+		Confidence=Source.Confidence;
 	}//close def
 
 	 //Assignment Operator
@@ -75,12 +83,13 @@ public:
 				RefDepth=Source.RefDepth;
 				RefTerm=Source.RefTerm;
 				GRCTerm=Source.GRCTerm;
+				Confidence=Source.Confidence;
 			}
 		 return *this;
 	 }//close def.
 
 	 //Parameterized constructor
-	 GOMatch(int RID, set<string> RECodes, int RDepth, int GID, set<string> GECodes, int GDepth, int Dist){
+	 GOMatch(int RID, set<string> RECodes, int RDepth, int GID, set<string> GECodes, int GDepth, int Dist, double Conf){
 		RefGOID=RID;
 		GRCGOID=GID;
 		RefECodes=RECodes;
@@ -90,6 +99,7 @@ public:
 		RefDepth=RDepth;
 		RefTerm=NULL;
 		GRCTerm=NULL;
+		Confidence=Conf;
 	 }//close constructor
  
 	 //> OPERATOR overload
@@ -129,7 +139,7 @@ public:
 		Convert=itos(RefDepth);
 		Info=Info+"\t"+Convert+"\t"+GO::IDToString(GRCGOID);
 		for(set<string>::const_iterator GIt=GRCECodes.begin(); GIt!=GRCECodes.end(); GIt++){//open for loop
-			if(GIt!=RefECodes.begin()){
+			if(GIt!=GRCECodes.begin()){
 				Info=Info+" "+*GIt;
 			}
 			else{
@@ -137,7 +147,7 @@ public:
 			}
 		}
 		Convert=itos(GRCDepth);
-		Info=Info+"\t"+Convert+"\t";
+		Info=Info+"\t"+dtos(Confidence)+"\t"+Convert+"\t";
 		Convert=itos(Distance);
 		Info=Info+Convert;
 

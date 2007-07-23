@@ -220,7 +220,7 @@ public:
 					 FunctionMap::iterator RefIt=RefRecord->GOTerms.find(AncIt->first->DistID);//find the same term in the refernce record so can access the evidence code information
 					 if (OrigRef !=NULL && RefIt!=RefRecord->GOTerms.end()){
 						 Verified.insert(GRCIt->first);//insert id as being verified
-						 Confirmed.insert(GOMatch(OrigRef->ID, RefIt->second, OrigRef->Depth, GRCIt->first, GRCIt->second, (OrigRef->Depth)-(AncIt->first->Distance), AncIt->first->Distance));
+						 Confirmed.insert(GOMatch(OrigRef->ID, RefIt->second.first, OrigRef->Depth, GRCIt->first, GRCIt->second.first, (OrigRef->Depth)-(AncIt->first->Distance), AncIt->first->Distance, GRCIt->second.second));
 					 }//close if OrigRef Found
 					 else {//else original refernce not found
 						 cerr<<"WARNING: Error in GOCheck Analysis at "<<AncIt->first->DistID<<'\n';
@@ -245,7 +245,7 @@ public:
 							GOFunction* OrigGRC=GOAccess->Find(AncIt->first->DistID);//get access to the original GRC. that created this ancestor
 							if (OrigGRC !=NULL){//if the original exists in hierarchy
 								Verified.insert(GRCIt->first);//insert id as being verified
-								Compatible.insert(GOMatch(RefIt->first, RefIt->second, (OrigGRC->Depth)-(AncIt->first->Distance), GRCIt->first, GRCIt->second, OrigGRC->Depth, AncIt->first->Distance));
+								Compatible.insert(GOMatch(RefIt->first, RefIt->second.first, (OrigGRC->Depth)-(AncIt->first->Distance), GRCIt->first, GRCIt->second.first, OrigGRC->Depth, AncIt->first->Distance, GRCIt->second.second));
 							}
 							else{
 								cerr<<"WARNING: Error in GOCheck Analysis at "<<AncIt->first->DistID<<'\n';
@@ -311,15 +311,15 @@ public:
 		}
 		for(FunctionMap::iterator NCom=NotCompatible.begin(); NCom!=NotCompatible.end(); NCom++){
 			Out<<"Incompatible\t"<<GO::IDToString(NCom->first);
-			for(set<string>::iterator GIt=NCom->second.begin(); GIt!=NCom->second.end(); GIt++){//open for loop
-				if(GIt!=NCom->second.begin()){
+			for(set<string>::iterator GIt=NCom->second.first.begin(); GIt!=NCom->second.first.end(); GIt++){//open for loop
+				if(GIt!=NCom->second.first.begin()){
 					Out<<" "<<*GIt;
 				}
 				else{
 					Out<<"\t"<<*GIt;
 				}
 			}//close inner for loop
-			Out<<"\n";
+			Out<<"\t"<<NotCompatible.begin()->second.second<<"\n";
 		}//close outer for loop
 		Out<<Delim<<"\n";
 

@@ -35,11 +35,13 @@ using std::cout;
 using std::stringstream;
 using std::set;
 using std::map;
+using std::pair;
 
 	enum compete{WIN, LOSE, TIE, NONE};//keeps track of who won what
 	enum result{TP, FP, TN, FN, NA, NRP, NRN};//keeps track status with respect to reference
 	typedef set<string> StringSet;
-	typedef map<int,StringSet> FunctionMap;
+	typedef pair<StringSet,double> AnnotConf;//Annotation confidence pairs bitfraction and evidence codes
+	typedef map<int,AnnotConf> FunctionMap;
 
 	//class Match;//foward declaration
 
@@ -431,10 +433,21 @@ public:
 		FunctionMap::iterator FindIt;//iterator for finding go id in goterms map
 		StringSet EmptySet;//empty set for initializing in HitParsing
 		GOFunction* TermPtr=NULL;
+		bool ConfExist=false;//whether there is confidence info coming
+		double Confidence=0;
 
 		while (Breakup>>Term){ //read in terms
-			
-			if (GO::StringIsGO(Term)){//if the term is a go term
+			if(Term=="("){
+				ConfExist=true;
+				Breakup>>Confidence;
+				if(!GOTerms.empty() && FindIt!=GOTerms.end()){
+					FindIt->second.second=Confidence;
+				}
+			}
+			else if (Term==")"){
+				ConfExist=false;
+			}
+			else if (!ConfExist && GO::StringIsGO(Term)){//if the term is a go term
 				int TempID=GO::StringToID(Term);//get integer value
 				if(GOAccess!=NULL){
 					TermPtr=GOAccess->Find(TempID);
@@ -443,16 +456,17 @@ public:
 					GOCat.insert(TermPtr->Category);//track all the ontology cat.s used to describe this orf
 				}
 					
-				FindIt=(GOTerms.insert(FunctionMap::value_type(TempID,EmptySet))).first;//insert ID (only unique)
+				FindIt=(GOTerms.insert(FunctionMap::value_type(TempID,(AnnotConf(EmptySet,0))))).first;//insert ID (only unique)
 			}//close go term
 			else if (GO::IsECode(Term)){//if its an evidence code
 				if(FindIt!=GOTerms.end()){
-					FindIt->second.insert(Term);//insert evidence code
+					FindIt->second.first.insert(Term);//insert evidence code
 				}
 		
 			}//close if evidence code
-			else{//else its a description Term
+			else if (!ConfExist){//else its a description Term
 				Description.push_back(Term);
+				FindIt=GOTerms.end();
 			}
 		}//close while loop
 

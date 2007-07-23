@@ -56,7 +56,7 @@ public:
 	list<string> Description;
 	FunctionMap GOTerms;//GOTerms,EvidenceCodes assigned to this prediction
 	bool HasGO;
-	double BestBitFrac;
+	double BestBitFrac;//best bit fraction for all the alignments to this subject
 
 	
 	Subject(){//default constructor
@@ -210,7 +210,7 @@ public:
 	}
 
 
-	//This function updates the score for each (alignment, start site pair) aka each alignment object
+	//This function updates the score for each (alignment, start site pair) aka each alignment object for all subjects in AARecord
 	int UpdateScores(const double& HighScore){
 		while(!AlignQ.empty()){//clear the alignQ
 			AlignQ.pop();
@@ -365,18 +365,23 @@ public:
 			double ALength=AlignQ.top()->GetALength();
 			double OLength=AlignQ.top()->GetLength();
 
+			
+
 			//Out<<Function<<"\t"; //print hit description
 			for(FunctionMap::iterator It= GOTerms.begin(); It!=GOTerms.end(); It++){//Print GO terms if there are any
 				Out<<GO::IDToString(It->first)<<" ";
 				//print evidence codes
+				Out<<" ( "<<BestBitFrac<<" ";//print out the confidence value derived from the best alignment to this subject
 				for(StringSet::iterator It2=It->second.begin(); It2!=It->second.end(); It2++){
 					Out<<*It2<<" ";
 				}
+				Out<<" ) ";
 			}
 			//print out the description "fasta line function"
 			for(list<string>::iterator DIt=Description.begin(); DIt!=Description.end(); DIt++){
 				Out<<*DIt<<" ";
 			}
+			Out<<" ( "<<BestBitFrac<<" ) " ;
 			Out<<"\t";
 			Out<<HitID<<"\t";
 			Out<<HitOrg<<"\t";

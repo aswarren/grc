@@ -353,9 +353,9 @@ int main (int argc, char* argv[]) {   //  Main is open
 	cout<<"GRC\tID\tStart\tStop\tLength\tStrand\tAnnotation\tBit\te-value\tHSP_length\tDB_ID\tDB_Org\n";
 	cout<<"Ref\tID\tStart\tStop\tLength\tStrand\tAnnotation\n";
 	if(GOAccess!=NULL){
-		cout<<"Confirmed\tRef_GOID\tEvidenceCode\tDepth\tGRC_GOID\tEvidenceCode\tDepth\tDistance\n";
-		cout<<"Compatible\tRef_GOID\tEvidenceCode\tDepth\tGRC_GOID\tEvidenceCode\tDepth\tDistance\n";
-		cout<<"Incompatibe\tGRC_GOID\tEvidenceCode\n";
+		cout<<"Confirmed\tRef_GOID\tEvidenceCode\tDepth\tGRC_GOID\tEvidenceCode\tConfidence\tDepth\tDistance\n";
+		cout<<"Compatible\tRef_GOID\tEvidenceCode\tDepth\tGRC_GOID\tEvidenceCode\tConfidence\tDepth\tDistance\n";
+		cout<<"Incompatibe\tGRC_GOID\tEvidenceCode\tConfidence\n";
 	}
 	int DCount=0;
 	string Delim="-------------------------------------------------------------";

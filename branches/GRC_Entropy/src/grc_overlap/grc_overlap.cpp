@@ -470,7 +470,7 @@ int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>
 int DumpList(list<AARecord*>& InitList, string PosName){//open definition
 		ofstream ChkOut;
 		ChkOut.open(PosName.c_str());
-		ChkOut<<"ID\tStart\tStop\tLength(nt)\tStrand\tEDR\tDBFunc.\tDBID\t DBOrg\tBit\tEScore\tHitLength\t%QueryAligned\t%HSPAligned\n";
+		ChkOut<<"ID\tStart\tStop\tLength(nt)\tStrand\tEDR\tDBFunc.(Conf.)\tDBID\t DBOrg\tBit\tEScore\tHitLength\t%QueryAligned\t%HSPAligned\n";
 	
 		for (list<AARecord*>::iterator It1 =InitList.begin(); It1!=InitList.end(); It1++ ){
 			if(*It1!=NULL){

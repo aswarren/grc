@@ -76,6 +76,9 @@ if($opt_i=~/.ptt/){
 #Assumes for example.goa there is example.CP in the same directory
 #if the Uniprot ID in goa annotation is not in the cooresponding CP file then the protein will have NotFound as the annotation
 if($opt_i=~/.goa/){
+	$IDColumngoa=1;
+	$GOColumn=4;
+	$ECodeColumn=6;
 	$CTable=$opt_i;#create chromosome table name
 	$CTable=~s/.goa/.CP/;#create chromosome table name
 	unless(-e $CTable){#if the CTable file does not exist
@@ -88,12 +91,12 @@ if($opt_i=~/.goa/){
 	#Create hash
 	while ($count<@Lines) {#for each line of the goa file
 		local @Terms=split(/\t/, $Lines[$count]);
-		if(defined $Annotation{$Terms[2]}){#if this ID is in the hash
-			$Annotation{$Terms[2]}="$Annotation{$Terms[2]} $Terms[4] $Terms[6]"; #hash the goa line to the ID
+		if(defined $Annotation{$Terms[$IDColumngoa]}){#if this ID is in the hash
+			$Annotation{$Terms[$IDColumngoa]}="$Annotation{$Terms[$IDColumngoa]} $Terms[$GOColumn] $Terms[$ECodeColumn]"; #hash the goa line to the ID
 		}
 		else{
-			$Annotation{$Terms[2]}="";#clear the string
-			$Annotation{$Terms[2]}="$Terms[4] $Terms[6]";
+			$Annotation{$Terms[$IDColumngoa]}="";#clear the string
+			$Annotation{$Terms[$IDColumngoa]}="$Terms[$GOColumn] $Terms[$ECodeColumn]";
 		}
 		
 		$count++;
@@ -106,7 +109,7 @@ if($opt_i=~/.goa/){
 	@Lines=<$IPfile>;#get contents
 	while($count<@Lines){#open while loop
 		local @Terms=split(/\t/, $Lines[$count]);
-		local $ID=$Terms[9];
+		local $ID=$Terms[8];
 		local $Info=$Annotation{$ID};#find the ID
 		$OtherFunc=$Terms[-2];#get the function
 		$OtherFunc=~s/\|+|\-+/ /g; #replace | or - with a space

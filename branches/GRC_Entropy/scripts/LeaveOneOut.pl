@@ -9,7 +9,7 @@ use Cwd;
 $MinSize=99;
 $BHits=10;
 
-my $MainScript = "../GRCv0.01.pl";
+my $MainScript = "../GRCvNo_Blast.pl";
 my $CDir=getcwd;#get current working directory
 getopt('gdrmbs');# get and assign the command line parameters $opt_g $opt_d
 

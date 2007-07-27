@@ -35,6 +35,8 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg
 int GetKnock(DirectHash<Record*>& Putatives, list<Match>& MList, char* KnockFile);//function to get data for analysis
 int KnockAnalysis(list<Match>& KML);//function to perform Knockout Analysis
 int CountGOStat(Match& TempM, int& GR, int& R, int& G, int& N, int& V);//update the total number of cases for all the grc,ref pairs
+int PrintCountDist(int Array[], int size, ostream& Out);//prints out array of values
+int PrintFracDist(double Array[], int size, ostream& Out);
 
 //run as GRC_overlap -i BlastResults.txt
 int main (int argc, char* argv[]) {   //  Main is open
@@ -1024,9 +1026,20 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg
 	double TNEntropy=0;
 	double HitPEntropy=0;
 	double NumHitPos=0;
+	int CountConfirm[10];//keeps track of counts in bins of .10 for confidence of confirmed GO terms
+	int CountCompat[10];
+	int CountIncompat[10];
+	double PercentCompat[10]; //The fraction of (compatibleRANGE/allcompatible) all the compatible terms in that bin out of all terms in that bin
+	double PercentConfirm[10];
+	double PercentIncompat[10];
+	double PercentTotal[10];
+	ofstream WordOut;//test ofstream
+	bool SimpleOut=true;//boolean whether to output just numbers no labels
 
-	ofstream WordOut;
-	//WordOut.open("TPnoterm.txt");//the ofstream operator for records with terms not equivalent
+	for(int t=0; t<10; t++){
+		//initialize counter arrays
+		CountConfirm[t]=CountCompat[t]=CountIncompat[t]=0;
+	}
 
 
 	result RefCompare;
@@ -1077,15 +1090,18 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg
 						TPCompatible++;
 						TPTotalCompat=TPTotalCompat+It1->GOCompatible();
 						It1->SumCompatibleStats(TPAvgComDepth,TPAvgComDist);
+						It1->GOCompatDist(CountCompat);
 					}
 					if(It1->GOConfirmed()>0){//if there are confirmed terms
 						TPConfirmed++;
 						TPTotalConfirm=TPTotalConfirm+It1->GOConfirmed();
 						It1->SumConfirmedStats(TPAvgConDepth,TPAvgConDist);
+						It1->GOConfirmDist(CountConfirm);
 					}
 					if(It1->GONotCompat()>0){
 						TPNotCompat++;
 						TPTotalNotCompat=TPTotalNotCompat+It1->GONotCompat();
+						It1->GOIncompatDist(CountIncompat);
 					}
 				}//close if GO Analysis
 				
@@ -1184,6 +1200,12 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg
 	
 	cout<<"ExactlyRight\t"<<FNExactStart<<"\n\n\n";
 
+	//output information with no labels
+	if(SimpleOut){//print TP, FP, NRP, TN, FN, DE, Precision, Sensitvity, Exact Start Correct
+		WordOut.open("terse.txt");//the ofstream operator for records with terms not equivalent
+		WordOut<<NumTP<<"\t"<<NumFP<<"\t"<<NumNO<<"\t"<<NumNeg-NumFN<<"\t"\
+		<<NumFN<<"\t"<<int(NumRefG-(NumFN+NumTP))<<"\t"<<double(NumTP)/double(NumTP+NumFP)<<"\t"<<double(NumTP)/NumRefG<<"\t"<<TPExactStart<<"\n";
+	}
 	double AvgHitEntropy=HitPEntropy/NumHitPos;
 	double Variance=0;
 	for (list<Match>::iterator EntIt =ML.begin(); EntIt!=ML.end(); EntIt++ ){
@@ -1212,7 +1234,7 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg
 	//cout<<"TP >.50 matching terms\t"<<NumTPMatch50<<"\n\n\n";
 	if(GOAccess!=NULL){//if there is GO analysis
 		cout<<"TP Gene Ontology Stats:\n";
-		cout<<"Number of TP w/ both GRC and Ref. GO Terms(verifiable)\t"<<TPGORefGRC<<'\n';
+		cout<<"Number of TP w/ both GRC and Ref. GO Terms\t"<<TPGORefGRC<<'\n';
 		cout<<"Number of TP w/ same category GO Terms(verifiable)\t"<<TPGOVerify<<'\n';
 		cout<<"Number of TP w/ just GRC GO Terms\t"<<TPGOGRC<<'\n';
 		cout<<"Number of TP w/ just Ref. GO Terms\t"<<TPGORef<<'\n';
@@ -1232,12 +1254,88 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg
 		cout<<"Average depth for confirmed annotations\t"<<TPAvgConDepth<<'\n';
 		cout<<"Average distance for compatible annotations\t"<<TPAvgComDist<<'\n';
 		cout<<"Average depth for compatible annotations\t"<<TPAvgComDepth<<'\n';
-	}
+
+		cout<<"Distribution of confidence values:\n";
+		string Percents[10]; Percents[9]="1.0-.90"; Percents[8]=".89-.80"; Percents[7]=".79-.70";
+		Percents[6]=".69-.60"; Percents[5]=".59-.50"; Percents[4]=".49-.40"; Percents[3]=".39-.30";
+		Percents[2]=".29-.20"; Percents[1]=".19-.10"; Percents[0]="0.9-0";
+		cout<<"\t";//spacer for row label
+		//print labels and calc. fraction distribution
+		for(int x=0; x<10; x++){
+			cout<<Percents[x]<<"\t";//print labels
+			if(TPTotalCompat==0 || CountCompat[x]==0){
+				PercentCompat[x]=0;
+			}
+			else{
+				PercentCompat[x]=(double(CountCompat[x])/double(TPTotalCompat));
+			}
+			if(TPTotalConfirm==0 || CountConfirm[x]==0){
+				PercentConfirm[x]=0;
+			}
+			else{
+				PercentConfirm[x]=(double(CountConfirm[x])/double(TPTotalConfirm));
+			}
+
+			if(TPTotalNotCompat==0 || CountIncompat[x]==0){
+				PercentIncompat[x]=0;
+			}
+			else{
+				PercentIncompat[x]=(double(CountIncompat[x])/double(TPTotalNotCompat));
+			}
+			PercentTotal[x]=double(CountCompat[x]+CountIncompat[x]+CountConfirm[x])/double(TPTotalConfirm+TPTotalCompat+TPTotalNotCompat);
+		}
+		//print count distributions and fractions
+		cout<<"\nCountConfirmed\t";
+		PrintCountDist(CountConfirm,10,cout);
+		cout<<"\nFracConfirmed\t";
+		PrintFracDist(PercentConfirm,10,cout);
+		cout<<"\nCountCompatible\t";
+		PrintCountDist(CountCompat,10,cout);
+		cout<<"\nFracCompatible\t";
+		PrintFracDist(PercentCompat,10,cout);
+		cout<<"\nCountIncompatible\t";
+		PrintCountDist(CountIncompat,10,cout);
+		cout<<"\nFracIncompatible\t";
+		PrintFracDist(PercentIncompat,10,cout);
+		cout<<"\nFracTotal\t";
+		PrintFracDist(PercentTotal,10,cout);
+		if(SimpleOut){
+			WordOut<<TPGORefGRC<<"\t"<<TPGOVerify<<"\t"<<TPGOGRC<<"\t"<<TPGORef<<"\t"<<TPGONone<<"\t"<<TPConfirmed<<"\t"<<\
+			TPCompatible<<"\t"<<TPNotCompat<<"\t"<<TPTotalConfirm<<"\t"<<TPTotalCompat<<"\t"<<TPTotalNotCompat<<"\n";
+			PrintCountDist(CountConfirm,10,WordOut);
+			WordOut<<"\n";
+			PrintFracDist(PercentConfirm,10,WordOut);
+			WordOut<<"\n";
+			PrintCountDist(CountCompat,10,WordOut);
+			WordOut<<"\n";
+			PrintFracDist(PercentCompat,10,WordOut);
+			WordOut<<"\n";
+			PrintCountDist(CountIncompat,10,WordOut);
+			WordOut<<"\n";
+			PrintFracDist(PercentIncompat,10,WordOut);
+			WordOut<<"\n";
+			PrintFracDist(PercentTotal,10,WordOut);
+		}
+	}//close if GO
 	cout<<"\n\n";
 
 
 	return 0;
 }//close definition
+
+int PrintCountDist(int Array[], int size, ostream& Out){
+	for(int t=0; t<size; t++){
+		Out<<Array[t]<<"\t";
+	}
+	return 0;
+}
+
+int PrintFracDist(double Array[], int size, ostream &Out){
+	for(int t=0; t<size; t++){
+		Out<<Array[t]<<"\t";
+	}
+	return 0;
+}
 
 //Knock Analysis function reads in the KnockList from GRC_Overlap that
 //specifies who knocked out who and does analysis find

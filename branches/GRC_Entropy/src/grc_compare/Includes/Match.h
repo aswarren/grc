@@ -412,6 +412,46 @@ public:
 		return (NotCompatible.size());
 	}
 
+	//gets the distribution of confidence values in bins of .10
+	int GOCompatDist(int Array[]){
+		int Bin=0;//for calculating which bin confidence
+		double BinSize=.10;
+		for(set<GOMatch>::iterator It=Compatible.begin(); It!=Compatible.end(); It++){
+			Bin= (((It->Confidence)/BinSize)/1);//sloppy int division to get correct
+			if(Bin>=0 && Bin<10){
+				Array[Bin]++;
+			}
+		}
+		return 0;
+	}
+
+	//gets the distribution of confidence values in bins of .10
+	int GOConfirmDist(int Array[]){
+		int Bin=0;//for calculating which bin confidence
+		double BinSize=.10;
+		for(set<GOMatch>::iterator It=Confirmed.begin(); It!=Confirmed.end(); It++){
+			Bin= (((It->Confidence)/BinSize)/1);//sloppy int division to get correct
+			if(Bin>=0 && Bin<10){
+				Array[Bin]++;
+			}
+		}
+		return 0;
+	}
+
+	//gets the distribution of confidence values in bins of .10
+	int GOIncompatDist(int Array[]){
+		int Bin=0;//for calculating which bin confidence
+		double BinSize=.10;
+		for(FunctionMap::iterator It=NotCompatible.begin(); It!=NotCompatible.end(); It++){
+			double Temp=It->second.second;
+			Bin= (((It->second.second)/BinSize)/1);//sloppy int division to get correct
+			if(Bin>=0 && Bin<10){
+				Array[Bin]++;
+			}
+		}
+		return 0;
+	}
+
 	//Sum up the Depth and Distance Stats for each Confirmed Annotation
 	int SumConfirmedStats(double& Depth, double& Distance){
 		for(set<GOMatch>::iterator It=Confirmed.begin(); It!=Confirmed.end(); It++){

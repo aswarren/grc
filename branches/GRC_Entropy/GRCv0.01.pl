@@ -267,7 +267,7 @@ print "$OverlapCommand\n";
 #grc_overlap <ParsedBlast> <GenomeName> <Genome.fna>  Output is to cout
 print "grc_overlap: adjusting and removing orfs.\n";
 chdir("$ResultDir");
-$status = system($BinDir."/grc_overlap $partdir"."$BHName $GenomeName $GFile $MaxFile $transdir$TransFile");
+$status = system($OverlapCommand);
 if ($status != 0){
 	die "grc_overlap did not run successfully";
 }

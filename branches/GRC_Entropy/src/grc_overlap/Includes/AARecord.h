@@ -1092,7 +1092,7 @@ public:
 						ConsensusConfidence= (*SIt)->ReportTopBitFrac();
 					}
 				}
-				Out<<GO::IDToString(It->first->ReportID())<<" ( "<<ConsensusConfidence<<" ICA) ";//these are all infered by consensus annotation
+				Out<<GO::IDToString(It->first->ReportID())<<" ( "<<ConsensusConfidence<<" ICA ) ";//these are all infered by consensus annotation
 			}
 			
 			CurrentRep->DisplayInfo(Out);//display the information about the subject

@@ -28,12 +28,12 @@ using std::pair;
 
 
 int DumpList(list<AARecord>& InitList);
-int DumpList(list<AARecord*>& InitList, string PosName);
+int DumpList(list<AARecord*>& InitList, string PosName, const int& GFMin);
 int Nulify(list<AARecord*>& InitList, list<AARecord*>& InitList2);
 int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CompeteMap& KOMap);
  int EntropyFilter(list<AARecord>& RecordList, list<AARecord*>& LoserList, CompeteMap& KOMap, const double& EntCutoff, const double& BitCutoff);//removes orfs that are "winners" that have high entropy
-int PrintLosers(list<AARecord*>& InitList, string NegName);
-void DisplayKO(ostream& Out, CompeteMap& KOMap);
+int PrintLosers(list<AARecord*>& InitList, string NegName, const int& GFMin);
+void DisplayKO(ostream& Out, CompeteMap& KOMap, const int& GFMin);
 int RefreshRecords(list<AARecord>& RecordList, CalcPack& CP);
 int TrainEDP(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CalcPack& CP);
 
@@ -48,9 +48,13 @@ int main (int argc, char* argv[]) {   //  Main is open
 	string Matrix=argv[4];//the matrix used for blast
 	string TransFile=argv[5];//file used for translating sequences in entropy calculations
 	string GOFile="none";
+	stringstream Convert;
+	int GFMinLength=300;
+	Convert<<argv[6];
+	Convert>>GFMinLength;
 
-	if(argc==7){//if GO.obo specified
-		GOFile=argv[6];
+	if(argc==8){//if GO.obo specified
+		GOFile=argv[7];
 	}
 
 
@@ -317,15 +321,15 @@ int main (int argc, char* argv[]) {   //  Main is open
 	cout<<"Total # annotated:   "<<NumWinHits<<"\n\n";
 	cout<<"Number of orfs filtered from entropy\t"<<NumFiltered<<"\n";	
 
-	DumpList(WinnerList, Positives);
+	DumpList(WinnerList, Positives, GFMinLength);
 	//DumpList(InitList);
-	PrintLosers(LoserList, Negatives);
+	PrintLosers(LoserList, Negatives, GFMinLength);
 
 	Nulify(WinnerList, LoserList);
 
 	ofstream KOut;
 	KOut.open("KnockList.txt");
-	DisplayKO(KOut,KOMap);
+	DisplayKO(KOut,KOMap, GFMinLength);
 	KOut.close();
 
 
@@ -467,7 +471,7 @@ int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>
 
 
 //function to print out master list of ORFS
-int DumpList(list<AARecord*>& InitList, string PosName){//open definition
+int DumpList(list<AARecord*>& InitList, string PosName, const int& GFMin){//open definition
 		ofstream ChkOut;
 		ChkOut.open(PosName.c_str());
 		ChkOut<<"ID\tStart\tStop\tLength(nt)\tStrand\tEDR\tDBFunc.(Conf.)\tDBID\t DBOrg\tBit\tEScore\tHitLength\t%QueryAligned\t%HSPAligned\n";
@@ -475,7 +479,9 @@ int DumpList(list<AARecord*>& InitList, string PosName){//open definition
 		for (list<AARecord*>::iterator It1 =InitList.begin(); It1!=InitList.end(); It1++ ){
 			if(*It1!=NULL){
 				//cout<<**It1;//print out the Records
-				ChkOut<<*It1;//print to minout
+				if((*It1)->ReportLength()>=GFMin){//only print those records over the minimum gene length
+					ChkOut<<*It1;//print to minout
+				}
 			}
 			else ChkOut<<"NULL record: grc_overlap error\n";
 		}
@@ -485,14 +491,16 @@ int DumpList(list<AARecord*>& InitList, string PosName){//open definition
 
 
 //function to print the comparisons that have been made
-int PrintLosers(list<AARecord*>& InitList, string NegName){//open definition
+int PrintLosers(list<AARecord*>& InitList, string NegName, const int& GFMin){//open definition
 	ofstream Out;
 	Out.open(NegName.c_str());
 	int count=0; //for printing delimeters for pair
 	//list<compete>::iterator It2 =TR.begin();
 	Out<<"ID\tStart\tStop\tLength(nt)\tStrand\tEDR\tDBFunc.\tDBID\t DBOrg\tBit\tEScore\tHitLength\t%QueryAligned\t%HSPAligned\n";
 	for (list<AARecord*>::iterator It1 =InitList.begin(); It1!=InitList.end(); It1++ ){
-		Out<<*It1;
+		if((*It1)->ReportLength()>=GFMin){
+			Out<<*It1;
+		}
 		/*switch(*It2){//depending on win loss print appropriate message
 			case WIN:
 				Out<<"Winner:\t";
@@ -602,10 +610,10 @@ std::ostream& operator<<(std::ostream& ChkOut, AARecord* AC){
 }
 
 //Display function for the Direct Hash<Compete>
-void DisplayKO(ostream& Out, CompeteMap& KOMap){
+void DisplayKO(ostream& Out, CompeteMap& KOMap, const int& GFMin){
 	Out<<"Winner\tLosers...\n";
 	for (CompeteMap::iterator KOIt= KOMap.begin(); KOIt != KOMap.end(); KOIt++){//open for loop
-		Out<<(KOIt->second);
+		KOIt->second.DisplayKO(Out,GFMin);
 	}//close for loop
 }//close definition
 

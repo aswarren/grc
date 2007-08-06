@@ -257,7 +257,7 @@ unless (-e "$ResultDir$GenomeName" && -d "$ResultDir$GenomeName") { #check if th
 
 $ResultDir= "$ResultDir$GenomeName"."/";
 
-$OverlapCommand=$BinDir."/grc_overlap $partdir"."$BHName $GenomeName $GFile $MaxFile $transdir$TransFile";
+$OverlapCommand=$BinDir."/grc_overlap $partdir"."$BHName $GenomeName $GFile $MaxFile $transdir$TransFile $MinLength";
 if($UseGO==1){
 	$OverlapCommand=$OverlapCommand." $OntFile";
 }
@@ -279,10 +279,12 @@ print "Running time: $Minutes minutes\n";
 
 if(defined $opt_r){#if there is a reference file to compare to
 	print "grc_compare: comparing to reference file $opt_r\n";
-	$CompareCommand=$BinDir."/grc_compare $partdir"."$ReferenceName $GenomeName".".Pos $GenomeName".".Neg ./KnockList.txt >$GenomeName".".compare";
+	$CompareCommand=$BinDir."/grc_compare $partdir"."$ReferenceName $GenomeName".".Pos $GenomeName".".Neg ./KnockList.txt $MinLength";
 	if($UseGO==1){
 		$CompareCommand=$CompareCommand." $OntFile";
 	}
+	$CompareCommand=$CompareCommand." >$GenomeName".".compare";
+	print "$CompareCommand\n";
 	$status = system($CompareCommand);
 	#$ParseCommand=$BinDir."/scripts/ParseCompare.pl ./$GenomeName".".compare >$GenomeName".".comparsed";
 	#system($ParseCommand);

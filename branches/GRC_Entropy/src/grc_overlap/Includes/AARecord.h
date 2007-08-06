@@ -766,6 +766,10 @@ public:
 		return EDR;
 	}
 
+	long ReportLength(){
+		return CurrentLength;
+	}
+
 
 	//Reporter function that tells whether a record has been knocked out
 	bool Dead(){return Defeated;}

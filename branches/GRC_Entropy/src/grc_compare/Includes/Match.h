@@ -421,6 +421,9 @@ public:
 			if(Bin>=0 && Bin<10){
 				Array[Bin]++;
 			}
+			else if(Bin>=10){
+				Array[9]++;
+			}
 		}
 		return 0;
 	}
@@ -433,6 +436,9 @@ public:
 			Bin= (((It->Confidence)/BinSize)/1);//sloppy int division to get correct
 			if(Bin>=0 && Bin<10){
 				Array[Bin]++;
+			}
+			else if(Bin>=10){
+				Array[9]++;
 			}
 		}
 		return 0;
@@ -447,6 +453,9 @@ public:
 			Bin= (((It->second.second)/BinSize)/1);//sloppy int division to get correct
 			if(Bin>=0 && Bin<10){
 				Array[Bin]++;
+			}
+			else if(Bin>=10){
+				Array[9]++;
 			}
 		}
 		return 0;

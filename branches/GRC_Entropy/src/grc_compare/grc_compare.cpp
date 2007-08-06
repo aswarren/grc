@@ -27,11 +27,11 @@ struct OLapID{
 int DumpList(list<Record>& InitList);
 int DumpList(list<Record*>& InitList);
 int Nulify(list<Record*>& InitList, list<Record*>& InitList2);
-int Compare(list<Record*>& GList, list<Record*>& RList, list<Record*>& NList, list<Match>& MList, int& NumNO, GO* GOAccess);
+int Compare(list<Record*>& GList, list<Record*>& RList, list<Record*>& NList, list<Match>& MList, int& NumNO, const int& GFMin, GO* GOAccess);
 int PrintCompare(list<Match>& ML);//function for printing out comparison chart of terms and sequence overlap
 int LenVSOLap(list<Match>& ML); //function for printing out data for sequence overlap with respect to length of ORF
 int PrintSeqMatch(list<Match>& ML, char* RInput);//function for printing distribution chart of combined sequence statistic over reference annotations
-int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg, GO* GOAccess);//fuction for printing summary statistics based on FP, TP, FN, TN
+int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg, const int& NumSmallDE, const int& NumSmallRef, const int& GFMin, GO* GOAccess);//fuction for printing summary statistics based on FP, TP, FN, TN
 int GetKnock(DirectHash<Record*>& Putatives, list<Match>& MList, char* KnockFile);//function to get data for analysis
 int KnockAnalysis(list<Match>& KML);//function to perform Knockout Analysis
 int CountGOStat(Match& TempM, int& GR, int& R, int& G, int& N, int& V);//update the total number of cases for all the grc,ref pairs
@@ -46,6 +46,8 @@ int main (int argc, char* argv[]) {   //  Main is open
 	char* RetroIn;// the negatives from grc
 	char* GOFile="none"; //the name of the obo file if there is one
 	char* KnockFile="none";//specifies the name of the knocklist file that records who knocked out what
+	int GFMinLength=300; //the minimum gene finding length
+	stringstream Convert;//for converting command line parameters
 	
 	if(argc<5){cout<<"Need to specify at least four parameters 1.Reference and 2.GRC_positves 3.GRC_negatives 4.KnockOut list\n";
 	return -1;}
@@ -54,9 +56,11 @@ int main (int argc, char* argv[]) {   //  Main is open
 	InFile2 = argv[2]; //get the name of the parsed test results files
 	RetroIn=argv[3];// the negatives from grc
 	KnockFile=argv[4];
+	Convert<<argv[5]; //the minimum gene finding length
+	Convert>>GFMinLength;
 
-	if(argc==6){//if GO.obo specified
-		GOFile=argv[5];
+	if(argc==7){//if GO.obo specified
+		GOFile=argv[6];
 	}
 
 	ifstream In; //input for the setubal results
@@ -71,7 +75,6 @@ int main (int argc, char* argv[]) {   //  Main is open
 	list<Match> FNMList;//the FN knockout list pairs up two orfs involved in knockout
 	list<Record> NegativeList; //the negative list
 	list<Record*> NegList; //the negative list pointers that will be edited
-	long GFMinLength=300; //the minimum gene finding length
 	long ORFLength=0;
 	int NumLessML=0; //the number of Reference orfs less than the minimum finding length
 	DirectHash<Record*> IDHash(20000, NULL);//Tracks the predicted orfs based on ID
@@ -246,7 +249,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 //cout<<"have made it past refernce statistics\n";
 	//compare the ORFs
 	int NumNO=0;
-	int NumMatch=Compare(PosList, RefList, NegList, MList, NumNO, GOAccess); //compare the orfs
+	int NumMatch=Compare(PosList, RefList, NegList, MList, NumNO, GFMinLength, GOAccess); //compare the orfs
 	//LenVSOLap(MList); //print out the length versus overlap data
 	
 
@@ -272,10 +275,10 @@ int main (int argc, char* argv[]) {   //  Main is open
 
 	for (list<Record>::iterator It11 =orfRefList.begin(); It11!=orfRefList.end(); It11++ ){//outer loop
 		RefORFLength=It11->OLength;
-		if(RefORFLength<300){NumSmall++;}//count the number of reference ORFs less than 300
+		if(RefORFLength<GFMinLength){NumSmall++;}//count the number of reference ORFs less than 300
 		if(!It11->RefMatched){
 			NumDExist++;
-			if (RefORFLength<300){NumDExistSmall++;}
+			if (RefORFLength<GFMinLength){NumDExistSmall++;}
 		}
 		for (list<Record>::iterator It22 =It11; It22!=orfRefList.end(); It22++){ //inner loop
 			CurOLap=0;//reset the current Overlap value
@@ -339,16 +342,16 @@ int main (int argc, char* argv[]) {   //  Main is open
 	for(multimap<double,OLapID>::iterator PrintIt=Top10OLap.begin(); PrintIt!=Top10OLap.end(); PrintIt++){
 		cout<<PrintIt->first<<"\t"<<PrintIt->second.ID1<<"\t"<<PrintIt->second.ID2<<"\n";
 	}
-	cout<<"Total Reference ORFs <300bp\t"<<NumSmall<<"\n";
+	cout<<"Total Reference ORFs <"<<GFMinLength<<"bp\t"<<NumSmall<<"\n";
 	cout<<"Total Reference ORFs that DE in orf pool\t"<<NumDExist<<"\n";
-	cout<<"Total Reference ORFs that DE <300bp\t"<<NumDExistSmall<<"\n";
+	cout<<"Total Reference ORFs that DE <"<<GFMinLength<<"bp\t"<<NumDExistSmall<<"\n";
 	//PrintCompare(MList);
 	//PrintSeqMatch(MList, RetroIn);//print out distribution chart based on combined statistic
 	
 	GetKnock(IDHash,FNMList, KnockFile); //read in the knock out list of who did what to whom
 	KnockAnalysis(FNMList);
 
-	PrintPositive(MList, NumNO, orfRefList.size(), NegList.size(), GOAccess);//Print Summary Statistics
+	PrintPositive(MList, NumNO, orfRefList.size(), NegList.size(), NumDExistSmall, NumSmall, GFMinLength, GOAccess);//Print Summary Statistics
 	//print out matches
 	cout<<"RESULTS:\n";
 	cout<<"Stat\tResult\tMatching_terms\tOverlap\n";
@@ -631,7 +634,7 @@ int Nulify(list<Record*>& InitList, list<Record*>& InitList2){
 //Compares the GRC orfs versus the Reference ORFs to see if they are overlapping
 //The program can be simplified by having this function put Matches for TP, FP, FN, TN on separate lists**********************************
 // THIS FUNCTION NO Longer tracks all overlaps with matches It only keeps track of those overlaps that meet the criteria for TP, FP, TN, FN
-int Compare(list<Record*>& GList, list<Record*>& RList, list<Record*>& NList, list<Match>& MList, int& NumNO, GO* GOAccess){//open defintion
+int Compare(list<Record*>& GList, list<Record*>& RList, list<Record*>& NList, list<Match>& MList, int& NumNO, const int& GFMin, GO* GOAccess){//open defintion
 	int count=0;
 	bool TruePos=false;//keep track of whether there has been a TruePositive for a GRC ORF
 	double MaxPercent=0;
@@ -659,8 +662,9 @@ int Compare(list<Record*>& GList, list<Record*>& RList, list<Record*>& NList, li
 					OLap=0;
 					if((*It1)->Overlap(*(*It2), OLap)){//if the two ORFS overlap
 						count++;
-						if((*It2)->OLength<=300) NumSmall++;//increase the number of Ref<300bp interactions for this prediction
+
 						if((*It1)->SameFrame(*(*It2))){//if its a true positive
+							if((*It2)->OLength<GFMin) NumSmall++;//increase the number of Ref<Minbp interactions for this prediction
 							(*It1)->Evaluation=TP;
 							MList.push_back(Match(*It1, *It2, OLap, true, NumSmall, GOAccess));//add to match list
 							TruePos=true;
@@ -682,6 +686,7 @@ int Compare(list<Record*>& GList, list<Record*>& RList, list<Record*>& NList, li
 			if(!TruePos){//if no true positive has been found
 				if(HighFP!=NULL){//if the grc orf overlaps with something
 					(*It1)->Evaluation=FP;
+					if(HighFP->OLength<GFMin) NumSmall++;//increase the number of Ref<Minbp interactions for this prediction
 					MList.push_back(Match(*It1, HighFP, HighOLap, true, NumSmall, NULL));//add to match list
 					HighFP=NULL;
 				}
@@ -715,8 +720,9 @@ int Compare(list<Record*>& GList, list<Record*>& RList, list<Record*>& NList, li
 					OLap=0;
 					int WordNum;
 					if((*It3)->Overlap(*(*It4), OLap)){//if the two ORFS overlap
-						if((*It4)->OLength<=300) NumSmall++;//increase the number of Ref<300bp interactions for this prediction
+
 						if((*It3)->SameFrame(*(*It4)) && !(*It4)->RefMatched){//if its a False Negative
+							if((*It4)->OLength<GFMin) NumSmall++;//increase the number of Ref<300bp interactions for this prediction
 						//count++;
 							(*It3)->Evaluation=FN;//set false negative
 							MList.push_back(Match(*It3, *It4, OLap, false, NumSmall, NULL));//add to match list
@@ -977,7 +983,7 @@ std::ostream& operator<<(std::ostream& Out, const Match& M){
 //PrintPositive Function for printing out statistics in relation to the false positive,
 //false negative, true positive, and true negative numbers
 //GRCRecord is the GRC orf RefRecord is the reference orf
-int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg, GO* GOAccess){//open definition
+int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg, const int& NumSmallDE, const int& NumSmallRef, const int& GFMin, GO* GOAccess){//open definition
 //cout<<"made it into PrintPositive\n";
 	int NumFP=0;//counters to keep track of positives and negatives
 	int NumTP=0;
@@ -1153,16 +1159,19 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg
 		}
 	}//close Match for loop
 
+	int AdjustedTP=NumTP-NumSmallTP;//don't count any TP that have a ref. under the minimum gene length
+	int AdjustedFN=NumFN-NumSmallFN;
+	double AdjustedRef=NumRefG-NumSmallRef;
 	//WordOut.close();
 	//output summary statistics
 	//cout<<"Made it to summary statisitcs\n";
-	cout<<"\nSummary Statistics:\n"<<"TP:\t"<<NumTP<<"\n"<<"FP:\t"<<NumFP<<"\t\tNRP:\t"<<NumNO<<"\n"<<"TN:\t"<<NumNeg-NumFN<<"\n";
-	cout<<"FN:\t"<<NumFN<<"\tDE:\t"<<int(NumRefG-(NumFN+NumTP))<<"\n\n"<<"\nPrecision:\t"<<double(NumTP)/double(NumTP+NumFP)<<"\nSensitivity:\t"<<double(NumTP)/NumRefG<<"\n\n";
+	cout<<"\nSummary Statistics:\n"<<"TP:\t"<<AdjustedTP<<"\n"<<"FP:\t"<<NumFP<<"\t\tNRP:\t"<<NumNO<<"\n"<<"TN:\t"<<NumNeg-NumFN<<"\n";
+	cout<<"FN:\t"<<AdjustedFN<<"\tDE:\t"<<int(AdjustedRef-(AdjustedFN+AdjustedTP))<<"\n\n"<<"\nPrecision:\t"<<double(AdjustedTP)/double(AdjustedTP+NumFP)<<"\nSensitivity:\t"<<double(AdjustedTP)/AdjustedRef<<"\n\n";
 	cout<<"FN w/ hits:\t"<<FNNumwHit<<"\n\n";
-	cout<<"Statistics as to whether a prediction (TP, FP, TN)) overlaps with a Reference ORF that is <300bp\n";
-	cout<<"TP w/ ref. <300:\t"<<NumSmallTP<<"\n";
-	cout<<"FP w/ ref. <300:\t"<<NumSmallFP<<"\n";
-	cout<<"FN w/ ref. <300:\t"<<NumSmallFN<<"\n\n";
+	cout<<"Statistics as to whether a prediction (TP, FP, TN)) overlaps with a Reference ORF that is <"<<GFMin<<"bp\n";
+	cout<<"TP w/ ref. <"<<GFMin<<":\t"<<NumSmallTP<<"\n";
+	cout<<"FP w/ ref. <"<<GFMin<<":\t"<<NumSmallFP<<"\n";
+	cout<<"FN w/ ref. <"<<GFMin<<":\t"<<NumSmallFN<<"\n\n";
 	
 	cout<<"Start Site statistics:\n";
 	cout<<"True Positives:\n";
@@ -1203,8 +1212,8 @@ int PrintPositive(list<Match>& ML, int& NumNO, double NumRefG, const int& NumNeg
 	//output information with no labels
 	if(SimpleOut){//print TP, FP, NRP, TN, FN, DE, Precision, Sensitvity, Exact Start Correct
 		WordOut.open("terse.txt");//the ofstream operator for records with terms not equivalent
-		WordOut<<NumTP<<"\t"<<NumFP<<"\t"<<NumNO<<"\t"<<NumNeg-NumFN<<"\t"\
-		<<NumFN<<"\t"<<int(NumRefG-(NumFN+NumTP))<<"\t"<<double(NumTP)/double(NumTP+NumFP)<<"\t"<<double(NumTP)/NumRefG<<"\t"<<TPExactStart<<"\n";
+		WordOut<<AdjustedTP<<"\t"<<NumFP<<"\t"<<NumNO<<"\t"<<NumNeg-NumFN<<"\t"\
+		<<AdjustedFN<<"\t"<<int(AdjustedRef-(AdjustedFN+AdjustedTP))<<"\t"<<double(AdjustedTP)/double(AdjustedTP+NumFP)<<"\t"<<double(AdjustedTP)/AdjustedRef<<"\t"<<TPExactStart<<"\n";
 	}
 	double AvgHitEntropy=HitPEntropy/NumHitPos;
 	double Variance=0;
@@ -1357,13 +1366,13 @@ int GetKnock(DirectHash<Record*>& Putatives, list<Match>& MList, char* KnockFile
 	string Header;
 	getline(GetK,Header,'\n');
 	while(GetK){//get the knocklist
-		GetK>>Tyson;//set KOer
-
-		Ty=Putatives.HashingKey(Tyson);
 		string Line;
-		getline(GetK,Line);//get the target that has been knocked out
+		getline(GetK,Line);//get the line
+		stringstream ss(Line);
+		ss>>Tyson;//set KOer
+		Ty=Putatives.HashingKey(Tyson);
 		if(Tyson!="Entropy"){//if not entropy knockout
-			stringstream ss(Line);
+			
 			while(ss>>Target){//read in the rest of the line until delimeter
 				Tg=Putatives.HashingKey(Target);//hash target
 				TarPP=(Putatives.FindKey(Tg));//find the putative in the hash
@@ -1387,7 +1396,6 @@ int GetKnock(DirectHash<Record*>& Putatives, list<Match>& MList, char* KnockFile
 			}//close read in rest of line
 		}//close if not entropy
 		else{//knocked out by entropy
-			stringstream ss(Line);
 			while(ss>>Target){//read in the rest of the line until delimeter
 				Tg=Putatives.HashingKey(Target);//hash target
 				TarPP=(Putatives.FindKey(Tg));//find the putative in the hash

@@ -66,6 +66,25 @@ public:
 		return 0;
 	}//close definition
 
+	int DisplayKO(ostream& Out, const int& GFMin){
+		if(Winner==NULL){
+			Out<<"Entropy";
+		}
+		else if(Winner->ReportLength()>=GFMin){
+			Out<<(Winner)->ReportID();
+		}
+		else {
+			return 0;//don't report any KOs for this
+		}
+		for (list<AARecord*>::const_iterator It1 =Losers.begin(); It1!=Losers.end(); It1++ ){
+			if((*It1)->ReportLength()>=GFMin){
+				Out<<"\t"<<(*It1)->ReportID();
+			}
+		}//close for loop
+		Out<<"\n";
+		return 0;
+	}
+
 };//close class Compete
 
 typedef map<string,Compete> CompeteMap;

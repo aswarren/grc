@@ -370,6 +370,8 @@ public:
 		
 };//close prototype
 
+
+//return S1<S2
 struct OrderAlign {
 	bool operator()(Alignment* S1, Alignment*S2){
 		if(S1==NULL){

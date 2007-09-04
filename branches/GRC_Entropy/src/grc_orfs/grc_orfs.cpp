@@ -22,13 +22,15 @@ string itos(int i){	// convert int to string
 
 
 int main (int argc, char* argv[]) {   //  Main is open
-	if(argc<3){//if enough parameters
-		cerr<<"grc_orfs: must specify a file to use and a minimum gene length.\n";
+	if(argc<4){//if enough parameters
+		cerr<<"grc_orfs: must specify an input file to use, a minimum gene length, and an output file.\n";
 		return -1;
 		
 	}
 	char* SeqFile = argv[1]; //get the name of the blast test results file
 	char* ML = argv[2];
+	char* OutFile = argv[3];
+
 	int MinLength = atoi(ML);
 	FastaRead Reader;//Object designed for reading in fasta files
 	
@@ -44,6 +46,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	string Header="";
 	string Sequence="";
 	int Offset=0;//the number of bases processed so far (from previous contigs/genomes)
+	int TotalSeq=0;
 	//for each nucleotide sequence in the file
 	while(Reader.ReadFasta(Header,Sequence)){
 		//find +1 orfs
@@ -91,7 +94,8 @@ int main (int argc, char* argv[]) {   //  Main is open
 		Offset+=Sequence.size();//set offset so the start stop coordinates can be adjusted for a concatenated genome
 	}
 
-
+	ofstream Out;
+	Out.open(OutFile);
 	map<string, string>::iterator SeqFinder;
 	//for each orf found look up its "genomic" sequence that it is from and output the sequence of the gene
 	for(multimap<int,string>::iterator It=StartStopMap.begin(); It!= StartStopMap.end(); It++){
@@ -126,20 +130,28 @@ int main (int argc, char* argv[]) {   //  Main is open
 			SeqFinder=IDToSeq.begin();
 		}
 		if(SeqFinder!=IDToSeq.end()){//if the sequence is found
+			TotalSeq+=(HB-LB+1);
 			OrfCounter++;
 			string GeneSeq=Calculator.GeneSequence(SeqFinder->second,LB,HB,Reverse);
 			string OutID="";
 			if(IDToSeq.size()>1){//if there is more than one genome adjust IDs to indicate
-				cout<<">T"<<OrfCounter<<"**"<<LookupID<<"**"<<OffsetOut<<"\t"<<StartOut+OffsetOut<<"\t"<<StopOut+OffsetOut<<"\n";
+				Out<<">T"<<OrfCounter<<"**"<<LookupID<<"**"<<OffsetOut<<"\t"<<StartOut+OffsetOut<<"\t"<<StopOut+OffsetOut<<"\n";
 			}
 			else {//else no need
-				cout<<">T"<<OrfCounter<<"\t"<<StartOut<<"\t"<<StopOut<<"\n";
+				Out<<">T"<<OrfCounter<<"\t"<<StartOut<<"\t"<<StopOut<<"\n";
 			}
-			Reader.OutputSeq(GeneSeq, cout);//output the sequence
+			Reader.OutputSeq(GeneSeq, Out);//output the sequence
 			//cout<<GeneSeq<<"\n";
+		}
+		else{//Logic error could not find the name of the replicon
+			cerr<<"grc_orfs: internal logic error, cannot find ID in sequence lookup.\n";
+			return -1;
 		}
 	}//close for each orf
 	
+	cout<<"grc_orfs:\n";
+	cout<<"orfs found\t"<<StartStopMap.size()<<"\n";
+	cout<<"total seq. length\t"<<TotalSeq<<"\n";
 	return 0;
 }//close main
 

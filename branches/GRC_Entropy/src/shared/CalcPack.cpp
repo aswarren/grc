@@ -269,6 +269,8 @@
 
 	//Create new EDP for coding and non coding genes specific to this organism
 	int CalcPack::CreateOrgEDPs(){
+		//check to see whether there is sufficient data to retrain coding profiles
+
 		//check to see whether to use small profile
 		if(NumSmallC>20 && NumSmallNC>20){
 			UseSmallProf=true;//default is false
@@ -304,8 +306,12 @@
 			}
 		}
 		//set the pointers to use the new profiles
-		UseCProfile=CProfile;
-		UseNCProfile=NCProfile;
+		if(NumLargeC>100){//make sure there is sufficient data for retraining
+			UseCProfile=CProfile;
+		}
+		if(NumLargeNC>100){
+			UseNCProfile=NCProfile;
+		}
 		return 0;
 	}
 

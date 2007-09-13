@@ -151,7 +151,7 @@ public:
 	}
 
 	//Initialize the Values for the record
-	int InitRecord( CalcPack& CP, string TID="unassigned", long St=0, long Sp=0, string HID="none", double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, string Func="none", string HOrg="none"){ // parameterized constructor1
+	int InitRecord( CalcPack& CP, string TID="unassigned", long St=0, long Sp=0, string HID="none", string HitGeneName="-", string HitSynonym="-", double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, string Func="none", string HOrg="none"){ // parameterized constructor1
 		ID=TID;
 		ParseID();//parse the query ID
 		//CP.SelectGenome(GenomeID);
@@ -181,7 +181,7 @@ public:
 
 		//This is a lazy addition. ToDo: Modify AArecord to use the values at the top of the BitQueue
 		if(!Blank){
-			AddPrimary(CP, St,Sp,HID,B,ES,HL,AL,QASt,QASp,Func,HOrg);//add Subject
+			AddPrimary(CP, St,Sp,HID, HitGeneName, HitSynonym,B,ES,HL,AL,QASt,QASp,Func,HOrg);//add Subject
 		}
 		else{//it is blank set entropy
 			CalcMap.insert(map<long,SeqCalc>::value_type(CurrentLength,SeqCalc()));//insert new SeqCalc based on this segment of sequence
@@ -784,7 +784,7 @@ public:
 	}
 
 	//Adds Subjects to OtherHits and makes top RelBit value Subject to be Record Rep.
-	int AddPrimary(CalcPack& CP, long St, long Sp, string& HID, double& B, string& ES, long& HL, long& AL, long& QASt, long& QASp, string& Func, string& HOrg){
+	int AddPrimary(CalcPack& CP, long St, long Sp, string& HID,  string& HitGeneName, string & HitSynonym, double& B, string& ES, long& HL, long& AL, long& QASt, long& QASp, string& Func, string& HOrg){
 		//CP.SelectGenome(GenomeID);
 		long LBase=0;
 		long HBase=0;
@@ -825,7 +825,7 @@ public:
 			}
 			else{//else add a new subject
 				int TempID=PrimaryHits.size();
-				PrimaryHits.push_back(Subject(TempID,HID,HL,Func,HOrg));//add Subject
+				PrimaryHits.push_back(Subject(TempID,HID,HitGeneName, HitSynonym,HL,Func,HOrg));//add Subject
 				TempAlign=PrimaryHits.back().AddAlign(St,Sp,B,ES,AL,QASt,QASp,CalcIt->second.MaxBit,StartScore, CalcIt->second.EDR);//add Alignment
 				SubjectNames.insert(map<string,Subject*>::value_type(HID,&PrimaryHits.back()));//insert pointer to Subject based on name
 				int SizeAlignV=CalcIt->second.AlignV.size();

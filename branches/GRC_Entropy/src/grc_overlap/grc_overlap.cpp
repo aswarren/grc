@@ -121,6 +121,8 @@ int main (int argc, char* argv[]) {   //  Main is open
 		long ALength; //the length of the alignment
 		string HitOrg;//organism from which db hit comes
 		string HitID;//ID from which db hit comes
+		string HitGeneName;//If ptt is used this is the gene name from the ptt
+		string HitSynonym;//synonym name from the ptt
 		
 
 		BlastIn >>ID; //read in the ID
@@ -158,9 +160,9 @@ int main (int argc, char* argv[]) {   //  Main is open
 		}//close consq.
 		else {//there is a hit
 			//string TempHack=HitID;//SWITCHED TO ACCOMODATE INVERSED ID AND DESCRIPTION IN OLD OUTPUT********
+			getline(BlastIn,HitGeneName, '\t');
+			getline(BlastIn,HitSynonym, '\t');
 			getline(BlastIn,Function,'\t'); //get line for hit description 
-			//HitID=Hit;//SWITCHED TO ACCOMODATE INVERSED ID AND DESCRIPTION IN OLD OUTPUT********
-			//Hit=TempHack;//SWITCHED TO ACCOMODATE INVERSED ID AND DESCRIPTION IN OLD OUTPUT********
 
 			getline(BlastIn,HitOrg,'\t'); //organism from which the hit comes
 			BlastIn>>PercentIdent;
@@ -180,7 +182,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 			//TO DO: Add org and HitID check to bool Old and update structure for storing
 			//same alignment regions with multiple organisms,functions,and hit_ID's
 			
-			//if it doesn't have align start further in or as high a bit score
+			//if it doesn't have align start further in or as high a bit score for the same (query, subject) pair
 			bool Old;
 			Old=(ID==OldID&&HitID==OldHID&&Bit==OldBit&&QAlignStart==OldQAS);
 
@@ -202,11 +204,11 @@ int main (int argc, char* argv[]) {   //  Main is open
 				FindID=HitList.find(ID);
 				if(FindID!=HitList.end()){//if the orf already has a hit 
 				//Add Subject orf to Record
-					FindID->second->AddPrimary(InfoPack, Start, Stop, HitID, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, Function, HitOrg);
+					FindID->second->AddPrimary(InfoPack, Start, Stop, HitID, HitGeneName, HitSynonym, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, Function, HitOrg);
 				}
 				else{//else there has not been a hit for this orf so far. so create a new AARecord
 					RecordList.push_back(AARecord());
-					RecordList.back().InitRecord(InfoPack, ID, Start, Stop, HitID, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, Function, HitOrg);
+					RecordList.back().InitRecord(InfoPack, ID, Start, Stop, HitID, HitGeneName, HitSynonym, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, Function, HitOrg);
 					HitList.insert(IDMap::value_type(ID,&RecordList.back()));//add pointer to the record to the hit list
 				}
 			}
@@ -474,7 +476,7 @@ int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>
 int DumpList(list<AARecord*>& InitList, string PosName, const int& GFMin){//open definition
 		ofstream ChkOut;
 		ChkOut.open(PosName.c_str());
-		ChkOut<<"ID\tStart\tStop\tLength(nt)\tStrand\tEDR\tDBFunc.(Conf.)\tDBID\t DBOrg\tBit\tEScore\tHitLength\t%QueryAligned\t%HSPAligned\n";
+		ChkOut<<"ID\tStart\tStop\tLength(nt)\tStrand\tEDR\tDBName\tDBSynonym\tDBFunc.(Conf.)\tDBID\t DBOrg\tBit\tEScore\tHitLength\t%QueryAligned\t%HSPAligned\n";
 	
 		for (list<AARecord*>::iterator It1 =InitList.begin(); It1!=InitList.end(); It1++ ){
 			if(*It1!=NULL){

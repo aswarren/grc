@@ -161,6 +161,8 @@ int main (int argc, char* argv[]) {   //  Main is open
 		In2>>Tag; //read in length  
 		In2>>Tag; //read in orientation
 		In2 >>Entropy;//Read in the entropy distance ratio dist(PosEntropy)/dist(NegEntropy)
+		In>>Tag; //gene name
+		In>>Tag; //gene synonym
 		In2>>Tag;//read in description first term
 	
 		if(Tag=="No_hits"){//no hit
@@ -212,6 +214,8 @@ int main (int argc, char* argv[]) {   //  Main is open
 		In3>>Tag; //read in length
 		In3>>Tag; //read in orientation
 		In3 >>Entropy;//Read in the entropy distance ratio dist(PosEntropy)/dist(NegEntropy)
+		In>>Tag; //gene name
+		In>>Tag; //gene synonym
 		In3>>Tag; //Read in first hit term
 		
 

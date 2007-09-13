@@ -51,21 +51,25 @@ while($a<$NumParam){
 				$RecordCount++;
 				local @Terms=split(/\|+/, $_);#break up line to get ID
 				local $Info=$Annotation{$Terms[1]};#use 2nd element (should be ID) to get ptt line
-				if(defined($Info)){#if its found
+				local $GeneName = "-"; #the gene name from the ptt file
+				local $Synonym ="-"; #the synonym code from the ptt file
+				if(defined($Info)){#if its found in the ptt hash
 					local @AnnTerms=split(/\t/,$Info);#split by tabs
 					chomp @AnnTerms;
-					$Function="$AnnTerms[-1] $AnnTerms[4]";
+					$GeneName =$AnnTerms[4]; #the gene name from the ptt file
+					$Synonym =$AnnTerms[5]; #the synonym code from the ptt file
+					$Function="$AnnTerms[-1]";#assign function description to the product and gene name
 				}#close if in hash
 				else{#else not in hash
 					$Function=$Terms[-1];#everything after last | in faa header
 				}
 				$Function=~s/\|+|\-+/ /g; #replace | or - with a space
 				$Function=~s/\(+|\)+|\[+|\]+|\{+|\}+|,+|\/+|\\+|\,+|\-+|\'+|\;+|\t+/ /g; #replace brackets and punct with space
-				$Function=~ tr/A-Z/a-z/; #convert everything to lower case
-				$Function=~s/ protein +| and +| the +/ /g; #remove undesirable annotations
+				#$Function=~ tr/A-Z/a-z/; #convert everything to lower case
+				#$Function=~s/ protein +| and +| the +/ /g; #remove undesirable annotations
 				$Function=~ s/^\s+//gm; #remove leading whitespace
 				$Function=~ s/\s+$//; #remove trailing whitespace
-				print $OPfile ">".$Terms[1]."\t$Function\t$InHandle\n";#print ">ID ProductDescription FileName"
+				print $OPfile ">".$Terms[1]."\t$GeneName\t$Synonym\t$Function\t$InHandle\n";#print ">ID ProductDescription FileName"
 			}#close if header
 			else{#if its not a header
 				chomp;

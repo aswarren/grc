@@ -57,6 +57,8 @@ public:
 	FunctionMap GOTerms;//GOTerms,EvidenceCodes assigned to this prediction
 	bool HasGO;
 	double BestBitFrac;//best bit fraction for all the alignments to this subject
+	string HitGeneName;
+	string HitSynonym;
 
 	
 	Subject(){//default constructor
@@ -68,15 +70,19 @@ public:
 		HitOrg="none";
 		HasGO=false;
 		BestBitFrac=0;
+		HitGeneName="-";
+		HitSynonym="-";
 	}
 
 	//parameterized constructor
-	Subject(int I=-1, string HID="None", long HL=0, string Func="none", string HOrg="none"){ // parameterized constructor1
+	Subject(int I=-1, string HID="None",  string HitName="-", string HitSyn="-", long HL=0, string Func="none", string HOrg="none"){ // parameterized constructor1
 		SubjectID=I;
 		Function=Func;
 		HLength=HL;
 		Defeated=false;
 		HitID=HID;
+		HitGeneName=HitName;
+		HitSynonym=HitSyn;
 		BestBitFrac=0;
 		HitOrg=HOrg;
 		HasGO=false;
@@ -98,6 +104,8 @@ public:
 		AlignList=Source.AlignList;
 		Description=Source.Description;
 		GOTerms=Source.GOTerms;
+		HitGeneName=Source.HitGeneName;
+		HitSynonym=Source.HitSynonym;
 		HasGO=Source.HasGO;
 		BestBitFrac=Source.BestBitFrac;
 		if (Source.AlignQ.size()>0){//if there is something to copy
@@ -121,6 +129,8 @@ public:
 			AlignList=Source.AlignList;
 			Description=Source.Description;
 			GOTerms=Source.GOTerms;
+			HitGeneName=Source.HitGeneName;
+			HitSynonym=Source.HitSynonym;
 			HasGO=Source.HasGO;
 			BestBitFrac=Source.BestBitFrac;
 			if (Source.AlignQ.size()>0){//if there is something to copy
@@ -365,7 +375,7 @@ public:
 			double ALength=AlignQ.top()->GetALength();
 			double OLength=AlignQ.top()->GetLength();
 
-			
+			Out<<HitGeneName<<"\t"<<HitSynonym<<"\t";
 
 			//Out<<Function<<"\t"; //print hit description
 			for(FunctionMap::iterator It= GOTerms.begin(); It!=GOTerms.end(); It++){//Print GO terms if there are any

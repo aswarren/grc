@@ -153,10 +153,10 @@ public:
 	//Initialize the Values for the record
 	int InitRecord( CalcPack& CP, string TID="unassigned", long St=0, long Sp=0, string HID="none", string HitGeneName="-", string HitSynonym="-", double B=0, string ES="none", long HL=0, long AL=0, long QASt=0, long QASp=0, string Func="none", string HOrg="none"){ // parameterized constructor1
 		ID=TID;
-		ParseID();//parse the query ID
 		//CP.SelectGenome(GenomeID);
 		Start=St;
 		Stop=Sp;
+		ParseID();//parse the query ID NOTE: Start Stop coordinates are read in first so that they can be adjusted if the ID indicates that multiple contigs are present
 		Reverse =false;
 		Blank =true;
 		Defeated=false;;
@@ -289,6 +289,8 @@ public:
 			//ParseSS>>GenomeID; //assign genome id
 			ParseSS.ignore();//ignore next *
 			ParseSS>>Offset;//assign offset value for contig coordinate conversioni
+			Start=Start+Offset;//adjust start/stop positions for multiple contigs. so that concatenated genome sequence can be used
+			Stop=Stop+Offset;
 			ID+="_"+GenomeID;//reassign ORF ID to be orf_contig
 		}
 		else{

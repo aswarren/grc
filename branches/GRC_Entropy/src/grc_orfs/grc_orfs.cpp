@@ -27,7 +27,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 		return -1;
 		
 	}
-	char* SeqFile = argv[1]; //get the name of the blast test results file
+	char* SeqFile = argv[1]; //get the name of the sequences file
 	char* ML = argv[2];
 	char* OutFile = argv[3];
 
@@ -135,7 +135,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 			string GeneSeq=Calculator.GeneSequence(SeqFinder->second,LB,HB,Reverse);
 			string OutID="";
 			if(IDToSeq.size()>1){//if there is more than one genome adjust IDs to indicate
-				Out<<">T"<<OrfCounter<<"**"<<LookupID<<"**"<<OffsetOut<<"\t"<<StartOut+OffsetOut<<"\t"<<StopOut+OffsetOut<<"\n";
+				Out<<">T"<<OrfCounter<<"**"<<LookupID<<"**"<<OffsetOut<<"\t"<<StartOut<<"\t"<<StopOut<<"\n";
 			}
 			else {//else no need
 				Out<<">T"<<OrfCounter<<"\t"<<StartOut<<"\t"<<StopOut<<"\n";

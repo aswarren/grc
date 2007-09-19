@@ -36,6 +36,7 @@ int PrintLosers(list<AARecord*>& InitList, string NegName, const int& GFMin);
 void DisplayKO(ostream& Out, CompeteMap& KOMap, const int& GFMin);
 int RefreshRecords(list<AARecord>& RecordList, CalcPack& CP);
 int TrainEDP(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CalcPack& CP);
+int ProcessID(string& ID, long& Start, long& Stop, long& Offset);
 
 
 
@@ -117,6 +118,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 		long Length;
 		double Bit;
 		double PercentIdent;
+		long Offset=0;//the offset is the total number of bases for replicons that occur before the current replicon
 		string ES;//escore
 		long ALength; //the length of the alignment
 		string HitOrg;//organism from which db hit comes
@@ -133,6 +135,10 @@ int main (int argc, char* argv[]) {   //  Main is open
 
 		BlastIn >>Start; //read in the Start position
 		BlastIn >>Stop; //read in the Stop position
+
+		ProcessID(ID, Start, Stop, Offset); //process the ID to see if it indicates multiple replicons
+
+
 		getline(BlastIn,HitID,'\t'); //skip next tab
 		getline(BlastIn,HitID,'\t'); //get line for hit ID/No_hits
 		long LowBase;
@@ -155,7 +161,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 			//Insert Record into Initial RecordMap
 			BlastIn>>LowComplexity;
 			RecordList.push_back(AARecord());//add record to the list
-			RecordList.back().InitRecord(InfoPack, ID, Start, Stop, HitID);
+			RecordList.back().InitRecord(InfoPack, ID, Start, Stop, HitID, Offset);
 			//EditList.push_back(&((MapIt.first)->second));//add a pointer to the location of the record
 		}//close consq.
 		else {//there is a hit
@@ -208,7 +214,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 				}
 				else{//else there has not been a hit for this orf so far. so create a new AARecord
 					RecordList.push_back(AARecord());
-					RecordList.back().InitRecord(InfoPack, ID, Start, Stop, HitID, HitGeneName, HitSynonym, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, Function, HitOrg);
+					RecordList.back().InitRecord(InfoPack, ID, Start, Stop, HitID, Offset, HitGeneName, HitSynonym, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, Function, HitOrg);
 					HitList.insert(IDMap::value_type(ID,&RecordList.back()));//add pointer to the record to the hit list
 				}
 			}
@@ -676,6 +682,34 @@ int RefreshRecords(list<AARecord>& RecordList, CalcPack& CP){
 		It->RefreshEntropy(CP);
 		It->RefreshAll();
 		It->ResetStatus();
+	}
+	return 0;
+}
+
+//This function parses the incoming ID incase and adjusts coord. based on offset of multiple genomes
+int ProcessID(string& ID, long& Start, long& Stop, long& Offset){
+	unsigned int ChPosition=ID.find("**");//look for '_' in ID indicating that there is a genome ID attached
+	string GenomeID;
+	if(ChPosition!=string::npos){
+		string TempID=ID;
+		//TempID.replace(ChPosition,2," ");//replace '_' with a space
+		//ChPosition=ID.find("**");
+		//TempID.replace(ChPosition,2," ");//replace '_' with a space
+		stringstream ParseSS;
+		ParseSS<<TempID;
+		getline(ParseSS,ID,'*');
+		ParseSS.ignore();//ignore the next *
+		//ParseSS>>ID;//pass orf id through
+		getline(ParseSS,GenomeID,'*');
+		//ParseSS>>GenomeID; //assign genome id
+		ParseSS.ignore();//ignore next *
+		ParseSS>>Offset;//assign offset value for contig coordinate conversioni
+		Start=Start+Offset;//adjust start/stop positions for multiple contigs. so that concatenated genome sequence can be used
+		Stop=Stop+Offset;
+		ID+="_"+GenomeID;//reassign ORF ID to be orf_contig
+	}
+	else{
+		GenomeID="NONE";
 	}
 	return 0;
 }

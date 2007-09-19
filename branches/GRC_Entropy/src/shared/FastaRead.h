@@ -80,6 +80,10 @@ public:
 			ID = Line; // assign ID value
 			while(MoreStatus=getline(*Input,Line)){//while not yet at the end of file, get next line
 				if(Line[0]=='>'){
+					if(Seq.size()==0){
+						cerr<<"Error in sequence file. No sequence for\n";
+						cerr<<ID<<"\n";
+					}
 					break; //break from loop if at next ID
 				}
 				else{

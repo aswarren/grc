@@ -45,6 +45,7 @@ public:
 	string TransFile;//the command for running entropy-calc
 	string Matrix;
 	string GenomeFile;
+	int GenomeSize;
 	int OStartCount;//Count for find starts that keeps track of the number of times original start has been processed
 	double DefaultCProfile[20];
 	double DefaultNCProfile[20];//for non coding genes

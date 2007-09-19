@@ -331,6 +331,7 @@ public:
 		stringstream Breakup(Function);//term for reading parts of the function
 		string Term;
 		FunctionMap::iterator FindIt;//iterator for finding go id in goterms map
+		FindIt=GOTerms.end();
 		StringSet EmptySet;//empty set for initializing in HitParsing
 
 		while (Breakup>>Term){ //read in terms
@@ -345,7 +346,7 @@ public:
 					FindIt->second.insert(Term);//insert evidence code
 				}
 				else {
-					cerr<<"WARNING: Possible parsing error in grc_overlap at "<<Function<<'\n';
+					//cerr<<"WARNING: Possible parsing error in grc_overlap at "<<Function<<'\n';
 					Description.push_back(Term);
 				}
 				FindIt=GOTerms.end();

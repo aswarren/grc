@@ -14,6 +14,7 @@
 		UseSmallProf=false;
 		GOAccess=NULL;
 		CurrentGenomeID="NONE";
+		GenomeSize=0;
 		for(int t=0; t<20; t++){
 			DefaultCProfile[t]=DefaultNCProfile[t]=CProfile[t]=NCProfile[t]\
 			=SmallNCProfile[t]=SmallCProfile[t]=0;
@@ -30,6 +31,7 @@
 		UseNCProfile=DefaultNCProfile;
 		GOAccess=NULL;
 		CurrentGenomeID="NONE";
+		GenomeSize=0;
 		int Status=InitCodes();//read in the values.
 		for(int t=0; t<20; t++){
 			DefaultCProfile[t]=DefaultNCProfile[t]=CProfile[t]=NCProfile[t]\
@@ -502,6 +504,7 @@
 		string GenomeID;//for reading in the id
 		string Seq;//for reading in the sequence
 		string GenomeSeq="";//Initialize to empty string
+		string TempID="";
 	
 		while(Reader.ReadFasta(GenomeID, GenomeSeq)){//read in the genome file
 	
@@ -524,6 +527,7 @@
 			}*/
 		}
 		In2.close();//close the input stream
+		GenomeSize=(Genomes.begin()->second).size();
 		SelectGenome(CurrentGenomeID);
 		return 0;
 	}

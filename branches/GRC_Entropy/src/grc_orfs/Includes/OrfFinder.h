@@ -113,7 +113,7 @@ class OrfFinder{//open prototype
 		}
 		
 		//if we have walked off the end of the sequence and there is an orf not yet returned
-		if(Stop!=-1 && Start!=-1){
+		if(Stop!=-1 && Start!=-1 && (Stop-Start)+1>=MinLength){
 			Position=Seq.size();
 			return true;
 		}
@@ -144,6 +144,7 @@ class OrfFinder{//open prototype
 		//
 		for(int s=Position; s<=(Seq.size()-3); s+=3){
 
+
 			if(Calculator.ReverseStart(Seq.substr(s,3))){//if its a start codon
 				Start=s+1+2;//set start coordinate +1 to get to genome coordinate and +2 because first base of the reverse start
 			}
@@ -169,7 +170,7 @@ class OrfFinder{//open prototype
 		}
 	
 		//if we have walked off the end of the sequence and there is an orf not yet returned
-		if(Stop!=-1 && Start!=-1){
+		if(Stop!=-1 && Start!=-1 && (Start-Stop)+1>=MinLength){
 			Position=Seq.size();//set position to end of sequence
 			return true;
 		}

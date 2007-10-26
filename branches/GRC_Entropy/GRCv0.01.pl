@@ -240,8 +240,7 @@ chdir("$BinDir");
 
 
 #BLAST OUTPUT KEY
-    # Fields: query id, q. start, q. end, subject id, function, organism, % identity, alignment length, subject length, mismatches, gap opens,
-    #         q. align start, q. align end, s. align start, s. align end, evalue, bit score, lowfrac
+    # Fields: query id	q. start	q. end	subject id1	subject id2	subject id3		organism	% identity	alignment length	subject length	mismatches	gap opens	q. align start	q. align end	s. align start	s. align end	evalue	bit score	frac_filtered
 
 
 

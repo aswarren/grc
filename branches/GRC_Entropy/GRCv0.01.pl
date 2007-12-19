@@ -152,7 +152,7 @@ else {#else its not a directory  NOTE Must specify a sequence file *.faa or *.fa
 	
 	if (-e "$DBDir"."/$AnnotFile"){
 		$AnnotFile=$DBDir."/$AnnotFile";
-		my $MergeCommand ="$BinDir"."/scripts/mergeseqannot.pl $DBDir"."/$DBName";
+		my $MergeCommand ="$BinDir"."/scripts/mergeseqannot.pl $DBName";
 		unless(-d "$AnnotFile"){#if its not a directory
 			print "\nAnnotation complement found. Merging to create DB:\n";
 			$MergeCommand="$MergeCommand"." $AnnotFile $MergeDB";#add filename to merge command
@@ -162,9 +162,11 @@ else {#else its not a directory  NOTE Must specify a sequence file *.faa or *.fa
 	}
 
 	else{
+		my $MergeCommand ="$BinDir"."/scripts/mergeseqannot.pl $DBName $MergeDB";
 		print "\nAnnotation complement $AnnotFile does not exist in $DBDir\n";
 		print "Continuing without it.\n";
-		$DBFile="$DBDir"."/$DBName";#create absolute file name
+		$status=system("$MergeCommand");#run merge
+		$DBFile="$MergeDB";#create absolute file name
 	}
 	
 			
@@ -211,7 +213,7 @@ if ($status != 0){
 #table 11 use bacterial translation table NO OTHER TABLES SUPPORTED YET
 print "\nTranslating sequences.\n";
 chdir("$transdir");
-$status = system("./grc_translate $partdir$orfsout >$partdir$transeqout");
+$status = system("./grc_translate $transdir$TransFile 11 $partdir$orfsout $partdir$transeqout");
 
 if ($status != 0){
 	die "grc_translate did not run successfully";

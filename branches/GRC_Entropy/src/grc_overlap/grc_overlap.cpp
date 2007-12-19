@@ -41,8 +41,12 @@ int ProcessID(string& ID, long& Start, long& Stop, long& Offset);
 
 
 
-//run as GRC_overlap -i BlastResults.txt
+//run as GRC_overlap 
 int main (int argc, char* argv[]) {   //  Main is open
+
+	if(argc<7){
+		cerr<<"Usage: grc_overlap [blast results file] [output name] [genome file] [blast matrix file] [translation tables file] [min. gene length] OPTIONAL [Gene Ontology file]\n";
+	}
 	char* BlastFile = argv[1]; //get the name of the blast test results file
 	char* GenomeName= argv[2];//the name of the target genome
 	string GenomeFile= argv[3];//the name of the fna file
@@ -78,12 +82,10 @@ int main (int argc, char* argv[]) {   //  Main is open
 	CalcPack InfoPack(Matrix, GenomeFile, TransFile);//create information package
 	
 
-	string GName;//for storing input and creating output name from it
-	GName=GenomeName;//convert input to string
 
 	//Create the names of the Positive and negative output files
-	string Negatives=GName;
-	string Positives=GName;
+	string Negatives=GenomeName;
+	string Positives=GenomeName;
 	string Neg=".Neg";
 	string Pos=".Pos";
 	Negatives+=Neg;//create false/true negatives filename
@@ -688,21 +690,25 @@ int RefreshRecords(list<AARecord>& RecordList, CalcPack& CP){
 
 //This function parses the incoming ID incase and adjusts coord. based on offset of multiple genomes
 int ProcessID(string& ID, long& Start, long& Stop, long& Offset){
-	unsigned int ChPosition=ID.find("**");//look for '_' in ID indicating that there is a genome ID attached
+
+	unsigned int ChPosition=ID.find("|REPLICON|");//look for '_' in ID indicating that there is a genome ID attached
+	unsigned int OPosition=ID.find("|OFFSET|");
 	string GenomeID;
-	if(ChPosition!=string::npos){
+	string Junk;
+	if(ChPosition!=string::npos && OPosition!=string::npos){
 		string TempID=ID;
 		//TempID.replace(ChPosition,2," ");//replace '_' with a space
 		//ChPosition=ID.find("**");
 		//TempID.replace(ChPosition,2," ");//replace '_' with a space
 		stringstream ParseSS;
 		ParseSS<<TempID;
-		getline(ParseSS,ID,'*');
-		ParseSS.ignore();//ignore the next *
+		getline(ParseSS,ID,'|');
+		//ParseSS.ignore();//ignore the next |
+		getline(ParseSS,Junk,'|');
 		//ParseSS>>ID;//pass orf id through
-		getline(ParseSS,GenomeID,'*');
+		getline(ParseSS,GenomeID,'|');
+		getline(ParseSS,Junk,'|');
 		//ParseSS>>GenomeID; //assign genome id
-		ParseSS.ignore();//ignore next *
 		ParseSS>>Offset;//assign offset value for contig coordinate conversioni
 		Start=Start+Offset;//adjust start/stop positions for multiple contigs. so that concatenated genome sequence can be used
 		Stop=Stop+Offset;

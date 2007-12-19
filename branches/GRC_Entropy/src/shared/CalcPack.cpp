@@ -491,7 +491,19 @@
 				
 			case 'g':
 				return 'c';
-			default: return '*';
+			case 'w':
+				return 'w';
+			case 's':
+				return 's';
+			case 'k':
+				return 'm';
+			case 'm':
+				return 'k';
+			case 'y':
+				return 'r';
+			case 'r':
+				return 'y';
+			default: return 'n';
 		}
 	}//close definition
 

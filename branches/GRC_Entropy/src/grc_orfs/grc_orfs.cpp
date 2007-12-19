@@ -23,7 +23,7 @@ string itos(int i){	// convert int to string
 
 int main (int argc, char* argv[]) {   //  Main is open
 	if(argc<4){//if enough parameters
-		cerr<<"grc_orfs: must specify an input file to use, a minimum gene length, and an output file.\n";
+		cerr<<"Usage: grc_orfs [sequence file]  [minimum gene length] [output file]\n";
 		return -1;
 		
 	}
@@ -135,7 +135,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 			string GeneSeq=Calculator.GeneSequence(SeqFinder->second,LB,HB,Reverse);
 			string OutID="";
 			if(IDToSeq.size()>1){//if there is more than one genome adjust IDs to indicate
-				Out<<">T"<<OrfCounter<<"**"<<LookupID<<"**"<<OffsetOut<<"\t"<<StartOut<<"\t"<<StopOut<<"\n";
+				Out<<">T"<<OrfCounter<<"|REPLICON|"<<LookupID<<"|OFFSET|"<<OffsetOut<<"\t"<<StartOut<<"\t"<<StopOut<<"\n";
 			}
 			else {//else no need
 				Out<<">T"<<OrfCounter<<"\t"<<StartOut<<"\t"<<StopOut<<"\n";

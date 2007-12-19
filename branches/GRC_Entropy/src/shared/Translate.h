@@ -128,7 +128,7 @@ public:
 //function for translating provided sequence
 	string TranslateSeq(const string& Sequence){
 		int len=3;
-		char AA ='*';
+		char AA ='X';
 		string Translation="";
 		string SubSeq;
 		map<string,char>::iterator FindIt;
@@ -140,7 +140,7 @@ public:
 					AA=FindIt->second;
 				}
 				Translation+=AA;//append
-				AA='*';
+				AA='X';
 			}
 		}
 		//enforce that the first codon in an orf gives Met

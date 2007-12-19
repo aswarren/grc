@@ -29,18 +29,24 @@ int InitCodes(map <string,char>* CodeArray);
 int main (int argc, char* argv[]) {   //  Main is open
 	FastaRead Reader;//object for reading in fasta files
 	
-
-	char* InFile = argv[1]; //get the name of the input file to translate
-	string InCode="GCode.txt";//translation tables
-	char* TCode = "11"; //the number of the translation to use Default 11
-	
-	if(argc>2){
-		TCode = argv[2];//assign the translation code to use
+	if(argc<5){
+		cerr<<"Usage: grc_translate [translation tables file] [table number] [nucleotide file (fasta format)] [output file]\n";
+		cerr<<"This program uses NCBI translation tables specified in the format seen in GCode.txt\n";
 	}
+	string InCode= argv[1];//translation tables
+	char* TCode = argv[2]; //the number of the translation to use Default 11
+	char* InFile = argv[3]; //get the name of the input file to translate
+	char* OutFile =argv[4]; //output file
+
+	
+
 	int TransCode =atoi(TCode); //convert the translation parameter to an int
 	Translate Translator(TransCode,InCode);//object for translating nucleotide sequences to AA
 	ifstream In; //input for the 
 	In.open(InFile); //open the input file
+	ofstream Out;
+	Out.open (OutFile);
+
 	Reader.SetInput(&In);//set the input file in the reader
 
 	
@@ -59,7 +65,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	string SubSeq;
 	const int LineLength=70;//number of AA per line
 	const int len=3; //length of codon
-	char AA='*';
+	char AA='X';
 	bool EndLine=true;
 	map<string,char>::iterator FindIt;//iterator for finding amino acid
 	while(Reader.ReadFasta(ID,Sequence)){
@@ -74,9 +80,9 @@ int main (int argc, char* argv[]) {   //  Main is open
 			cout << Line << "\n";
 		}
 		else { //get the Sequence*/
-			cout << ID <<"\n";
+			Out << ID <<"\n";
 			Translation=Translator.TranslateSeq(Sequence);
-			Reader.OutputSeq(Translation, cout);
+			Reader.OutputSeq(Translation, Out);
 	}//close while
 
 	//Out.close();
@@ -88,50 +94,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 
 
 
-/* Name:InitCodes
-**	@param1: Array of 23 maps that are to be initialized to contain translation information
-**	Function: This function initializes all of the genetic codes to be used in the translation of the input file
-*/
-	int InitCodes(map <string,char>* CodeArray){//open definition
-	//Get the Genetic Codes for translation
-		ifstream InCode;
-		InCode.open("GCode.txt");
-		int TableNum;// for reading in the table number
-		string Delim;
-		string OpCase;
-		char AA; //character for storing the amino acid
-		//InCode>>Delim;
 
-		while(InCode){
-			InCode>>Delim;
-			if(Delim=="++"){
-				InCode>>TableNum;
-				TableNum--;
-			}
-			else{
-				if(isupper(Delim[0])){//create opposite case upper/lower in map
-					OpCase=tolower(Delim[0]);
-					for(int t=1; t<Delim.size(); t++){
-						OpCase+=tolower(Delim[t]);
-					}
-				}
-				else {
-					OpCase=toupper(Delim[0]);
-					for(int x=1; x<Delim.size(); x++){
-						OpCase+=toupper(Delim[x]);
-					}
-				}
-
-				InCode>>AA; //Read in the AA translation
-				CodeArray[TableNum].insert(map<string,char>::value_type(Delim,AA));
-				CodeArray[TableNum].insert(map<string,char>::value_type(OpCase,AA));
-			}
-		}//close while loop
-		
-		InCode.close();
-
-		return 0;
-	}//close definition
 			
 
 	

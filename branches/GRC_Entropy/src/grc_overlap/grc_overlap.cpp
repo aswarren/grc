@@ -46,6 +46,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 
 	if(argc<7){
 		cerr<<"Usage: grc_overlap [blast results file] [output name] [genome file] [blast matrix file] [translation tables file] [min. gene length] OPTIONAL [Gene Ontology file]\n";
+		return -1;
 	}
 	char* BlastFile = argv[1]; //get the name of the blast test results file
 	char* GenomeName= argv[2];//the name of the target genome

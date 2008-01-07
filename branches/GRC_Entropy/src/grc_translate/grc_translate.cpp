@@ -32,6 +32,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	if(argc<5){
 		cerr<<"Usage: grc_translate [translation tables file] [table number] [nucleotide file (fasta format)] [output file]\n";
 		cerr<<"This program uses NCBI translation tables specified in the format seen in GCode.txt\n";
+		return -1;
 	}
 	string InCode= argv[1];//translation tables
 	char* TCode = argv[2]; //the number of the translation to use Default 11

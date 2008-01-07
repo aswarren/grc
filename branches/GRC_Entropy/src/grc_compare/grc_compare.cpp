@@ -49,8 +49,8 @@ int main (int argc, char* argv[]) {   //  Main is open
 	int GFMinLength=300; //the minimum gene finding length
 	stringstream Convert;//for converting command line parameters
 	
-	if(argc<5){cout<<"Need to specify at least four parameters 1.Reference and 2.GRC_positves 3.GRC_negatives 4.KnockOut list\n";
-	return -1;}
+	if(argc<5){cerr<<"Usage: grc_compare [reference annotation] [grc results *.Pos] [grc results *.Neg] [knocklist] [min. gene length] OPTIONAL [Gene Ontology file]\n";
+		return -1;}
 
 	InFile = argv[1]; //get the reference annotation
 	InFile2 = argv[2]; //get the name of the parsed test results files

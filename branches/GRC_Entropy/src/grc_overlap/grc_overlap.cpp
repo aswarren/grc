@@ -37,6 +37,7 @@ void DisplayKO(ostream& Out, CompeteMap& KOMap, const int& GFMin);
 int RefreshRecords(list<AARecord>& RecordList, CalcPack& CP);
 int TrainEDP(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CalcPack& CP);
 int ProcessID(string& ID, long& Start, long& Stop, long& Offset);
+int GetBlastResults(const char* BlastFile, list<AARecord>& RecordList, map<string,AARecord*> & HitList, CalcPack& InfoPack);
 
 
 
@@ -94,7 +95,124 @@ int main (int argc, char* argv[]) {   //  Main is open
 	GO Ontology;//ontology object for storing Gene Ontology
 
 
+	GetBlastResults(BlastFile, RecordList, HitList, InfoPack );
 
+	//create position map
+	//and switch the start site to the one with the highest conservation
+	//and calculate entropy
+	for(list<AARecord>::iterator PosIt=RecordList.begin(); PosIt!=RecordList.end(); PosIt++){
+
+		if(PosIt->HasHit()){//if the query has a hit
+			PosIt->UpdateScores();//now that all blast scores have been read in for each record create priority queues for start sites
+		}
+		PositionMap.insert(RecordMap::value_type(PosIt->ReportLowBase(), &(*PosIt))); //Add to position map
+	}//close for loop
+
+
+	InfoPack.ClearGenome();//clear the genome (no longer needed)
+
+
+	//DumpList(InitList);//print out the orfs from initlist
+	
+	//compare the ORFs and develop a set of training orfs for creating
+	//new entropy density profiles for coding and non coding genes
+	Compare(PositionMap,TrainingWinners,TrainingLosers,TrainingKO);
+	//activate the use of small orf EDP if sufficient number
+
+	//train new EDP's
+	TrainEDP(TrainingWinners, TrainingLosers, InfoPack);
+	//refresh all records using new EDP
+	RefreshRecords(RecordList,InfoPack);
+
+
+	
+	//calculate avg. entropy of winners with hits from training data using new entropies
+
+	double AvgEntropy=0;//The average entropy
+	int NumForAvg=0;
+	for (list<AARecord*>::iterator AvgIt =TrainingWinners.begin(); AvgIt!=TrainingWinners.end(); AvgIt++ ){
+		NumForAvg++;
+		AvgEntropy+=(*AvgIt)->ReportEntropy();
+	}
+	AvgEntropy=AvgEntropy/double(NumForAvg);//finish avg entropy calc. by dividing by number of orfs with hits
+
+	//Calculate the std deviation
+	double Variance=0;
+	for (list<AARecord*>::iterator EntIt =WinnerList.begin(); EntIt!=WinnerList.end(); EntIt++ ){
+		//if((*EntIt)->HasHit() && (*EntIt)->ReportBitFrac()>ConservCutoff){//if this orf has a hit
+			double Diff=(*EntIt)->ReportEntropy()-AvgEntropy;//get difference between mean and current
+			Variance+=(Diff*Diff);//square the difference of mean and current and add to total variance
+		//}
+	}
+	double EntropyDev=sqrt((Variance/double(NumForAvg)));//calculate std deviation
+	double EDRCutoff=1.0;
+	//if for some reason the EDRCutoff is too lenient
+	//that 1.1 is < Avg+2*Std Dev.
+	if(EDRCutoff<AvgEntropy+(2*EntropyDev)){
+		EDRCutoff=AvgEntropy+(2*EntropyDev);
+	}
+	double ConservCutoff=.50;//Bit fraction cutoff for being evaluated by entropy Bit/MaxBit
+	int NumFiltered=EntropyFilter(RecordList, LoserList,KOMap,EDRCutoff, ConservCutoff);//filter the orfs based on entropy
+
+	//compare the ORFs and remove the ones that conflict due to overlap
+	Compare(PositionMap,WinnerList,LoserList, KOMap);
+	
+	if(GOFile!="none"){//if there is a GO file specified
+		//cout<<"Reading in the ontology file "<<GOFile<<"\n";
+		ifstream GOIn;
+		GOIn.open(GOFile.c_str());
+		Ontology.ReadOBO(&GOIn,true,true,true);
+		GOIn.close();
+		InfoPack.SetGOAccess(&Ontology);//set go access pointer
+	}//close if there is a obo file
+
+	//Tally results
+	//cout<<"Average entropy is\t"<<AvgEntropy<<"\n";
+	//cout<<"Std Dev of entropy is\t"<<EntropyDev<<"\n";
+	int NumWinHits=0;
+	if(InfoPack.GOAccess!=NULL){
+		for (list<AARecord*>::iterator CountIt =WinnerList.begin(); CountIt!=WinnerList.end(); CountIt++ ){
+			if((*CountIt)->HasHit()){//if this orf has a hit
+				NumWinHits++;
+			}
+			(*CountIt)->GOAnalysis(InfoPack);//finalize GO annotations
+		}
+	}
+
+	else{
+		for (list<AARecord*>::iterator CountIt =WinnerList.begin(); CountIt!=WinnerList.end(); CountIt++ ){
+			if((*CountIt)->HasHit()){//if this orf has a hit
+				NumWinHits++;
+			}
+		}
+	}
+
+	cout<<"******************GRC v0.01******************"<<"\n";
+	cout<<"Total # of initial ORFS created:   "<<PositionMap.size()<<"\n";
+	cout<<"Total # non-overlapping orfs:   "<<WinnerList.size()<<"\n";
+	cout<<"Total # annotated:   "<<NumWinHits<<"\n\n";
+	cout<<"Number of orfs filtered from entropy\t"<<NumFiltered<<"\n";	
+
+	DumpList(WinnerList, Positives, GFMinLength);
+	//DumpList(InitList);
+	PrintLosers(LoserList, Negatives, GFMinLength);
+
+	Nulify(WinnerList, LoserList);
+
+	ofstream KOut;
+	KOut.open("KnockList.txt");
+	DisplayKO(KOut,KOMap, GFMinLength);
+	KOut.close();
+
+	return 0;
+}
+
+
+//Reads in the BLAST results file and initializes:
+//RecordList stores Records of ORFs and their blast results
+//HitList hashes Pointers to those Records that have hits according to ORF ID.
+//This function uses InfoPack which contains the genomic sequence and other useful functions
+int GetBlastResults(const char* BlastFile, list<AARecord>& RecordList, map<string,AARecord*> & HitList, CalcPack& InfoPack){
 	ifstream BlastIn; //input for the blast results
 	BlastIn.open(BlastFile); //open the blast input
 
@@ -191,7 +309,8 @@ int main (int argc, char* argv[]) {   //  Main is open
 			//TO DO: Add org and HitID check to bool Old and update structure for storing
 			//same alignment regions with multiple organisms,functions,and hit_ID's
 			
-			//if it doesn't have align start further in or as high a bit score for the same (query, subject) pair
+			//if it doesn't have align start further into the interior and does not have the high bit score for the same (query, subject) pair
+			//then it does not contain new information and is classified as Old
 			bool Old;
 			Old=(ID==OldID&&HitID==OldHID&&Bit==OldBit&&QAlignStart==OldQAS);
 
@@ -230,123 +349,6 @@ int main (int argc, char* argv[]) {   //  Main is open
 		//OldID=ID;//remember this id in next iteration
 	}// close read input
 	BlastIn.close();
-
-
-
-	//create position map
-	//and switch the start site to the one with the highest conservation
-	//and calculate entropy
-
-	//this is not accounted for yet
-	for(list<AARecord>::iterator PosIt=RecordList.begin(); PosIt!=RecordList.end(); PosIt++){
-
-		if(PosIt->HasHit()){//if the query has a hit
-			PosIt->UpdateScores();//now that all blast scores have been read in for each record create priority queues for start sites
-		}
-		PositionMap.insert(RecordMap::value_type(PosIt->ReportLowBase(), &(*PosIt))); //Add to position map
-	}//close for loop
-
-
-	InfoPack.ClearGenome();//clear the genome (no longer needed)
-	
-	ofstream ChkOut;
-
-	//DumpList(InitList);//print out the orfs from initlist
-	
-	//compare the ORFs and develop a set of training orfs for creating
-	//new entropy density profiles for coding and non coding genes
-	Compare(PositionMap,TrainingWinners,TrainingLosers,TrainingKO);
-	//activate the use of small orf EDP if sufficient number
-
-	//train new EDP's
-	TrainEDP(TrainingWinners, TrainingLosers, InfoPack);
-	//refresh all records using new EDP
-	RefreshRecords(RecordList,InfoPack);
-
-
-	
-	//calculate avg. entropy of winners with hits from training data using new entropies
-
-	double AvgEntropy=0;//The average entropy
-	int NumForAvg=0;
-	for (list<AARecord*>::iterator AvgIt =TrainingWinners.begin(); AvgIt!=TrainingWinners.end(); AvgIt++ ){
-		NumForAvg++;
-		AvgEntropy+=(*AvgIt)->ReportEntropy();
-	}
-	AvgEntropy=AvgEntropy/double(NumForAvg);//finish avg entropy calc. by dividing by number of orfs with hits
-
-	//Calculate the std deviation
-	double Variance=0;
-	for (list<AARecord*>::iterator EntIt =WinnerList.begin(); EntIt!=WinnerList.end(); EntIt++ ){
-		//if((*EntIt)->HasHit() && (*EntIt)->ReportBitFrac()>ConservCutoff){//if this orf has a hit
-			double Diff=(*EntIt)->ReportEntropy()-AvgEntropy;//get difference between mean and current
-			Variance+=(Diff*Diff);//square the difference of mean and current and add to total variance
-		//}
-	}
-	double EntropyDev=sqrt((Variance/double(NumForAvg)));//calculate std deviation
-	double EDRCutoff=1.0;
-	//if for some reason the EDRCutoff is too lenient
-	//that 1.1 is < Avg+2*Std Dev.
-	if(EDRCutoff<AvgEntropy+(2*EntropyDev)){
-		EDRCutoff=AvgEntropy+(2*EntropyDev);
-	}
-	double ConservCutoff=.50;//Bit fraction cutoff for being evaluated by entropy Bit/MaxBit
-	int NumFiltered=EntropyFilter(RecordList, LoserList,KOMap,EDRCutoff, ConservCutoff);//filter the orfs based on entropy
-
-	//compare the ORFs and remove the ones that conflict due to overlap
-	Compare(PositionMap,WinnerList,LoserList, KOMap);
-	
-	if(GOFile!="none"){//if there is a GO file specified
-		//cout<<"Reading in the ontology file "<<GOFile<<"\n";
-		ifstream GOIn;
-		GOIn.open(GOFile.c_str());
-		Ontology.ReadOBO(&GOIn,true,true,true);
-		GOIn.close();
-		InfoPack.SetGOAccess(&Ontology);//set go access pointer
-	}//close if there is a obo file
-
-	//Tally results
-	//cout<<"Average entropy is\t"<<AvgEntropy<<"\n";
-	//cout<<"Std Dev of entropy is\t"<<EntropyDev<<"\n";
-	int NumWinHits=0;
-	if(InfoPack.GOAccess!=NULL){
-		for (list<AARecord*>::iterator CountIt =WinnerList.begin(); CountIt!=WinnerList.end(); CountIt++ ){
-			if((*CountIt)->HasHit()){//if this orf has a hit
-				NumWinHits++;
-			}
-			(*CountIt)->GOAnalysis(InfoPack);//finalize GO annotations
-		}
-	}
-
-	else{
-		for (list<AARecord*>::iterator CountIt =WinnerList.begin(); CountIt!=WinnerList.end(); CountIt++ ){
-			if((*CountIt)->HasHit()){//if this orf has a hit
-				NumWinHits++;
-			}
-		}
-	}
-
-	cout<<"******************GRC v0.01******************"<<"\n";
-	cout<<"Total # of initial ORFS created:   "<<PositionMap.size()<<"\n";
-	cout<<"Total # non-overlapping orfs:   "<<WinnerList.size()<<"\n";
-	cout<<"Total # annotated:   "<<NumWinHits<<"\n\n";
-	cout<<"Number of orfs filtered from entropy\t"<<NumFiltered<<"\n";	
-
-	DumpList(WinnerList, Positives, GFMinLength);
-	//DumpList(InitList);
-	PrintLosers(LoserList, Negatives, GFMinLength);
-
-	Nulify(WinnerList, LoserList);
-
-	ofstream KOut;
-	KOut.open("KnockList.txt");
-	DisplayKO(KOut,KOMap, GFMinLength);
-	KOut.close();
-
-
-
-
-
 	return 0;
 }
 

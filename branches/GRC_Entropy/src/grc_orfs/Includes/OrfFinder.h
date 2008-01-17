@@ -99,7 +99,7 @@ class OrfFinder{//open prototype
 			}
 			else if(Calculator.ForwardStop(Seq.substr(s,3))){//if its a stop codon
 				if(Start!=-1){// start site already found
-					Stop=s;//stop is currently base before the stop codon
+					Stop=s+3;//stop includes the stop codon
 					if((Stop-Start)+1>=MinLength){
 						Position=s+3;//advance to the next codon
 						return true;
@@ -160,7 +160,7 @@ class OrfFinder{//open prototype
 					}
 				}
 				else if(Start==-1){//if start is unassigned then no start found before this next in frame stop OR this is first stop found
-					Stop=s+1+3;//stop is currently base before the stop codon +1 to genome coord. +3 to be last base before stop
+					Stop=s+1;//stop is currently includes the stop codon +1 to genome coord.
 				}
 				else{//Start!=-1 && Stop==-1 invalid start with this stop
 					Stop=s+1+3;

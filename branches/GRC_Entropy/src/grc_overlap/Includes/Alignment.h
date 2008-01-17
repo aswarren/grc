@@ -100,14 +100,14 @@ public:
 		if (Start>Stop){ 
 			Reverse=true;//see if the orf is reversed
 			HighBase=Start;
-			LowBase=Stop;
-			Stop=Stop-3;//adjust for stop codon
+			LowBase=Stop+3;
+			//Stop=Stop-3;//adjust for stop codon
 		}
 		else{
 			Reverse=false;
-			HighBase=Stop;
+			HighBase=Stop-3;
 			LowBase=Start;
-			Stop=Stop+3;
+			//Stop=Stop+3;
 		}
 		Length=HighBase-LowBase+1;
 

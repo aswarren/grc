@@ -100,7 +100,7 @@ class OrfFinder{//open prototype
 			else if(Calculator.ForwardStop(Seq.substr(s,3))){//if its a stop codon
 				if(Start!=-1){// start site already found
 					Stop=s+3;//stop includes the stop codon
-					if((Stop-Start)+1>=MinLength){
+					if((Stop-Start)+1-3>=MinLength){
 						Position=s+3;//advance to the next codon
 						return true;
 					}
@@ -150,12 +150,12 @@ class OrfFinder{//open prototype
 			}
 			else if(Calculator.ReverseStop(Seq.substr(s,3))){//if its a stop codon
 				if(Start!=-1 && Stop!=-1){// start site and stop already found (at next in frame stop)
-					if((Start-Stop)+1>=MinLength){
+					if((Start-Stop)+1-3>=MinLength){//minus 3 since the stop coordinate includes the stop codon
 						Position=s;//begin here to pick up this stop
 						return true;
 					}
 					else{//else reset start record stop and keep going
-						Stop=s+1+3;
+						Stop=s+1;
 						Start=-1;
 					}
 				}
@@ -163,7 +163,7 @@ class OrfFinder{//open prototype
 					Stop=s+1;//stop is currently includes the stop codon +1 to genome coord.
 				}
 				else{//Start!=-1 && Stop==-1 invalid start with this stop
-					Stop=s+1+3;
+					Stop=s+1;
 					Start=-1;
 				}
 			}

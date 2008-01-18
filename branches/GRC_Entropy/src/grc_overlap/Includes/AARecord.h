@@ -774,13 +774,13 @@ public:
 		}
 		if(St>Sp){
 			Reverse=true;//set Reverse frame
-			LBase=Sp;
+			LBase=Sp+3;
 			HBase=St;
 		}
 		else{
 			Reverse=false;
 			LBase=St;
-			HBase=Sp;
+			HBase=Sp-3;
 		}
 
 		while(CP.FindStarts(St,OrigStart,Sp,QASt,Reverse, StartScore)) {//find all start sites from aligned region back to original

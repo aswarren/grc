@@ -114,13 +114,13 @@ int main (int argc, char* argv[]) {   //  Main is open
 		InfoSS>>OffsetOut;
 		
 		if(StartOut>StopOut){//if the gene is reverse frame
-			LB=StopOut;
+			LB=StopOut+3;//adjusted since stop coordinate includes the stop codon
 			HB=StartOut;
 			Reverse=true;
 		}
 		else{
 			LB=StartOut;
-			HB=StopOut;
+			HB=StopOut-3;
 			Reverse=false;
 		}
 		if(IDToSeq.size()>1){//if there is more than one genome

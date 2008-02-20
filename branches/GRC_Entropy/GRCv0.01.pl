@@ -2,7 +2,27 @@
 use Getopt::Std;
 use File::Basename;
 use Cwd;
+use Cwd 'abs_path';
 use Time::HiRes qw(gettimeofday);
+
+#this routine retrieves the absolute directory of a file (does not translate links)
+sub get_dir{
+	my @parms = @_;
+	foreach  $p (@parms) {
+		$p=abs_path(dirname(glob($p)));
+	}
+    # Check whether we were called in list context.
+    return wantarray ? @parms : $parms[0];
+}
+
+sub get_abspath{
+        my @parms = @_;
+        foreach  $p (@parms) {
+                $p=abs_path(dirname(glob($p)))."/".basename($p);
+        }
+    # Check whether we were called in list context.
+    return wantarray ? @parms : $parms[0];
+}
 $start = gettimeofday( );
 #Example for running script
 # ./GRCv0.01.pl -g AE008687.fna -d testDB
@@ -15,16 +35,15 @@ my $DBSize=2879860; #effecive size of the DB to adjust e-values accordingly  Set
 
 
 my $CDir=getcwd;#get current working directory
-my $BinDir=$0;#Get the path for current script
-@BinTerms=split(/\//, $BinDir); #split the path for script
-$BinName=$BinTerms[-1]; #set the bin name to be the script name
-$BinDir=~ s/$BinName//g; #remove text
-$BinDir=~ s/\/$//;#remove trailing /
-chomp($BinDir);
-chdir("$BinDir");
-$BinDir=getcwd;#get absolute path for script
+my $BinDir=get_dir($0);#Get the path for current script
+#@BinTerms=split(/\//, $BinDir); #split the path for script
+#$BinName=$BinTerms[-1]; #set the bin name to be the script name
+#$BinDir=~ s/$BinName//g; #remove text
+#$BinDir=~ s/\/$//;#remove trailing /
+#chomp($BinDir);
+#chdir("$BinDir");
+#$BinDir=getcwd;#get absolute path for script
 
-#adding this comment as a subversion test
 
 $OntFile=$BinDir."/GO/$OntFile";#set absolute ontology filename
 my $orfsout ="grc_orfs.out";#variable specifying grc_orf results
@@ -44,7 +63,7 @@ my $UseGO=0;#boolean variable that tells whether GO is to be used
 my $MergeDB=$BinDir."/DB/AutoMerge.faa";
 my $TransFile="GCode.txt";#file used for translating
 
-chdir("$CDir");
+#chdir("$CDir");
 
 #set MaxBlast FileName (maxblast files are used in grc_overlap calculations)
 my $MaxFile="$blastdir"."Max".substr($Matrix,0,1).substr($Matrix,-2).".txt";
@@ -69,19 +88,19 @@ if(defined $opt_h){
 }
 
 
-$GDir="$opt_g";
-@GTerms=split(/\//, $GDir); #split the path for genome
-$GName=$GTerms[-1]; #set the genome name
-$GDir=~ s/$GName//g; #remove text
-$GDir=~ s/\/$//;#remove trailing /
-chomp($GDir);
-chdir("$GDir");
-$GDir=getcwd;
-chdir("$CDir"); #change back to orig wd
-$GFile="$GDir"."/$GName"; #set absolute file name
+$GDir=get_dir("$opt_g");
+$GName=basename("$opt_g");
+#@GTerms=split(/\//, $GDir); #split the path for genome
+#$GName=$GTerms[-1]; #set the genome name
+#$GDir=~ s/$GName//g; #remove text
+#$GDir=~ s/\/$//;#remove trailing /
+#chomp($GDir);
+#chdir("$GDir");
+#$GDir=getcwd;
+#chdir("$CDir"); #change back to orig wd
+$GFile=get_abspath("$opt_g"); #set absolute file name
 
-$GenomeName=$GName;
-$GenomeName=~ s/.fna//g; #remove text
+$GenomeName=(split(/\./, $GName))[0];
 $GenomeName=$GenomeName."Min".$MinLength."BH$NumBHits";
 
 
@@ -93,10 +112,10 @@ if(defined $opt_k){#if the user desires to keep the blast and reference files
 
 
 
-$DBFile="$opt_d";
+$DBFile=get_abspath("$opt_d");
 if (-d $opt_d){#if option d is a directory then merge all sequence and annotation files therein
 	chdir("$opt_d");
-	$DBDir=getcwd;
+	$DBDir=abs_path(glob("$opt_d"))."/";
 	opendir Direc, "./";
 	@contents= readdir Direc; #get the contents of the current directory
 	closedir Direc;
@@ -109,8 +128,8 @@ if (-d $opt_d){#if option d is a directory then merge all sequence and annotatio
 		} 
 	}	
 	foreach $FileName (@contentsort){#for each file in contents
-		unless(-d "./$FileName"){#if the file is not a directory
-			if(-e "./$FileName" && ($FileName=~/faa$/i || $FileName=~/ptt$/i || $FileName=~/goa$/i || $FileName=~/fasta$/i)){#if its an faa file
+		unless(-d "$FileName"){#if the file is not a directory
+			if(-e "$FileName" && ($FileName=~/faa$/i || $FileName=~/ptt$/i || $FileName=~/goa$/i || $FileName=~/fasta$/i)){#if its an faa file
 				$MergeCommand="$MergeCommand"." $FileName";#add filename to merge command
 			}
 		}#close if not directory
@@ -127,9 +146,10 @@ if (-d $opt_d){#if option d is a directory then merge all sequence and annotatio
 
 
 else {#else its not a directory  NOTE Must specify a sequence file *.faa or *.fasta
-	$DBDir=$DBFile;
-	@DBTerms=split(/\//, $DBDir); #split the path for db
-	$DBName=$DBTerms[-1]; #set the name of the db file specified
+	$DBDir=get_dir("$opt_d");
+	#@DBTerms=split(/\//, $DBDir); #split the path for db
+	$DBName=basename(abs_path(glob("$opt_d")));
+	$DBFile=get_abspath("$opt_d"); #set the name of the db file specified
 	unless(-e "$DBFile" && ($DBFile=~/faa$/i || $DBFile=~/fasta$/i)){ #if its the right format and it exists
 		die "DB file specified is not compatible or does not exist\n";
 	} 
@@ -143,16 +163,16 @@ else {#else its not a directory  NOTE Must specify a sequence file *.faa or *.fa
 		$AnnotFile=$FirstName.".goa";
 	}
 		
-	$DBDir=~ s/$DBName//g; #remove text
-	$DBDir=~ s/\/$//;#remove trailing /
-	chomp($DBDir);
-	chdir("$DBDir");
-	$DBDir=getcwd;#get absolute db directory
+	#$DBDir=~ s/$DBName//g; #remove text
+	#$DBDir=~ s/\/$//;#remove trailing /
+	#chomp($DBDir);
+	#chdir("$DBDir");
+	#$DBDir=getcwd;#get absolute db directory
 	#Check for file pair (*.faa, *.ptt) OR (*.fasta, *.goa)
-	
+	#print "$DBDir"."/$AnnotFile";
 	if (-e "$DBDir"."/$AnnotFile"){
 		$AnnotFile=$DBDir."/$AnnotFile";
-		my $MergeCommand ="$BinDir"."/scripts/mergeseqannot.pl $DBName";
+		my $MergeCommand ="$BinDir"."/scripts/mergeseqannot.pl $DBFile";
 		unless(-d "$AnnotFile"){#if its not a directory
 			print "\nAnnotation complement found. Merging to create DB:\n";
 			$MergeCommand="$MergeCommand"." $AnnotFile $MergeDB";#add filename to merge command
@@ -162,7 +182,7 @@ else {#else its not a directory  NOTE Must specify a sequence file *.faa or *.fa
 	}
 
 	else{
-		my $MergeCommand ="$BinDir"."/scripts/mergeseqannot.pl $DBName $MergeDB";
+		my $MergeCommand ="$BinDir"."/scripts/mergeseqannot.pl $DBFile $MergeDB";
 		print "\nAnnotation complement $AnnotFile does not exist in $DBDir\n";
 		print "Continuing without it.\n";
 		$status=system("$MergeCommand");#run merge
@@ -181,15 +201,15 @@ if(defined $opt_r && -e $opt_r){#if there is a reference file to compare to
 	if($opt_r=~/goa$/i){#if it is a goa reference file
 		$UseGO=1;
 	}
-	$RDir="$opt_r";
-	@RTerms=split(/\//, $RDir); #split the path for reference file
-	$RName=$RTerms[-1]; #set the reference name
-	$RDir=~ s/$RName//g; #remove text
-	$RDir=~ s/\/$//;#remove trailing /
-	chomp($RDir);
-	chdir("$RDir");
-	$RDir=getcwd;
-	chdir("$CDir"); #change back to orig wd
+	$RDir=get_dir("$opt_r");
+	#@RTerms=split(/\//, $RDir); #split the path for reference file
+	$RName=basename(abs_path(glob("$opt_r"))); #set the reference name
+	#$RDir=~ s/$RName//g; #remove text
+	#$RDir=~ s/\/$//;#remove trailing /
+	#chomp($RDir);
+	#chdir("$RDir");
+	#$RDir=getcwd;
+	#chdir("$CDir"); #change back to orig wd
 	$RFile="$RDir"."/$RName"; #set absolute file name
 	$status=system("$BinDir"."/scripts/parseRef.pl -i $RFile >$partdir".$ReferenceName);#parse reference file
 	if ($status != 0){
@@ -242,7 +262,7 @@ chdir("$BinDir");
 
 
 #BLAST OUTPUT KEY
-    # Fields: query id	q. start	q. end	subject id1	subject id2	subject id3		organism	% identity	alignment length	subject length	mismatches	gap opens	q. align start	q. align end	s. align start	s. align end	evalue	bit score	frac_filtered
+    # Fields: query id	q. start	q. end	subject id1	subject id2	subject id3	description	organism	% identity	alignment length	subject length	mismatches	gap opens	q. align start	q. align end	s. align start	s. align end	evalue	bit score	frac_filtered
 
 
 

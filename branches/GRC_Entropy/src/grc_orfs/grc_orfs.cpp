@@ -135,10 +135,10 @@ int main (int argc, char* argv[]) {   //  Main is open
 			string GeneSeq=Calculator.GeneSequence(SeqFinder->second,LB,HB,Reverse);
 			string OutID="";
 			if(IDToSeq.size()>1){//if there is more than one genome adjust IDs to indicate
-				Out<<">T"<<OrfCounter<<"|REPLICON|"<<LookupID<<"|OFFSET|"<<OffsetOut<<"\t"<<StartOut<<"\t"<<StopOut<<"\n";
+				Out<<">T"<<OrfCounter<<"_"<<StartOut<<"_"<<StopOut<<"|REPLICON|"<<LookupID<<"|OFFSET|"<<OffsetOut<<"\n";
 			}
 			else {//else no need
-				Out<<">T"<<OrfCounter<<"\t"<<StartOut<<"\t"<<StopOut<<"\n";
+				Out<<">T"<<OrfCounter<<"_"<<StartOut<<"_"<<StopOut<<"\n";
 			}
 			Reader.OutputSeq(GeneSeq, Out);//output the sequence
 			//cout<<GeneSeq<<"\n";

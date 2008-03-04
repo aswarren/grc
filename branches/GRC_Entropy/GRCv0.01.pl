@@ -23,6 +23,20 @@ sub get_abspath{
     # Check whether we were called in list context.
     return wantarray ? @parms : $parms[0];
 }
+
+sub cat_files {
+	my($out_file, @array) = @_;
+	open ($out_handle, "> ".$out_file) or die "Couldn't open output file for writing: $!\n";
+	select $out_handle;
+	foreach $file (@array) {  # indices of @array's elements
+		open ($in_handle, "< $file") or die "Couldn't open input file: $!\n";#open file
+		while(my $line = <$in_handle>){
+			print $line;
+		}
+	}
+	select STDOUT;
+}
+
 $start = gettimeofday( );
 #Example for running script
 # ./GRCv0.01.pl -g AE008687.fna -d testDB
@@ -49,9 +63,9 @@ $OntFile=$BinDir."/GO/$OntFile";#set absolute ontology filename
 my $orfsout ="grc_orfs.out";#variable specifying grc_orf results
 my $transdir=$BinDir."/translate/";
 my $blastdir=$BinDir."/fsablast/";
-my $partdir=$BinDir."/temp/";
+my $tempdir=$BinDir."/temp/";
 my $transeqout="translate.out";
-my $BHName="bestblast.out";
+my $BHName="$tempdir"."bestblast.out";
 my $ReferenceName="RefParsed.txt";
 my $delim="---------------------------------------------------";
 my $DBFile;
@@ -62,6 +76,10 @@ my $DBDir;
 my $UseGO=0;#boolean variable that tells whether GO is to be used
 my $MergeDB=$BinDir."/DB/AutoMerge.faa";
 my $TransFile="GCode.txt";#file used for translating
+my @AminoFiles;
+my %AnnotHash; #annotation complement files stored in hash
+my $MergeCommand ="$BinDir"."/scripts/mergeseqannot.pl";
+my $ResultDir= $BinDir."/results/";
 
 #chdir("$CDir");
 
@@ -105,7 +123,7 @@ $GenomeName=$GenomeName."Min".$MinLength."BH$NumBHits";
 
 
 if(defined $opt_k){#if the user desires to keep the blast and reference files
-	$BHName=$GenomeName.".bh";
+	$BHName="$tempdir"."$GenomeName".".bh";
 	$ReferenceName=$GenomeName.".ref";
 	$opt_k="";#hack shutup perl warning
 }
@@ -115,12 +133,11 @@ if(defined $opt_k){#if the user desires to keep the blast and reference files
 $DBFile=get_abspath("$opt_d");
 if (-d $opt_d){#if option d is a directory then merge all sequence and annotation files therein
 	chdir("$opt_d");
-	$DBDir=abs_path(glob("$opt_d"))."/";
+	$DBDir=abs_path(glob("$opt_d"));#can't submit to get_dir because it will retrieve the directory above
 	opendir Direc, "./";
 	@contents= readdir Direc; #get the contents of the current directory
 	closedir Direc;
 	@contentsort = sort @contents;#sort the names
-	my $MergeCommand ="$BinDir"."/scripts/mergeseqannot.pl";
 	if(-e "$MergeDB"){
 		$status=system("rm -f $MergeDB");
 		if($status !=0){
@@ -129,18 +146,28 @@ if (-d $opt_d){#if option d is a directory then merge all sequence and annotatio
 	}	
 	foreach $FileName (@contentsort){#for each file in contents
 		unless(-d "$FileName"){#if the file is not a directory
-			if(-e "$FileName" && ($FileName=~/faa$/i || $FileName=~/ptt$/i || $FileName=~/goa$/i || $FileName=~/fasta$/i)){#if its an faa file
-				$MergeCommand="$MergeCommand"." $FileName";#add filename to merge command
+			if(-e "$FileName" && ($FileName=~/faa$/i || $FileName=~/fasta$/i)){#if its an faa file
+				push(@AminoFiles, $FileName);
+				$FirstName=$FileName;#get name of the file
+				$FirstName =~s/.faa$|.fasta$//;#remove extension
+				if($FileName=~/faa$/i){
+					$AnnotFile=$FirstName.".ptt";
+				}
+				else {#else the file has to be fasta and its complement is *.goa
+					$AnnotFile=$FirstName.".goa";
+				}
+				if (-e "$DBDir"."/$AnnotFile"){
+					$AnnotFile=$DBDir."/$AnnotFile";
+					unless(-d "$AnnotFile"){#if its not a directory
+						$AnnotHash{$FileName}=$AnnotFile;
+					}
+				}	
 			}
 		}#close if not directory
 	}#close the foreach loop
 	
-	$MergeCommand="$MergeCommand"." $MergeDB";
-	$status=system("$MergeCommand");#run merge
-	if ($status !=0){
-		die "unsuccessful merge\n";
-	}#close if
-	$DBFile=$MergeDB;
+	cat_files($MergeDB, @AminoFiles);
+	
 	chdir("$CDir");
 }#close if directory
 
@@ -149,50 +176,34 @@ else {#else its not a directory  NOTE Must specify a sequence file *.faa or *.fa
 	$DBDir=get_dir("$opt_d");
 	#@DBTerms=split(/\//, $DBDir); #split the path for db
 	$DBName=basename(abs_path(glob("$opt_d")));
-	$DBFile=get_abspath("$opt_d"); #set the name of the db file specified
+	$DBFile=get_abspath("$opt_d"); #set path of the db file specified
 	unless(-e "$DBFile" && ($DBFile=~/faa$/i || $DBFile=~/fasta$/i)){ #if its the right format and it exists
 		die "DB file specified is not compatible or does not exist\n";
 	} 
-	
+	push(@AminoFiles, $DBName);
+	cat_files($MergeDB, ($DBFile));
+
 	$FirstName=$DBName;#get name of the file
 	$FirstName =~s/.faa$|.fasta$//;#remove extension
 	if($DBName=~/faa$/i){
 		$AnnotFile=$FirstName.".ptt";
 	}
-	else {#else the file has to be fasta
+	else {#else the file has to be fasta and its complement is *.goa
 		$AnnotFile=$FirstName.".goa";
 	}
 		
-	#$DBDir=~ s/$DBName//g; #remove text
-	#$DBDir=~ s/\/$//;#remove trailing /
-	#chomp($DBDir);
-	#chdir("$DBDir");
-	#$DBDir=getcwd;#get absolute db directory
-	#Check for file pair (*.faa, *.ptt) OR (*.fasta, *.goa)
-	#print "$DBDir"."/$AnnotFile";
 	if (-e "$DBDir"."/$AnnotFile"){
 		$AnnotFile=$DBDir."/$AnnotFile";
-		my $MergeCommand ="$BinDir"."/scripts/mergeseqannot.pl $DBFile";
+
 		unless(-d "$AnnotFile"){#if its not a directory
-			print "\nAnnotation complement found. Merging to create DB:\n";
-			$MergeCommand="$MergeCommand"." $AnnotFile $MergeDB";#add filename to merge command
-			$status=system("$MergeCommand");#run merge
-			$DBFile=$MergeDB;
+			$AnnotHash{$DBName}=$AnnotFile;
 		}
 	}
-
-	else{
-		my $MergeCommand ="$BinDir"."/scripts/mergeseqannot.pl $DBFile $MergeDB";
-		print "\nAnnotation complement $AnnotFile does not exist in $DBDir\n";
-		print "Continuing without it.\n";
-		$status=system("$MergeCommand");#run merge
-		$DBFile="$MergeDB";#create absolute file name
-	}
-	
-			
 	chdir("$CDir");
 	
 }
+
+$DBFile=$MergeDB;#the database file is now the merged database
 
 
 
@@ -211,7 +222,7 @@ if(defined $opt_r && -e $opt_r){#if there is a reference file to compare to
 	#$RDir=getcwd;
 	#chdir("$CDir"); #change back to orig wd
 	$RFile="$RDir"."/$RName"; #set absolute file name
-	$status=system("$BinDir"."/scripts/parseRef.pl -i $RFile >$partdir".$ReferenceName);#parse reference file
+	$status=system("$BinDir"."/scripts/parseRef.pl -i $RFile >$tempdir".$ReferenceName);#parse reference file
 	if ($status != 0){
 		die "could not find/parse reference file";
 	}
@@ -222,7 +233,7 @@ chdir("$BinDir");
 
 #Run grc_orfs 
 print "Running grc_orfs:\n";
-$status = system("./grc_orfs $GFile $MinLength $partdir$orfsout");
+$status = system("./grc_orfs $GFile $MinLength $tempdir$orfsout");
 
 if ($status != 0){
 	die "grc_orfs did not run successfully";
@@ -233,7 +244,7 @@ if ($status != 0){
 #table 11 use bacterial translation table NO OTHER TABLES SUPPORTED YET
 print "\nTranslating sequences.\n";
 chdir("$transdir");
-$status = system("./grc_translate $transdir$TransFile 11 $partdir$orfsout $partdir$transeqout");
+$status = system("./grc_translate $transdir$TransFile 11 $tempdir$orfsout $tempdir$transeqout");
 
 if ($status != 0){
 	die "grc_translate did not run successfully";
@@ -252,7 +263,7 @@ if($status != 0){
 #Run FSA-BLAST on AA sequences
 print "\nBlasting sequences.\n";
 chdir("$blastdir");
-$status = system("./blast -d $DBFile -e .001 -i $partdir$transeqout -m 8 -v 1 -b $NumBHits -M $Matrix -z $DBSize >$partdir"."$BHName");
+$status = system("./blast -d $DBFile -e .001 -i $tempdir$transeqout -m 8 -v 1 -b $NumBHits -M $Matrix -z $DBSize >"."$BHName");
 
 if ($status != 0){
 	die "blast did not run successfully";
@@ -262,11 +273,27 @@ chdir("$BinDir");
 
 
 #BLAST OUTPUT KEY
-    # Fields: query id	q. start	q. end	subject id1	subject id2	subject id3	description	organism	% identity	alignment length	subject length	mismatches	gap opens	q. align start	q. align end	s. align start	s. align end	evalue	bit score	frac_filtered
+#Query id	Subject id	% identity	alignment length	mismatches	gap openings	q. start	q. end	s. start	s. end	e-value	bit score
+
+#AFTER MERGE KEY
+# Fields: query id	q. start	q. end	subject id1	subject id2	subject id3	description	organism	% identity	alignment length	subject length	mismatches	gap opens	q. align start	q. align end	s. align start	s. align end	evalue	bit score	frac_filtered
+chdir("$DBDir");
+foreach $FileName (@AminoFiles){#for each file in contents
+	$MergeCommand="$MergeCommand"." $FileName";#add filename to merge command
+	local $AnnotFile=$AnnotHash{$FileName};
+	if(defined($AnnotFile)){#if its an faa file
+		$MergeCommand="$MergeCommand"." $AnnotFile";#add filename to merge command
+	}
+}#close the foreach loop
+
+$MergeCommand="$MergeCommand $BHName $tempdir$transeqout";
+$status=system("$MergeCommand");#run merge
+if ($status !=0){
+	die "unsuccessful merge\n";
+}#close if
+chdir("$BinDir");
 
 
-
-$ResultDir= $BinDir."/results/";
 
 unless (-e "$ResultDir$GenomeName" && -d "$ResultDir$GenomeName") { #check if the directory exists
 	$status = system("mkdir $ResultDir$GenomeName");
@@ -277,7 +304,7 @@ unless (-e "$ResultDir$GenomeName" && -d "$ResultDir$GenomeName") { #check if th
 
 $ResultDir= "$ResultDir$GenomeName"."/";
 
-$OverlapCommand=$BinDir."/grc_overlap $partdir"."$BHName $GenomeName $GFile $MaxFile $transdir$TransFile $MinLength";
+$OverlapCommand=$BinDir."/grc_overlap $BHName $GenomeName $GFile $MaxFile $transdir$TransFile $MinLength";
 if($UseGO==1){
 	$OverlapCommand=$OverlapCommand." $OntFile";
 }
@@ -299,7 +326,7 @@ print "Running time: $Minutes minutes\n";
 
 if(defined $opt_r){#if there is a reference file to compare to
 	print "grc_compare: comparing to reference file $opt_r\n";
-	$CompareCommand=$BinDir."/grc_compare $partdir"."$ReferenceName $GenomeName".".Pos $GenomeName".".Neg ./KnockList.txt $MinLength";
+	$CompareCommand=$BinDir."/grc_compare $tempdir"."$ReferenceName $GenomeName".".Pos $GenomeName".".Neg ./KnockList.txt $MinLength";
 	if($UseGO==1){
 		$CompareCommand=$CompareCommand." $OntFile";
 	}

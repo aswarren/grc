@@ -261,7 +261,8 @@ int GetBlastResults(const char* BlastFile, list<AARecord>& RecordList, map<strin
 
 
 		getline(BlastIn,HitID,'\t'); //skip next tab
-		getline(BlastIn,HitID,'\t'); //get line for hit ID/No_hits
+		//getline(BlastIn,HitID,'\t'); //get line for hit ID/No_hits
+		BlastIn>>HitID;
 		long LowBase;
 		long HighBase;
 		double LowComplexity=0;//fraction of low complexity AA's as determined by SEG in fsa-blast
@@ -280,13 +281,16 @@ int GetBlastResults(const char* BlastFile, list<AARecord>& RecordList, map<strin
 		if (HitID =="No_hits"){//open consq.
 			//In>>ES; //read in the delimiter
 			//Insert Record into Initial RecordMap
-			BlastIn>>LowComplexity;
+			//BlastIn>>LowComplexity;
 			RecordList.push_back(AARecord());//add record to the list
 			RecordList.back().InitRecord(InfoPack, ID, Start, Stop, HitID, Offset);
 			//EditList.push_back(&((MapIt.first)->second));//add a pointer to the location of the record
 		}//close consq.
 		else {//there is a hit
 			//string TempHack=HitID;//SWITCHED TO ACCOMODATE INVERSED ID AND DESCRIPTION IN OLD OUTPUT********
+			string HitID2="";
+			getline(BlastIn,HitID2, '\t');
+			HitID=HitID+HitID2;	
 			getline(BlastIn,HitGeneName, '\t');
 			getline(BlastIn,HitSynonym, '\t');
 			getline(BlastIn,Function,'\t'); //get line for hit description 
@@ -303,7 +307,7 @@ int GetBlastResults(const char* BlastFile, list<AARecord>& RecordList, map<strin
 			BlastIn>>SAlignStop;
 			BlastIn>>ES;
 			BlastIn>>Bit;
-			BlastIn>>LowComplexity;//ONLY needs to be entered once per query ID since all is query sequence dependent
+			//BlastIn>>LowComplexity;//ONLY needs to be entered once per query ID since all is query sequence dependent
 			long OrigStart=Start;//for start searching purposes
 			//boolean value to determine whether any new information is being contributed
 			//TO DO: Add org and HitID check to bool Old and update structure for storing

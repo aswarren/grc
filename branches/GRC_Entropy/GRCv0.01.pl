@@ -156,8 +156,8 @@ if (-d $opt_d){#if option d is a directory then merge all sequence and annotatio
 				else {#else the file has to be fasta and its complement is *.goa
 					$AnnotFile=$FirstName.".goa";
 				}
-				if (-e "$DBDir"."/$AnnotFile"){
-					$AnnotFile=$DBDir."/$AnnotFile";
+				if (-e "$AnnotFile"){
+					#$AnnotFile=$DBDir."/$AnnotFile";
 					unless(-d "$AnnotFile"){#if its not a directory
 						$AnnotHash{$FileName}=$AnnotFile;
 					}

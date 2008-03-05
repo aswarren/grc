@@ -132,8 +132,8 @@ if(defined $opt_k){#if the user desires to keep the blast and reference files
 
 $DBFile=get_abspath("$opt_d");
 if (-d $opt_d){#if option d is a directory then merge all sequence and annotation files therein
-	chdir("$opt_d");
 	$DBDir=abs_path(glob("$opt_d"));#can't submit to get_dir because it will retrieve the directory above
+	chdir("$opt_d");
 	opendir Direc, "./";
 	@contents= readdir Direc; #get the contents of the current directory
 	closedir Direc;

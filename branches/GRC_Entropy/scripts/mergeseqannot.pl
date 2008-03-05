@@ -128,9 +128,7 @@ while($a<$NumParam){
 				$RecordCount++;
 				local @Terms=split(/\|+/, $_);#break up line to get ID
 				local $SubjectID= $Terms[1];# in faa file format expected is ">gi|number|etc."
-				if ($RecordCount==1){
-					print "faa id is $SubjectID\n";
-				}
+	
 				local $BLine=$BlastHash{$SubjectID};#look up blast results
 				if(defined($BLine) && $BLine eq "INITIAL"){
 					local $Info=$Annotation{$SubjectID};#use 2nd element (should be ID) to get ptt line

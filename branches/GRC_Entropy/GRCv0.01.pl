@@ -5,6 +5,12 @@ use Cwd;
 use Cwd 'abs_path';
 use Time::HiRes qw(gettimeofday);
 
+@months = qw(1 2 3 4 5 6 7 8 9 10 11 12);
+($second, $minute, $hour, $dayOfMonth, $month, $yearOffset, $dayOfWeek, $dayOfYear, $daylightSavings) = localtime();
+$year = 1900 + $yearOffset;
+$theTime = "$months[$month]\_$dayOfMonth\_$year\_$hour\_$minute\_$second";
+print $theTime;
+
 #this routine retrieves the absolute directory of a file (does not translate links)
 sub get_dir{
 	my @parms = @_;
@@ -66,6 +72,7 @@ my $blastdir=$BinDir."/fsablast/";
 my $tempdir=$BinDir."/temp/";
 my $transeqout="translate.out";
 my $BHName="$tempdir"."bestblast.out";
+my $BHParsed="$tempdir"."bestblast.parsed";
 my $ReferenceName="RefParsed.txt";
 my $delim="---------------------------------------------------";
 my $DBFile;
@@ -124,6 +131,7 @@ $GenomeName=$GenomeName."Min".$MinLength."BH$NumBHits";
 
 if(defined $opt_k){#if the user desires to keep the blast and reference files
 	$BHName="$tempdir"."$GenomeName".".bh";
+	$BHParsed="$tempdir"."$GenomeName".".bh_parsed";
 	$ReferenceName=$GenomeName.".ref";
 	$opt_k="";#hack shutup perl warning
 }
@@ -286,7 +294,7 @@ foreach $FileName (@AminoFiles){#for each file in contents
 	}
 }#close the foreach loop
 
-$MergeCommand="$MergeCommand $BHName $tempdir$transeqout";
+$MergeCommand="$MergeCommand $BHName $tempdir$transeqout $BHParsed";
 $status=system("$MergeCommand");#run merge
 if ($status !=0){
 	die "unsuccessful merge\n";
@@ -295,16 +303,16 @@ chdir("$BinDir");
 
 
 
-unless (-e "$ResultDir$GenomeName" && -d "$ResultDir$GenomeName") { #check if the directory exists
-	$status = system("mkdir $ResultDir$GenomeName");
+unless (-e "$ResultDir$GenomeName$theTime" && -d "$ResultDir$GenomeName$theTime") { #check if the directory exists
+	$status = system("mkdir $ResultDir$GenomeName$theTime");
 	if ($status != 0){
-		print "Problem creating $GenomeName directory \n";
+		print "Problem creating $GenomeName$theTime directory \n";
 	}
 }# create the directory if it doesn't exist
 
-$ResultDir= "$ResultDir$GenomeName"."/";
+$ResultDir= "$ResultDir$GenomeName$theTime"."/";
 #-b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA,ND') \n"
-$OverlapCommand=$BinDir."/grc_overlap -b $BHName -o $GenomeName -g $GFile -m $MaxFile -t $transdir$TransFile -l $MinLength";
+$OverlapCommand=$BinDir."/grc_overlap -b $BHParsed -o $GenomeName -g $GFile -m $MaxFile -t $transdir$TransFile -l $MinLength";
 if($UseGO==1){
 	$OverlapCommand=$OverlapCommand." -y $OntFile";
 }

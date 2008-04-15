@@ -51,23 +51,24 @@ sub get_subject_id{
 
 my %Annotation =(); #hash to store annotation information
 my $NumParam=@ARGV;#get the number of parameters
-$NumParam=$NumParam-2;#subtract off output parameter
+$NumParam=$NumParam-3;#subtract off output parameter
 $TotalCount=0;
 print "Merging sequence and annotation files\n";
-my $blast_output=$ARGV[-2];
-my $orf_file=$ARGV[-1];
+my $blast_file=$ARGV[-3];
+my $orf_file=$ARGV[-2];
+my $out_file=$ARGV[-1];
 
 #rename blast output
-$status=system("mv -f $blast_output $blast_output".".orig");
-if($status !=0){
-	die "could not copy file in merge procedure. in danger of losing blast output\n";
-}
+#$status=system("mv -f $blast_file $blast_file".".orig");
+#if($status !=0){
+#	die "could not copy file in merge procedure. in danger of losing blast output\n";
+#}
 
-$blast_input="$blast_output".".orig";
+
 
 #read in blast input
-open ($blastfile, "< ".$blast_input) or die "Couldn't open blast output for parsing: $!\n";
-my @BlastLines=<$blastfile>;#get contents
+open ($blast_handle, "< ".$blast_file) or die "Couldn't open blast output for parsing: $!\n";
+my @BlastLines=<$blast_handle>;#get contents
 chomp(@BlastLines);
 
 #create hash table based on query id for blast results
@@ -295,7 +296,7 @@ if($TotalCount==0){#else annotation sequence file mismatch
 
 
 #open write to old blast filename
-open ($op_handle, "> ".$blast_output) or die "Couldn't open output file: $!\n";
+open ($op_handle, "> ".$out_file) or die "Couldn't open output file: $!\n";
 open ($orf_handle, "< ".$orf_file) or die "Couldn't open orfs file: $!\n";
 
 $count=0;

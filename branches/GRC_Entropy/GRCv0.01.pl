@@ -323,12 +323,12 @@ $elapsed = gettimeofday( ) - $start;
 $Minutes=$elapsed/60;
 print "Running time: $Minutes minutes\n";
 #Run GRC_compare:  for comparing output of the GRC to a reference file provided
-
+#"Usage: grc_compare -r [reference annotation] -p [grc results *.Pos] -n [grc results *.Neg] -k [knocklist] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -d (dumps stats to *.Pos.stats)\n"
 if(defined $opt_r){#if there is a reference file to compare to
 	print "grc_compare: comparing to reference file $opt_r\n";
-	$CompareCommand=$BinDir."/grc_compare $tempdir"."$ReferenceName $GenomeName".".Pos $GenomeName".".Neg ./KnockList.txt $MinLength";
+	$CompareCommand=$BinDir."/grc_compare -r $tempdir"."$ReferenceName -p $GenomeName".".Pos -n $GenomeName".".Neg -k ./KnockList.txt -l $MinLength";
 	if($UseGO==1){
-		$CompareCommand=$CompareCommand." $OntFile";
+		$CompareCommand=$CompareCommand." -y $OntFile";
 	}
 	$CompareCommand=$CompareCommand." >$GenomeName".".compare";
 	print "$CompareCommand\n";

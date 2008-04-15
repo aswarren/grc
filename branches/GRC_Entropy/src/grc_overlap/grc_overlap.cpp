@@ -25,7 +25,7 @@ using std::map;
 using std::pair;
 
 
-
+typedef map<string,string> SSMap;
 
 int DumpList(list<AARecord>& InitList);
 int DumpList(list<AARecord*>& InitList, string PosName, const int& GFMin);
@@ -37,36 +37,38 @@ void DisplayKO(ostream& Out, CompeteMap& KOMap, const int& GFMin);
 int RefreshRecords(list<AARecord>& RecordList, CalcPack& CP);
 int TrainEDP(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CalcPack& CP);
 int ProcessID(string& ID, long& Start, long& Stop, long& Offset);
-int GetBlastResults(const char* BlastFile, list<AARecord>& RecordList, map<string,AARecord*> & HitList, CalcPack& InfoPack);
-
+int GetBlastResults(const string BlastFile, list<AARecord>& RecordList, map<string,AARecord*> & HitList, CalcPack& InfoPack);
+SSMap ParseCommandLine(const int& ac, char* const av[]);
 
 
 
 //run as GRC_overlap 
 int main (int argc, char* argv[]) {   //  Main is open
 
-	if(argc<7){
-		cerr<<"Usage: grc_overlap [blast results file] [output name] [genome file] [blast matrix file] [translation tables file] [min. gene length] OPTIONAL [Gene Ontology file]\n";
+        SSMap Options;
+        Options=ParseCommandLine(argc, argv);
+	if(Options.size()==0){
+		cerr<<"Usage: grc_overlap -b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA,ND') \n";
 		return -1;
 	}
-	char* BlastFile = argv[1]; //get the name of the blast test results file
-	char* GenomeName= argv[2];//the name of the target genome
-	string GenomeFile= argv[3];//the name of the fna file
-	string Matrix=argv[4];//the matrix used for blast
-	string TransFile=argv[5];//file used for translating sequences in entropy calculations
+	string BlastFile = Options.find("-b")->second; //get the name of the blast test results file
+	string GenomeName= Options.find("-o")->second;//the name of the target genome
+	string GenomeFile= Options.find("-g")->second;//the name of the fna file
+	string Matrix=Options.find("-m")->second;//the matrix used for blast
+	string TransFile=Options.find("-t")->second;//file used for translating sequences in entropy calculations
 	string GOFile="none";
 	stringstream Convert;
 	int GFMinLength=300;
-	Convert<<argv[6];
+	Convert<<string(Options.find("-l")->second);
 	Convert>>GFMinLength;
 
-	if(argc==8){//if GO.obo specified
-		GOFile=argv[7];
+	if(Options.find("-y")!=Options.end()){//if GO.obo specified
+		GOFile=Options.find("-y")->second;
 	}
 
 
 	list<AARecord> RecordList;//storage for all of the records
-	RecordMap PositionMap; //the initial map	 for the aa records ordered by HighBase of the orf
+	RecordMap PositionMap; //the initial map for the aa records ordered by HighBase of the orf
 	//RecordMap::_Pairib MapIt;//for keeping track of insertions into the map
 
 	map<string,AARecord*> HitList; //the list of AARecord pointers to ORFs aka pGenes that have hits (hash by ID)
@@ -208,13 +210,65 @@ int main (int argc, char* argv[]) {   //  Main is open
 }
 
 
+/*Parses the command line and returns a dictionary of strings initializing each
+option-tag to its corresponding value
+cerr<<"Usage: grc_overlap -b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -l [min. gene length] OPTIONAL -b [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA,ND') \n";
+ */
+SSMap ParseCommandLine(const int& ac, char* const av[]){
+    SSMap Result;
+    SSMap::iterator MarkIt;
+    MarkIt=Result.end();
+    for(int t=1; t<ac; t++){
+        string Part=av[t];
+        //if it is an option-tag
+        if(Part[0]=='-'){
+            MarkIt=Result.insert(SSMap::value_type(Part, "")).first;
+        }
+        else if(MarkIt==Result.end()){
+            Result.clear();
+            return(Result);
+        }
+        else{
+            MarkIt->second=Part;
+        }
+    }
+    if(Result.size()==0){
+            return(Result);
+    }
+    if(Result.find("-b")==Result.end()){
+        cerr<<"Missing parameter -b\n";
+        Result.clear();
+    }
+    if(Result.find("-o")==Result.end()){
+        cerr<<"Missing parameter -o\n";
+        Result.clear();
+    }
+    if(Result.find("-g")==Result.end()){
+        cerr<<"Missing parameter -g\n";
+        Result.clear();
+    }
+    if(Result.find("-m")==Result.end()){
+        cerr<<"Missing parameter -m\n";
+        Result.clear();
+    }
+    if(Result.find("-t")==Result.end()){
+        cerr<<"Missing parameter -t\n";
+        Result.clear();
+    }
+    if(Result.find("-l")==Result.end()){
+        cerr<<"Missing parameter -l\n";
+        Result.clear();
+    }
+    return(Result);
+}
+
 //Reads in the BLAST results file and initializes:
 //RecordList stores Records of ORFs and their blast results
 //HitList hashes Pointers to those Records that have hits according to ORF ID.
 //This function uses InfoPack which contains the genomic sequence and other useful functions
-int GetBlastResults(const char* BlastFile, list<AARecord>& RecordList, map<string,AARecord*> & HitList, CalcPack& InfoPack){
+int GetBlastResults(string BlastFile, list<AARecord>& RecordList, map<string,AARecord*> & HitList, CalcPack& InfoPack){
 	ifstream BlastIn; //input for the blast results
-	BlastIn.open(BlastFile); //open the blast input
+	BlastIn.open(BlastFile.c_str()); //open the blast input
 
 	string OldID="none";
 	long OldQAS=-1;

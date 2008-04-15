@@ -227,24 +227,11 @@ public:
 	}
 
 	//this function calculates the score for this alignment/start pair
-	//this score is conditional probability (Bit/MaxBit=proximity of start to alignment=AX, Bit/HighScore=RelativePerformance=RP, StartScore=StartFrequency=SF)
-	//Bayes: AlignScore=Prob(Correct|SF,AX,RP)=alpha
-	//alpha/(1-alpha)=(SF/(1-SF))*(AX/(1-AX))*(RP/(1-RP))
+	//this score is the sum of the bit fraction, start codon frequency, and relative performance score.
 	int SetScore(const double& HighScore){
 		RP=Bit/HighScore;//relative performance to all other alignments
-		double RPDiv=1-RP;
-		double BFDiv=1-BitFrac;
-		double SSDiv=1-StartScore;
-		//NOTE: Criteria for most important Score factor is determined by setting the minimum for the divisor
-		//Currently from most to least important (1)Relative Performance (2)alignment proximity (3) start site frequency
-		if(RPDiv<=0.01){
-			RPDiv=.01;
-		}
-		if(BFDiv<=.1){
-			BFDiv=.1;
-		}
-		double Beta=(BitFrac/BFDiv)*(StartScore/(1-StartScore))*(RP/RPDiv);
-		AlignScore=(Beta/(1+Beta));//set align score to conditional probability
+		double Alpha=(BitFrac+StartScore+RP);
+		AlignScore=Alpha;//set align score to conditional probability
 		return 0;
 	}
 

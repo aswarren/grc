@@ -512,7 +512,6 @@
 		ifstream In2;//ofstream operator for reading in the genomic sequence
 		In2.open(GenomeFile.c_str());//open up the translated file
 		Reader.SetInput(&In2);
-		
 		string GenomeID;//for reading in the id
 		string Seq;//for reading in the sequence
 		string GenomeSeq="";//Initialize to empty string

@@ -303,10 +303,10 @@ unless (-e "$ResultDir$GenomeName" && -d "$ResultDir$GenomeName") { #check if th
 }# create the directory if it doesn't exist
 
 $ResultDir= "$ResultDir$GenomeName"."/";
-
-$OverlapCommand=$BinDir."/grc_overlap $BHName $GenomeName $GFile $MaxFile $transdir$TransFile $MinLength";
+#-b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA,ND') \n"
+$OverlapCommand=$BinDir."/grc_overlap -b $BHName -o $GenomeName -g $GFile -m $MaxFile -t $transdir$TransFile -l $MinLength";
 if($UseGO==1){
-	$OverlapCommand=$OverlapCommand." $OntFile";
+	$OverlapCommand=$OverlapCommand." -y $OntFile";
 }
 
 print "$OverlapCommand\n";

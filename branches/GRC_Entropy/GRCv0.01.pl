@@ -129,9 +129,19 @@ $GenomeName=(split(/\./, $GName))[0];
 $GenomeName=$GenomeName."Min".$MinLength."BH$NumBHits";
 
 
+unless (-e "$ResultDir$GenomeName$theTime" && -d "$ResultDir$GenomeName$theTime") { #check if the directory exists
+	$status = system("mkdir $ResultDir$GenomeName$theTime");
+	if ($status != 0){
+		print "Problem creating $GenomeName$theTime directory \n";
+	}
+}# create the directory if it doesn't exist
+
+$ResultDir= "$ResultDir$GenomeName$theTime"."/";
+
+
 if(defined $opt_k){#if the user desires to keep the blast and reference files
-	$BHName="$tempdir"."$GenomeName".".bh";
-	$BHParsed="$tempdir"."$GenomeName".".bh_parsed";
+	$BHName="$ResultDir"."$GenomeName".".bh";
+	$BHParsed="$ResultDir"."$GenomeName".".bh_parsed";
 	$ReferenceName=$GenomeName.".ref";
 	$opt_k="";#hack shutup perl warning
 }
@@ -302,15 +312,6 @@ if ($status !=0){
 chdir("$BinDir");
 
 
-
-unless (-e "$ResultDir$GenomeName$theTime" && -d "$ResultDir$GenomeName$theTime") { #check if the directory exists
-	$status = system("mkdir $ResultDir$GenomeName$theTime");
-	if ($status != 0){
-		print "Problem creating $GenomeName$theTime directory \n";
-	}
-}# create the directory if it doesn't exist
-
-$ResultDir= "$ResultDir$GenomeName$theTime"."/";
 #-b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA,ND') \n"
 $OverlapCommand=$BinDir."/grc_overlap -b $BHParsed -o $GenomeName -g $GFile -m $MaxFile -t $transdir$TransFile -l $MinLength";
 if($UseGO==1){

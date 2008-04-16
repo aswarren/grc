@@ -44,11 +44,12 @@ SSMap ParseCommandLine(const int& ac, char* const av[]);
 
 //run as GRC_overlap 
 int main (int argc, char* argv[]) {   //  Main is open
-
+        
+        bool ICAon=false;
         SSMap Options;
         Options=ParseCommandLine(argc, argv);
 	if(Options.size()==0){
-		cerr<<"Usage: grc_overlap -b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA,ND') \n";
+		cerr<<"Usage: grc_overlap -b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA,ND')  -c (create consensus annotations)\n";
 		return -1;
 	}
 	string BlastFile = Options.find("-b")->second; //get the name of the blast test results file
@@ -64,8 +65,10 @@ int main (int argc, char* argv[]) {   //  Main is open
 
 	if(Options.find("-y")!=Options.end()){//if GO.obo specified
 		GOFile=Options.find("-y")->second;
+                if(Options.find("-c")!=Options.end()){//if GO.obo specified
+                    ICAon=true;
+                }
 	}
-
 
 	list<AARecord> RecordList;//storage for all of the records
 	RecordMap PositionMap; //the initial map for the aa records ordered by HighBase of the orf
@@ -177,7 +180,9 @@ int main (int argc, char* argv[]) {   //  Main is open
 			if((*CountIt)->HasHit()){//if this orf has a hit
 				NumWinHits++;
 			}
-			(*CountIt)->GOAnalysis(InfoPack);//finalize GO annotations
+                        if(ICAon){
+                            (*CountIt)->GOAnalysis(InfoPack);//finalize GO annotations
+                        }
 		}
 	}
 

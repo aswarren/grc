@@ -431,6 +431,7 @@ public:
 		stringstream Breakup(Hit);//term for reading parts of the function
 		string Term;
 		FunctionMap::iterator FindIt;//iterator for finding go id in goterms map
+                FindIt=GOTerms.end();
 		StringSet EmptySet;//empty set for initializing in HitParsing
 		GOFunction* TermPtr=NULL;
 		bool ConfExist=false;//whether there is confidence info coming
@@ -458,11 +459,8 @@ public:
 					
 				FindIt=(GOTerms.insert(FunctionMap::value_type(TempID,(AnnotConf(EmptySet,0))))).first;//insert ID (only unique)
 			}//close go term
-			else if (GO::IsECode(Term)){//if its an evidence code
-				if(FindIt!=GOTerms.end()){
+			else if (GO::IsECode(Term) && FindIt!=GOTerms.end()){//if its an evidence code
 					FindIt->second.first.insert(Term);//insert evidence code
-				}
-		
 			}//close if evidence code
 			else if (!ConfExist){//else its a description Term
 				Description.push_back(Term);

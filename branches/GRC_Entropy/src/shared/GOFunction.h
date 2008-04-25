@@ -41,6 +41,7 @@ public:
 	int Distance;
 	int DistID;
 	vector<int> UseInstead;//vector for use_term id's
+        vector<int> ConsiderInstead;
 	int VisitNum;
 	int UpdateID;
 public:
@@ -102,6 +103,7 @@ public:
 		UseInstead=Source.UseInstead;
 		VisitNum=Source.VisitNum;
 		UpdateID=Source.UpdateID;
+                ConsiderInstead=Source.ConsiderInstead;
 	}//close def.
 
 	//assignment operator
@@ -127,6 +129,7 @@ public:
 			UseInstead=Source.UseInstead;
 			VisitNum=Source.VisitNum;
 			UpdateID=Source.UpdateID;
+                        ConsiderInstead=Source.ConsiderInstead;
 		}
 		return *this;
 	}//close definition

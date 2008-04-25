@@ -27,10 +27,11 @@ using std::ifstream;
 using std::istream;
 using std::stringstream;
 using std::list;
+using std::map;
 
-typedef std::map<GOFunction*,string,LessAncestor> ANCESTOR;//for storing ancestors of a given node
+typedef map<GOFunction*,string,LessAncestor> ANCESTOR;//for storing ancestors of a given node
 
-typedef std::map<int,int> ANCESTORID;//for storing the ID's of ancestors
+typedef map<int,int> ANCESTORID;//for storing the ID's of ancestors
 
 
 class GO{
@@ -51,7 +52,7 @@ private:
 	int GatherA(ANCESTOR* AP, GOFunction* Start, int Dist, const int& OrigID, const int& UpdateID);//recursive function for gathering ancestors
 	int AllAnCounter;//this counter is used in the all ancestors function to keep the origID variable the  same for a group of terms.
 	set<int> NotFound;//keep track of whether there has previously been a message about not finding a GO ID
-
+        set<string> UnknownTag;//keep track of whether the does not recognize a tag
 public:
 	
 	GO();//default constructor

@@ -5,6 +5,7 @@ use Cwd;
 use Cwd 'abs_path';
 use Time::HiRes qw(gettimeofday);
 
+#get a timestamp for creating the results directory
 @months = qw(1 2 3 4 5 6 7 8 9 10 11 12);
 ($second, $minute, $hour, $dayOfMonth, $month, $yearOffset, $dayOfWeek, $dayOfYear, $daylightSavings) = localtime();
 $year = 1900 + $yearOffset;
@@ -97,11 +98,11 @@ my $MaxFile="$blastdir"."Max".substr($Matrix,0,1).substr($Matrix,-2).".txt";
 
 
 #Use command line parameters -g genome.fasta and -d database.faa
-getopt('gdrkmh');# get and assign the command line parameters $opt_g $opt_d
+getopt('gdrkmyh');# get and assign the command line parameters $opt_g $opt_d
 
 
 unless (-e $opt_g && -e $opt_d) { #check for command line parameter existence
-	die "Either $opt_g or $opt_d does not exist\n";
+	die "Usage: GRCv0.01.pl -g <genome.fna> -d <DB_dir> -r <reference file> -k (keep blast results) -m <min. gene length> -y <GO.obo> -h <num hits to use>\n";
 }
 
 if(defined $opt_m){
@@ -110,6 +111,11 @@ if(defined $opt_m){
 
 if(defined $opt_h){
 	$NumBHits=$opt_h;
+}
+
+if(defined $opt_y){
+	$UseGO=1;
+	$OntFile=get_abspath("$opt_y"); #set absolute file name
 }
 
 
@@ -227,9 +233,7 @@ $DBFile=$MergeDB;#the database file is now the merged database
 
 
 if(defined $opt_r && -e $opt_r){#if there is a reference file to compare to
-	if($opt_r=~/goa$/i){#if it is a goa reference file
-		$UseGO=1;
-	}
+	
 	$RDir=get_dir("$opt_r");
 	#@RTerms=split(/\//, $RDir); #split the path for reference file
 	$RName=basename(abs_path(glob("$opt_r"))); #set the reference name

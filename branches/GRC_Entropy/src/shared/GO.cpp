@@ -118,6 +118,7 @@ int GO::ReadOBO(istream *In, const bool& MFunc, const bool& BProc, const bool& C
                         PHeads.push_back(CurrentFunc);
                         PHead->Depth=0;
                     }
+                    ExpandAltID(&(Storage.back())); //expand the alternate IDs into lookup table
                 }
                 else if(CurrentFunc->Category=="f" && MFBool){
                     Storage.push_back(CurrentFunc);
@@ -127,6 +128,7 @@ int GO::ReadOBO(istream *In, const bool& MFunc, const bool& BProc, const bool& C
                         FHeads.push_back(CurrentFunc);
                         FHead->Depth=0;
                     }
+                    ExpandAltID(&(Storage.back())); //expand the alternate IDs into lookup table
                 }
                 else if(CurrentFunc->Category=="c" && CCBool){
                     Storage.push_back(CurrentFunc);
@@ -136,6 +138,7 @@ int GO::ReadOBO(istream *In, const bool& MFunc, const bool& BProc, const bool& C
                         CHeads.push_back(CurrentFunc);
                         CHead->Depth=0;
                     }
+                    ExpandAltID(&(Storage.back())); //expand the alternate IDs into lookup table
                 }
                 else if(CurrentFunc !=NULL) {
                     delete CurrentFunc;
@@ -332,6 +335,17 @@ int GO::ReadOBO(istream *In, const bool& MFunc, const bool& BProc, const bool& C
     return 0;
 }//close def.
 
+//This function expands all the alternate IDs
+//so that they can be looked up
+int GO::ExpandAltID(GOFunction** CF){
+    vector <string> AltIDs= (*CF)->GetAltID();
+    for(vector<string>::iterator It= AltIDs.begin(); It!=AltIDs.end(); It++){
+        int NumID=StringToID(*It);
+        GOPoint.InsertKey(NumID, CF);//insert pointer into hash table
+    }
+    return 0;
+}
+
 
 //  Precondition, read in all GOFunctions to Storage
 //Right now this just initializes the pointers to the top node of each ontology
@@ -456,18 +470,27 @@ int GO::GatherA(ANCESTOR* AP, GOFunction* Start, int Dist, const int& OrigID, co
 //If no use_term ID exists then return pointer to obsolete function
 GOFunction* GO::Find(const int& FindMe){
     GOFunction** FindP=GOPoint.FindKey(FindMe);
+    string FindMeText = IDToString(FindMe);
     if(FindP!=NULL){
         if(!(*FindP)->Obsolete){//if the term is not obsolete
             return *FindP;
         }
         else if((*FindP)->UseInstead.size()>0){//else if there is a replacement term
             int Alternate=(*FindP)->UseInstead.at(0);
-            cerr<<"WARNING: "<<FindMe<<" is obsolete using "<<Alternate<<" instead\n";
+            string AlternateText=IDToString(Alternate);
+            if(UnknownTag.find(FindMeText)==UnknownTag.end()){
+                    cerr<<"WARNING: "<<FindMeText<<" has been replaced, using "<<AlternateText<<" instead\n";
+                    UnknownTag.insert(FindMeText);
+            }
             return Find(Alternate);//run Find on first term
         }
         else if((*FindP)->ConsiderInstead.size()>0){//else if there is a replacement term
-            int Alternate=(*FindP)->UseInstead.at(0);
-            cerr<<"WARNING: "<<FindMe<<" is obsolete and will not be used consider using "<<Alternate<<" instead\n";
+            int Alternate=(*FindP)->ConsiderInstead.at(0);
+            string AlternateText=IDToString(Alternate);
+            if(UnknownTag.find(FindMeText)==UnknownTag.end()){
+                    cerr<<"WARNING: "<<FindMeText<<" is obsolete and will not be used consider using "<<AlternateText<<" instead\n";
+                    UnknownTag.insert(FindMeText);
+            }
             return NULL;//run Find on first term
         }
         else return (*FindP);
@@ -524,7 +547,9 @@ bool GO::IsECode(const string & TempS){//open definition
     return (TempS=="IEA" || TempS=="IDA" || TempS=="IMP" || TempS=="IC"
             || TempS=="IEP" || TempS=="IGI" || TempS=="IPI" || TempS=="ISS"
             || TempS=="NAS" || TempS=="ND" || TempS=="RCA" || TempS=="TAS"
-            || TempS=="NR" || TempS=="IGC" || TempS=="ICA");//NOTE ICA stands for inferred by consensus annotation and is grc specific evidence code
+            || TempS=="NR" || TempS=="IGC" || TempS=="ICA" || TempS=="EXP"
+            || TempS=="ISO" || TempS == "ISA" || TempS == "ISM" ||
+            TempS =="IGC");//NOTE ICA stands for inferred by consensus annotation and is grc specific evidence code
 }
 
 

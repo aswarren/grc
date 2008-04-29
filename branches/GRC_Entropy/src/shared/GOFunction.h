@@ -133,6 +133,11 @@ public:
 		}
 		return *this;
 	}//close definition
+        
+        //This function returns a copy of the Alternate IDs for this Function
+        vector<string> GetAltID(){
+            return AltIDs;
+        }
 
 	//Function to update distance relative to descendant
 	//Also provides the functionality of a cycle check by updating visitnum

@@ -69,6 +69,7 @@ public:
 	static bool StringIsGO(const string& TempS);//returns whether string is a GO Term
 	static bool IsECode(const string& TempS);//returns bool string is evidence code
 	int GetAllAncestors(const int& GOID, ANCESTOR& Family);
+        int ExpandAltID(GOFunction** CF);
 	
 
 };//close prototype for GO

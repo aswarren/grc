@@ -5,6 +5,14 @@ use Cwd;
 use Cwd 'abs_path';
 use Time::HiRes qw(gettimeofday);
 
+#Use command line parameters -g genome.fasta and -d database.faa
+getopt('gdrkmyh');# get and assign the command line parameters $opt_g $opt_d
+
+
+unless (defined($opt_g) && defined($opt_d) && -e $opt_g && -e $opt_d) { #check for command line parameter existence
+	die "Usage: GRCv0.01.pl -g <genome.fna> -d <DB_dir> -r <reference file> -k (keep blast results) -m <min. gene length> -y <GO.obo> -h <num hits to use>\n";
+}
+
 #get a timestamp for creating the results directory
 @months = qw(1 2 3 4 5 6 7 8 9 10 11 12);
 ($second, $minute, $hour, $dayOfMonth, $month, $yearOffset, $dayOfWeek, $dayOfYear, $daylightSavings) = localtime();
@@ -97,13 +105,7 @@ my $MaxFile="$blastdir"."Max".substr($Matrix,0,1).substr($Matrix,-2).".txt";
 
 
 
-#Use command line parameters -g genome.fasta and -d database.faa
-getopt('gdrkmyh');# get and assign the command line parameters $opt_g $opt_d
 
-
-unless (-e $opt_g && -e $opt_d) { #check for command line parameter existence
-	die "Usage: GRCv0.01.pl -g <genome.fna> -d <DB_dir> -r <reference file> -k (keep blast results) -m <min. gene length> -y <GO.obo> -h <num hits to use>\n";
-}
 
 if(defined $opt_m){
 	$MinLength=$opt_m;

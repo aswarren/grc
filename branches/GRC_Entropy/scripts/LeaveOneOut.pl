@@ -6,12 +6,13 @@ use Cwd;
 #this script assumes that all files for an organism are named the same eg. a.faa a.ptt a.goa a.fasta. a.CP a.fna
 #this script also assumes you are running it from the scripts folder in GRC and specify the genome, reference and db folder relative to that
 #../DB/;../genomes/;../reference/;../DB/
-$MinSize=99;
+$MinSize=300;
 $BHits=10;
+$UseGO=0;
 
 my $MainScript = "../GRCv0.01.pl";
 my $CDir=getcwd;#get current working directory
-getopt('gdrmbs');# get and assign the command line parameters $opt_g $opt_d
+getopt('gdrmybs');# get and assign the command line parameters $opt_g $opt_d
 
 unless (-e $opt_g && -e $opt_d) { #check for command line parameter existence
 	die "Either $opt_g or $opt_d does not exist\n";
@@ -40,6 +41,10 @@ if(defined $opt_m){
 
 if(defined $opt_b){
     $BHits=$opt_b;
+}
+
+if(defined $opt_y){
+	$UseGO=1;
 }
 
 chdir("$opt_d");
@@ -106,6 +111,9 @@ foreach $Genome(@gcontentsort){#for each file in the genomes folder
 		}
 
 		$RunCommand="$MainScript -g $GenomeFolder"."/$Genome -d $DBFolder -m $MinSize -h $BHits -k $GenomeName";
+		if($UseGO==1){
+			$RunCommand=$RunCommand." -y $opt_y";
+		}
 		if(defined $opt_r){
 			$RunCommand=$RunCommand." -r $ReferenceFolder"."/$RefFileName >$GenomeName$MinSize$BHits".".TimeSize";
 		}

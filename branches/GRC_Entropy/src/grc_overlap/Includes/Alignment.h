@@ -31,6 +31,22 @@ using std::map;
 using std::list;
 using std::stringstream;
 
+string dtos(const double& target){
+    stringstream Convert;
+    string result="";
+    Convert<<target;
+    Convert>>result;
+    return result;
+}
+
+string ltos(const long& target){
+    stringstream Convert;
+    string result="";
+    Convert<<target;
+    Convert>>result;
+    return result;
+}
+
 class Alignment {//open prototype
 public:
 
@@ -317,10 +333,10 @@ public:
 	}
 
 
-	int DisplayInfo(std::ostream& Out){
-		Out<<Bit<<"\t";
-		Out<<EScore<<"\t";
-		return 0;
+	string ScoreInfo(){
+                string result="";
+		result=dtos(Bit)+"\t"+EScore+"\t";
+		return result;
 	}
 
 	//function for updating the EDR of the alignment

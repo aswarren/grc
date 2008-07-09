@@ -53,6 +53,7 @@ private:
 	int AllAnCounter;//this counter is used in the all ancestors function to keep the origID variable the  same for a group of terms.
 	set<int> NotFound;//keep track of whether there has previously been a message about not finding a GO ID
         set<string> UnknownTag;//keep track of whether the does not recognize a tag
+        bool WarnFound;
 public:
 	
 	GO();//default constructor
@@ -70,6 +71,7 @@ public:
 	static bool IsECode(const string& TempS);//returns bool string is evidence code
 	int GetAllAncestors(const int& GOID, ANCESTOR& Family);
         int ExpandAltID(GOFunction** CF);
+        int FindWarningOff();
 	
 
 };//close prototype for GO

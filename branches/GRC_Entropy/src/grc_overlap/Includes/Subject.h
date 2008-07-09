@@ -372,7 +372,7 @@ public:
     
     string SubjectInfo(){
         string result="";
-        result=HitGeneName+"\t"+HitSynonym+"\t"+HitID+"\t"+HitOrg+"\t";
+        result=HitID+"\t"+HitGeneName+"\t"+HitSynonym+"\t"+HitOrg+"\t";
         return result;
     }
     //Return the Information about this Subject and its representative alignment

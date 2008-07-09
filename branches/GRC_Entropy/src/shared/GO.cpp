@@ -9,7 +9,7 @@ GO::GO(){//default constructor
     MFBool=false;
     CCBool=false;
     AllAnCounter=-1;
-    
+    WarnFound=true;    
 }//close definition
 
 GO::GO(const GO& Source){//copy constructor
@@ -27,6 +27,7 @@ GO::GO(const GO& Source){//copy constructor
     AllAnCounter=Source.AllAnCounter;
     NotFound=Source.NotFound;
     UnknownTag=Source.UnknownTag;
+    WarnFound=Source.WarnFound;
 }
 
 GO& GO::operator =(const GO& Source){//assignment operator
@@ -45,6 +46,7 @@ GO& GO::operator =(const GO& Source){//assignment operator
         AllAnCounter=Source.AllAnCounter;
         NotFound=Source.NotFound;
         UnknownTag=Source.UnknownTag;
+        WarnFound=Source.WarnFound;
     }
     return *this;
 }//close definition
@@ -60,6 +62,11 @@ GO::~GO(){//default destructor
         delete (*i);
     }
     Storage.clear();
+}
+
+int GO::FindWarningOff(){
+    WarnFound=false;
+    return 0;
 }
 
 //ReadOBO is for parsing obo file and initializing the various ontologies
@@ -495,7 +502,7 @@ GOFunction* GO::Find(const int& FindMe){
         }
         else return (*FindP);
     }
-    else {
+    else if(WarnFound){
         if(NotFound.find(FindMe)==NotFound.end()){//if no error message for this ID
             cerr<<"WARNING: "<<FindMe<<" could not be found in the ontology.\n";
             NotFound.insert(FindMe);

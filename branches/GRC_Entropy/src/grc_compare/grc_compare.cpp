@@ -18,6 +18,7 @@
 #include "MatchStats.h"
 #include "DirectHash.h"
 using std::multimap;
+using std::vector;
 
 typedef map<string, string> SSMap;
 
@@ -25,6 +26,33 @@ struct OLapID{
     string ID1;
     string ID2;
 };
+//the variables in the *.Pos and *.Neg input
+struct RecVar{
+    string ID;
+    long Start;
+    long Stop;
+    double Entropy;
+    string DBID;
+    string DBOrg;
+    string GOString;
+    string Hit;
+    double Bit;
+    string ES;
+    long HLength;
+    double QPercent;
+    double HPercent;
+};
+
+long stol(const string& target){
+    stringstream TempSS;
+    TempSS<<target;
+    long result;
+    TempSS>>result;
+    return result;
+}
+
+
+
 int DumpList(list<Record>& InitList);
 int DumpList(list<Record*>& InitList);
 int Nulify(list<Record*>& InitList, list<Record*>& InitList2);
@@ -39,7 +67,8 @@ int CountGOStat(Match& TempM, int& GR, int& R, int& G, int& N, int& V);//update 
 int PrintCountDist(int Array[], int size, ostream& Out);//prints out array of values
 int PrintFracDist(double Array[], int size, ostream& Out);
 SSMap ParseCommandLine(const int& ac, char* const av[]);
-
+int SetColumnKeys(vector<string>& PositionKey, map<string, string>& VariableKey, const char& Separator, const string& HeaderLine);//Figures out the order that columns are in for *.Pos and *.Neg
+int ReadVariables(RecVar& TempVar, vector<string>& PositionKey, map<string, string> VariableKey, const char& Separator, const string& CurrentLine);
 //run as GRC_compare
 int main(int argc, char* argv[]) {   //  Main is open
     
@@ -51,7 +80,11 @@ int main(int argc, char* argv[]) {   //  Main is open
     int GFMinLength=300; //the minimum gene finding length
     stringstream Convert;//for converting command line parameters
     bool DumpStats=false;
+    vector<string> PositionKey;//for allocating array that stores position of values in input
+    map<string, string> VariableKey;
+    const char Separator='\t';
     
+            
     SSMap Options;
     Options=ParseCommandLine(argc, argv);
     if(Options.size()==0){
@@ -158,53 +191,26 @@ int main(int argc, char* argv[]) {   //  Main is open
     
     
     //cout<<"Have Read in Refernce\n";
-    getline(In2, Skip);//skip the header line
-    
-    while (In2){//read in the GRC input file
-        string Hit;
-        ID=ES="nothing";
-        Stop=Start=Length=ALength=0;
-        Entropy=Bit=QPercent=HPercent=0;
-        //In2>>Tag;
+    getline(In2,Skip);
+    SetColumnKeys(PositionKey, VariableKey, Separator, Skip);
+    RecVar TempVar;//struct for reading in variables
+    string CurrentLine="";
+    while (getline(In2, CurrentLine)){//read in the GRC input file
+        ReadVariables(TempVar,PositionKey,VariableKey,Separator,CurrentLine);
         
-        In2>>ID; //read in id
-        In2>>Start; //read in start
-        In2>>Stop; //read in stop
-        In2>>Tag; //read in length
-        In2>>Tag; //read in orientation
-        In2 >>Entropy;//Read in the entropy distance ratio dist(PosEntropy)/dist(NegEntropy)
-        In2>>Tag; //gene name
-        
-        
-        if(Tag=="No_hits"){//no hit
-            getline(In2, Hit, '\n');
-            PositiveList.push_back(Record(ID, Start, Stop, Tag, Entropy, false)); //add a no-hit record
+        if(TempVar.DBID=="No_hits"){//no hit
+            PositiveList.push_back(Record(TempVar.ID, TempVar.Start, TempVar.Stop, TempVar.DBID, TempVar.Entropy, false)); //add a no-hit record
             PosList.push_back(&(PositiveList.back()));//add pointer to the record
         }//end of no hit
         
         else {
-            In2>>Tag; //gene synonym
-            In2>>Tag;//read in description first term
-            getline(In2, Hit, '\t');//read function
-            Hit=Tag+Hit;//concatenate back together
-            
-            In2>>DBID; //read in the DBID
-            In2>>DBOrg; //DB organism
-            In2>>Bit; //read in bit score
-            In2>>ES; //read in the escore
-            In2>>Length;//read in HSP length
-            In2>>QPercent;
-            In2>>HPercent; //read in hsp percent
-            
-            PositiveList.push_back(Record(ID, Start, Stop, Hit, Entropy, false, GOAccess, Bit, ES, Length, QPercent, HPercent, DBID, DBOrg)); //add a hit record
+            PositiveList.push_back(Record(TempVar.ID, TempVar.Start, TempVar.Stop, TempVar.GOString+" "+TempVar.Hit, TempVar.Entropy, false, GOAccess, TempVar.Bit, TempVar.ES, TempVar.HLength, TempVar.QPercent, TempVar.HPercent, TempVar.DBID, TempVar.DBOrg)); //add a hit record
             PosList.push_back(&(PositiveList.back()));//add pointer to the record
         }
         //add a pointer to hash table that uses ID to generate key
-        unsigned int Position = IDHash.HashingKey(ID);
+        unsigned int Position = IDHash.HashingKey(TempVar.ID);
         IDHash.InsertKey(Position, &(PositiveList.back()));
-        //if (StopError==20000){
-        //	cout<<"20000\n";
-        //}
+        CurrentLine="";
     }//close while loop for second input
     
     In2.close();
@@ -214,50 +220,23 @@ int main(int argc, char* argv[]) {   //  Main is open
     //cout<<"Have Read In Positives\n";
     getline(In3, Skip);//skip the header line
     
-    while (In3){//read in the Negatives input file
-        string Hit;
-        ID=ES="nothing";
-        Stop=Start=Length=ALength=0;
-        Entropy=Bit=QPercent=HPercent=0;
-        
-        
-        In3>>ID; //read in id
-        In3>>Start; //read in start
-        In3>>Stop; //read in stop
-        In3>>Tag; //read in length
-        In3>>Tag; //read in orientation
-        In3 >>Entropy;//Read in the entropy distance ratio dist(PosEntropy)/dist(NegEntropy)
-        In3>>Tag; //gene name
-        
-        
-        
-        
-        if(Tag=="No_hits"){//no hit
-            getline(In3, Hit, '\n');
-            NegativeList.push_back(Record(ID, Start, Stop, Tag, Entropy, false)); //add a hit record
+    while (getline(In3, CurrentLine)){//read in the Negatives input file
+        ReadVariables(TempVar,PositionKey,VariableKey,Separator,CurrentLine);
+
+        if(TempVar.DBID=="No_hits"){//no hit
+            NegativeList.push_back(Record(TempVar.ID, TempVar.Start, TempVar.Stop, TempVar.DBID, TempVar.Entropy, false)); //add a hit record
             NegList.push_back(&(NegativeList.back()));//add pointer to the record
-            unsigned int Position = IDHash.HashingKey(ID);
+            unsigned int Position = IDHash.HashingKey(TempVar.ID);
             IDHash.InsertKey(Position, &(NegativeList.back()));
         }//end of no hit
         
         else {
-            In3>>Tag; //gene synonym
-            In3>>Tag;
-            getline(In3, Hit, '\t');
-            Hit=Tag+Hit;//concatenate back together
-            
-            In3>>DBID; //read in the DBID
-            In3>>DBOrg; //DB organism
-            In3>>Bit; //read in bit score
-            In3>>ES; //read in the escore
-            In3>>Length;//read in HSP length
-            In3>>QPercent;
-            In3>>HPercent; //read in hsp percent
-            NegativeList.push_back(Record(ID, Start, Stop, Hit, Entropy, false, NULL, Bit, ES, Length, QPercent, HPercent, DBID, DBOrg)); //add a hit record
+            NegativeList.push_back(Record(TempVar.ID, TempVar.Start, TempVar.Stop, TempVar.Hit, TempVar.Entropy, false, NULL, TempVar.Bit, TempVar.ES, TempVar.HLength, TempVar.QPercent, TempVar.HPercent, TempVar.DBID, TempVar.DBOrg)); //add a hit record
             NegList.push_back(&(NegativeList.back()));//add pointer to the record
-            unsigned int Position = IDHash.HashingKey(ID);
+            unsigned int Position = IDHash.HashingKey(TempVar.ID);
             IDHash.InsertKey(Position, &(NegativeList.back()));
         }
+        CurrentLine="";
     }//close while loop for negatives input
     
     //cout<<"have read in negatives\n";
@@ -404,8 +383,6 @@ int main(int argc, char* argv[]) {   //  Main is open
     //DumpList(orfRefList);
     //PrintCompare(CompareList, WinList);
     Nulify(RefList, PosList);
-    
-    
     
     return 0;
 }
@@ -1609,6 +1586,127 @@ int CountGOStat(Match& TempM, int& GR, int& R, int& G, int& N, int& V){//open de
     return 0;
 }//close def.
 
+//This function provides a mapping of the column names to variable names so that
+//if the order of the input columns changes it will handle it automatically
+//This is the function to change if the column header names change.
+int SetColumnKeys(vector<string> &PositionKey, map<string, string>& VariableKey, const char& Separator,const string& HeaderLine){
+    stringstream HeaderSS;
+    HeaderSS<<HeaderLine;
+    string Temp;
+    while(getline(HeaderSS, Temp, Separator)){
+        PositionKey.push_back(Temp);
+    }
+    if(PositionKey.size()<=0){
+        cerr<<"Error parsing command line for grc_compare";
+        exit(-1);
+    }
+
+    //ID\tStart\tStop\tLength(nt)\tStrand\tEDR\tDBID1\tDBID2\tDBID3\tDBOrg\tGOTerms(Conf)\tDescription(Conf)\tBit\tEScore\tHitLength\t%QueryAligned\t%HSPAligned\n";
+    //set mapping from column names to variable names format map<ColName, VarName>
+    VariableKey.insert(map<string,string>::value_type("ID", "ID"));
+    VariableKey.insert(map<string,string>::value_type("Start", "Start"));
+    VariableKey.insert(map<string,string>::value_type("Stop", "Stop"));
+    VariableKey.insert(map<string,string>::value_type("Length(nt)", "Nothing"));
+    VariableKey.insert(map<string,string>::value_type("Strand", "Nothing"));
+    VariableKey.insert(map<string,string>::value_type("EDR", "Entropy"));
+    VariableKey.insert(map<string,string>::value_type("DBID1", "DBID"));
+    VariableKey.insert(map<string,string>::value_type("DBID2", "Nothing"));
+    VariableKey.insert(map<string,string>::value_type("DBID3", "Nothing"));
+    VariableKey.insert(map<string,string>::value_type("DBOrg", "DBOrg"));
+    VariableKey.insert(map<string,string>::value_type("GOTerms(Conf)", "GOString"));
+    VariableKey.insert(map<string,string>::value_type("Description(Conf)", "Hit"));
+    VariableKey.insert(map<string,string>::value_type("Bit", "Bit"));
+    VariableKey.insert(map<string,string>::value_type("EScore", "ES"));
+    VariableKey.insert(map<string,string>::value_type("HitLength", "HLength"));
+    VariableKey.insert(map<string,string>::value_type("%QueryAligned", "QPercent"));
+    VariableKey.insert(map<string,string>::value_type("%HSPAligned", "HPercent"));
+    return 0;
+}
+
+//This function takes a line of *.Pos or *.Neg input and parses it assigning it to the appropriate variables
+int ReadVariables(RecVar& TempVar, vector<string>& PositionKey, map<string, string> VariableKey, const char& Separator, const string& CurrentLine){
+    //set default values
+    string blank="-";
+    TempVar.ID=blank;
+    TempVar.Start=0;
+    TempVar.Stop=0;
+    TempVar.Entropy=0;
+    TempVar.DBID=blank;
+    TempVar.DBOrg=blank;
+    TempVar.GOString=blank;
+    TempVar.Hit=blank;
+    TempVar.Bit=0;
+    TempVar.ES=blank;
+    TempVar.HLength=0;
+    TempVar.QPercent=0;
+    TempVar.HPercent=0;
+    stringstream TempSS;
+    string ReadStr="";
+    TempSS<<CurrentLine;
+    int position=0;
+    map<string,string>::iterator FindIt=VariableKey.end();
+    
+    
+    while(getline(TempSS, ReadStr, Separator)){
+        if(position >=PositionKey.size()){
+            cerr<<"Error parsing *.Pos or *.Neg: number of headers does not match number of columns\n";
+            exit(-1);
+        }
+        FindIt=VariableKey.find(PositionKey.at(position));
+        if(FindIt!=VariableKey.end() && ReadStr!=blank){
+            if(FindIt->second=="ID"){
+                TempVar.ID=ReadStr;
+            }
+            else if (FindIt->second=="Start"){
+                TempVar.Start=stol(ReadStr);
+            }
+            else if (FindIt->second=="Stop"){
+                TempVar.Stop=stol(ReadStr);
+            }
+            else if (FindIt->second=="Entropy"){
+                TempVar.Entropy= stod(ReadStr);
+            }
+            else if (FindIt->second=="DBID"){
+                TempVar.DBID=ReadStr;                
+            }
+            else if (FindIt->second=="DBOrg"){
+                TempVar.DBOrg=ReadStr;
+            }
+            else if (FindIt->second=="GOString"){
+                TempVar.GOString=ReadStr;
+            }
+            else if (FindIt->second=="Hit"){
+                TempVar.Hit=ReadStr;
+            }
+            else if (FindIt->second=="Bit"){
+                TempVar.Bit=stod(ReadStr);
+            }
+            else if (FindIt->second=="ES"){
+                TempVar.ES=ReadStr;
+            }
+            else if (FindIt->second=="HLength"){
+                TempVar.HLength=stol(ReadStr);
+            }
+            else if (FindIt->second=="QPercent"){
+                TempVar.QPercent=stod(ReadStr);
+            }
+            else if (FindIt->second=="HPercent"){
+                TempVar.HPercent=stod(ReadStr);
+            }
+        }
+        else if(FindIt==VariableKey.end()){
+            cerr<<"Error parsing *.Pos or *.Neg "<<PositionKey[position]<<" not found\n";
+            exit(-1);
+        }
+        position++;
+    }
+    
+    if(position<PositionKey.size()){
+        cerr<<"Not enough columns to match header for ID "<<TempVar.ID<<" Headers:"<<PositionKey.size()<<" Columns:"<<position<<"\n";
+        exit(-1);
+    }
+    return 0;
+}
 
 
 

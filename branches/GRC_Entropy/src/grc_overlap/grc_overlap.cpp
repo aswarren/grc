@@ -32,7 +32,6 @@ int DumpList(list<AARecord*>& InitList, string PosName, const int& GFMin);
 int Nulify(list<AARecord*>& InitList, list<AARecord*>& InitList2);
 int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CompeteMap& KOMap);
 int EntropyFilter(list<AARecord>& RecordList, list<AARecord*>& LoserList, CompeteMap& KOMap, const double& EntCutoff, const double& BitCutoff);//removes orfs that are "winners" that have high entropy
-int PrintLosers(list<AARecord*>& InitList, string NegName, const int& GFMin);
 void DisplayKO(ostream& Out, CompeteMap& KOMap, const int& GFMin);
 int RefreshRecords(list<AARecord>& RecordList, CalcPack& CP);
 int TrainEDP(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CalcPack& CP);
@@ -67,9 +66,26 @@ int main(int argc, char* argv[]) {   //  Main is open
     
     if(Options.find("-y")!=Options.end()){//if GO.obo specified
         GOFile=Options.find("-y")->second;
+        bool MFunc, BProc, CComp;
+        MFunc=BProc=CComp=true;
+        SSMap::iterator GOit=Options.find("-a");
+        if(GOit!=Options.end()){
+            Ontology.FindWarningOff();
+            MFunc=BProc=CComp=false;
+            string aOptions=GOit->second;
+            if(aOptions.find("m",0)!=string::npos){
+                MFunc=true;
+            }
+            if(aOptions.find("b",0)!=string::npos){
+                BProc=true;
+            }
+            if(aOptions.find("c",0)!=string::npos){
+                CComp=true;
+            }
+        }
         ifstream GOIn;
         GOIn.open(GOFile.c_str());
-        Ontology.ReadOBO(&GOIn, true, true, true);
+        Ontology.ReadOBO(&GOIn, MFunc, BProc, CComp);
         GOIn.close();
         InfoPack.SetGOAccess(&Ontology);//set go access pointer
         if(Options.find("-c")!=Options.end()){//if GO.obo specified
@@ -204,7 +220,7 @@ int main(int argc, char* argv[]) {   //  Main is open
     
     DumpList(WinnerList, Positives, GFMinLength);
     //DumpList(InitList);
-    PrintLosers(LoserList, Negatives, GFMinLength);
+    DumpList(LoserList, Negatives, GFMinLength);
     
     Nulify(WinnerList, LoserList);
     
@@ -568,39 +584,7 @@ int DumpList(list<AARecord*>& InitList, string PosName, const int& GFMin){//open
 }
 
 
-//function to print the comparisons that have been made
-int PrintLosers(list<AARecord*>& InitList, string NegName, const int& GFMin){//open definition
-    ofstream Out;
-    Out.open(NegName.c_str());
-    int count=0; //for printing delimeters for pair
-    //list<compete>::iterator It2 =TR.begin();
-    Out<<"ID\tStart\tStop\tLength(nt)\tStrand\tEDR\tDBFunc.\tDBID\t DBOrg\tBit\tEScore\tHitLength\t%QueryAligned\t%HSPAligned\n";
-    for (list<AARecord*>::iterator It1 =InitList.begin(); It1!=InitList.end(); It1++ ){
-        if((*It1)->ReportLength()>=GFMin){
-            Out<<*It1;
-        }
-        /*switch(*It2){//depending on win loss print appropriate message
-         * case WIN:
-         * Out<<"Winner:\t";
-         * break;
-         * case LOSE:
-         * Out<<"Loser:\t";
-         * break;
-         * case TIE:
-         * Out<<"Tie:\t";
-         * break;
-         * default: break;
-         * }
-         */
-        //Out<<(**It1);//print out the Records
-        
-        
-        //It2++; //increment win lose list iterator
-        count++; //increment print +++ delimeter counter
-    }
-    Out.close();
-    return 0;
-}
+
 
 /*std::ostream& operator<<(std::ostream& ACOut, const AARecord& AC){
  * ACOut<<"PPCG**"<<"\n";
@@ -683,8 +667,9 @@ std::ostream& operator<<(std::ostream& ChkOut, AARecord* AC){
         ChkOut<<"-\t";//EScore
         ChkOut<<"-\t";//HLength
         ChkOut<<"-\t";//% Query aligned
-        ChkOut<<"-\n";//%Subject aligned
+        ChkOut<<"-";//%Subject aligned
     }
+    ChkOut<<"\n";
     //ChkOut<<"Blank:     "<<AC.Blank<<"\n";
     //ChkOut<<"OLength:   "<<AC.QLength<<"\n";
     //ChkOut<<"**PPCG"<<"\n";

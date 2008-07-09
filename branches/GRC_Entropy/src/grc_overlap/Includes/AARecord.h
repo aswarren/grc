@@ -1076,7 +1076,7 @@ public:
                         ConsensusConfidence= (*SIt)->ReportTopBitFrac();
                     }
                 }
-                Out<<GO::IDToString(It->first->ReportID())<<"("<<ConsensusConfidence<<" ICA) ";//these are all infered by consensus annotation
+                Out<<GO::IDToString(It->first->ReportID())<<" ("<<ConsensusConfidence<<" ICA) ";//these are all infered by consensus annotation
             }
             
             //If an obo file is provided then term verification and updating
@@ -1085,11 +1085,14 @@ public:
                 string ECode="";
                 ECode=CurrentRep->GetECode(It->first->ReportID());
                 if(ECode!="noGO"){
-                    Out<<GO::IDToString(It->first->ReportID())<<"("<<CurrentRep->ReportTopBitFrac()<<ECode<<")";
+                    Out<<GO::IDToString(It->first->ReportID())<<" ("<<CurrentRep->ReportTopBitFrac()<<ECode<<") ";
                 }
             }
-            
-            Out<<CurrentRep->AlignInfo();
+            //if there are no recognized GO terms
+            if(GOTerms.size()==0){
+                Out<<"-";
+            }            
+            Out<<"\t"<<CurrentRep->AlignInfo();
             
             
         }

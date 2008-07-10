@@ -38,7 +38,7 @@ int TrainEDP(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CalcPack& 
 int ProcessID(string& ID, long& Start, long& Stop, long& Offset);
 int GetBlastResults(const string BlastFile, list<AARecord>& RecordList, map<string, AARecord*> & HitList, CalcPack& InfoPack);
 SSMap ParseCommandLine(const int& ac, char* const av[]);
-
+int SetEFilter(StringSet& ECodeFilter, const string& ECodeTxt);
 
 
 //run as GRC_overlap
@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {   //  Main is open
     SSMap Options;
     Options=ParseCommandLine(argc, argv);
     if(Options.size()==0){
-        cerr<<"Usage: grc_overlap -b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA,ND')  -c (create consensus annotations)\n";
+        cerr<<"Usage: grc_overlap -b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA ND')  -c (create consensus annotations) -d [minimum depth of GO term]\n";
         return -1;
     }
     string BlastFile = Options.find("-b")->second; //get the name of the blast test results file
@@ -63,6 +63,8 @@ int main(int argc, char* argv[]) {   //  Main is open
     Convert>>GFMinLength;
     GO Ontology;//ontology object for storing Gene Ontology
     CalcPack InfoPack(Matrix, GenomeFile, TransFile);//create information package
+    StringSet ECodeFilter;
+    int MinDepth=-1;//minimum depth for GO term filtering
     
     if(Options.find("-y")!=Options.end()){//if GO.obo specified
         GOFile=Options.find("-y")->second;
@@ -82,6 +84,14 @@ int main(int argc, char* argv[]) {   //  Main is open
             if(aOptions.find("c",0)!=string::npos){
                 CComp=true;
             }
+        }
+        GOit=Options.find("-f");
+        if(GOit!=Options.end()){//if there is a filter option
+            SetEFilter(ECodeFilter, GOit->second);
+        }
+        GOit=Options.find("-d");
+        if(GOit!=Options.end()){
+            MinDepth=stoi(GOit->second);
         }
         ifstream GOIn;
         GOIn.open(GOFile.c_str());
@@ -198,7 +208,7 @@ int main(int argc, char* argv[]) {   //  Main is open
     int NumWinHits=0;
     if(InfoPack.GOAccess!=NULL){
         for (list<AARecord*>::iterator CountIt =WinnerList.begin(); CountIt!=WinnerList.end(); CountIt++ ){
-            (*CountIt)->BuildGOTerms(InfoPack);//post process all GO information
+            (*CountIt)->BuildGOTerms(InfoPack, ECodeFilter, MinDepth);//post process all GO information
             if(ICAon){
                 (*CountIt)->GOAnalysis(InfoPack);//finalize GO annotations
             }
@@ -251,8 +261,11 @@ SSMap ParseCommandLine(const int& ac, char* const av[]){
             Result.clear();
             return(Result);
         }
-        else{
+        else if(MarkIt->second.size()==0){
             MarkIt->second=Part;
+        }
+        else{
+            MarkIt->second+=" "+Part;
         }
     }
     if(Result.size()==0){
@@ -777,6 +790,23 @@ int ProcessID(string& ID, long& Start, long& Stop, long& Offset){
     return 0;
 }
 
+//Parses ECodes from the command line into a set
+//and makes sure GRC recognizes it.
+int SetEFilter(StringSet& ECodeFilter, const string& ECodeTxt){
+    stringstream ReadSS;
+    ReadSS<<ECodeTxt;
+    string TempS="";
+    while(ReadSS>>TempS){
+        if(GO::IsECode(TempS)){
+            ECodeFilter.insert(TempS);
+        }
+        else{
+            cerr<<"GRC does not recognize Ecode "<<TempS<<". if this is valid"\
+                    <<" you may want to add it to GO.cpp::IsECode and recompile.";
+        }
+    }
+    return 0;
+}
 
 
 

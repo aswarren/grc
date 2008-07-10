@@ -443,6 +443,7 @@ int GO::GetAllAncestors(const int& GOID, ANCESTOR& Family){
 //recursive function that gathers ancestors into the ANCESTOR map
 //Uses Start Function Pointer to gather parent pointers into ANCESTOR map
 //and then calls GatherA on each Parent
+//REQUIRES THAT THE starting function be initialized using UpdateDist
 int GO::GatherA(ANCESTOR* AP, GOFunction* Start, int Dist, const int& OrigID, const int& UpdateID){
     int MaxD=0;
     if(Start->Parents.size()==0){
@@ -519,6 +520,19 @@ GOFunction* GO::Find(const string& ToFind){
     Convert.ignore(80, ':');
     Convert>>TempID;
     return Find(TempID);
+}
+
+//This function finds the minimum depth of the term
+//if it is not already initialized
+GOFunction* GO::Find_and_Depth(const int& FindMe){
+    GOFunction* Finder=Find(FindMe);
+    
+    if(Finder!=NULL && Finder->Depth==-1){
+        ANCESTOR Family;
+        Finder->UpdateDist(0, FindMe, FindMe);
+        GatherA(&Family, Finder, 0, FindMe, FindMe);
+    }
+    return Finder;
 }
 
 //This function returns the integer verion of the GO ID string

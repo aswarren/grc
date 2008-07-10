@@ -47,6 +47,14 @@ string ltos(const long& target){
     return result;
 }
 
+int stoi(const string& target){
+    stringstream Convert;
+    int result;
+    Convert<<target;
+    Convert>>result;
+    return result;
+}
+
 class Alignment {//open prototype
 public:
 

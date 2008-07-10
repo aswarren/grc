@@ -72,6 +72,7 @@ public:
 	int GetAllAncestors(const int& GOID, ANCESTOR& Family);
         int ExpandAltID(GOFunction** CF);
         int FindWarningOff();
+        GOFunction* Find_and_Depth(const int& FindMe);//reports the minimum depth of a term
 	
 
 };//close prototype for GO

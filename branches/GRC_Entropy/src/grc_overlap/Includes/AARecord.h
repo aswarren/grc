@@ -522,8 +522,10 @@ public:
     
     
     //Function to build inverted index of functions with pointers to the subjects from which
-    //they come
-    int BuildGOTerms(CalcPack& CP){
+    //they come. builds the index based on filtering if enabled
+    //MinDepth of -1 for no MinDepth filtering
+    int BuildGOTerms(CalcPack& CP, StringSet& ECodeFilter, const int MinDepth){
+        bool Filter=false;//switch for depth filtering
         if(!Blank){
             vector<int> TempIDs;
             FuncToSubject::iterator FindIt;
@@ -531,11 +533,23 @@ public:
             for(list<Subject>::iterator It= PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
                 //if the Subject has been annotated with GO terms
                 if(It->ReportGO()){
-                    It->GOContent(TempIDs);//get go ids
+                    It->GOContent(TempIDs, ECodeFilter);//get go ids
                     //for each go id
                     for(vector<int>::iterator BuildIt=TempIDs.begin(); BuildIt!= TempIDs.end();BuildIt++){
-                        GOFunction* TempFunc=CP.GOAccess->Find(*BuildIt);//get pointer to go function
-                        if(TempFunc!=NULL){//if it exists in the GO ontology
+                        GOFunction* TempFunc=NULL;
+                        if(MinDepth>-1){
+                            TempFunc=CP.GOAccess->Find_and_Depth(*BuildIt);//get pointer to go function
+                            if (TempFunc!=NULL && TempFunc->ReportDepth()>=MinDepth){
+                                Filter=false;
+                            }
+                            else{Filter=true;}
+                        }
+                        else{
+                            TempFunc=CP.GOAccess->Find(*BuildIt);
+                            if(TempFunc!=NULL){Filter=false;}
+                            else{Filter=true;}
+                        }
+                        if(!Filter){//if it exists in the GO ontology and not filtered
                             //check for previous existence
                             FindIt=GOTerms.find(TempFunc);
                             //if exists add subject pointer

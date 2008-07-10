@@ -362,10 +362,19 @@ public:
         return 0;
     }
     
-    //Return GO Terms
-    int GOContent(vector<int>& TermIDs){
+    
+    
+    //Return GO Terms and filters based on Ecodes if enabled
+    int GOContent(vector<int>& TermIDs, StringSet& ECodeFilter){
         for(FunctionMap::iterator It=GOTerms.begin(); It!=GOTerms.end(); It++){
-            TermIDs.push_back(It->first);
+            int initialsize=It->second.size();
+            for(StringSet::iterator FIt=ECodeFilter.begin(); FIt!=ECodeFilter.end(); FIt++){
+                It->second.erase(*FIt);//remove filtered ECodes
+            }
+            //if there are still ECodes OR if there were no ECodes to filter add the term
+            if(It->second.size()>0 || initialsize==0){
+                TermIDs.push_back(It->first);                
+            }
         }
         return 0;
     }

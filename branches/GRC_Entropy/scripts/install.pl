@@ -27,15 +27,15 @@ if ($status != 0){
 }
 
 
-print "compiling grc_overlap\n";
-chdir("../grc_overlap/");
+print "compiling grc_annotate\n";
+chdir("../grc_annotate/");
 $status = system("make clean");
 $status = $status + system("make");
-$status = $status + system("cp ./grc_overlap ../../");
+$status = $status + system("cp ./grc_annotate ../../");
 
 
 if ($status != 0){
-	die "grc_overlap did not compile successfully";
+	die "grc_annotate did not compile successfully";
 }
 
 

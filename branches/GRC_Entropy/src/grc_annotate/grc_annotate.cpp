@@ -174,7 +174,7 @@ int main(int argc, char* argv[]) {   //  Main is open
     
     //Calculate the std deviation
     double Variance=0;
-    for (list<AARecord*>::iterator EntIt =WinnerList.begin(); EntIt!=WinnerList.end(); EntIt++ ){
+    for (list<AARecord*>::iterator EntIt =TrainingWinners.begin(); EntIt!=TrainingWinners.end(); EntIt++ ){
         //if((*EntIt)->HasHit() && (*EntIt)->ReportBitFrac()>ConservCutoff){//if this orf has a hit
         double Diff=(*EntIt)->ReportEntropy()-AvgEntropy;//get difference between mean and current
         Variance+=(Diff*Diff);//square the difference of mean and current and add to total variance
@@ -183,8 +183,8 @@ int main(int argc, char* argv[]) {   //  Main is open
     double EntropyDev=sqrt((Variance/double(NumForAvg)));//calculate std deviation
     double EDRCutoff=1.0;
     //if for some reason the EDRCutoff is too lenient
-    //that 1.1 is < Avg+2*Std Dev.
-    if(EDRCutoff<AvgEntropy+(2*EntropyDev)){
+    //that 1.0 is > Avg+2*Std Dev.
+    if(EDRCutoff>AvgEntropy+(2*EntropyDev)){
         EDRCutoff=AvgEntropy+(2*EntropyDev);
     }
     double ConservCutoff=.50;//Bit fraction cutoff for being evaluated by entropy Bit/MaxBit

@@ -464,13 +464,13 @@
 	//This function is intended to give a likelihood of correctness relative to other starts
 	double CalcPack::CalcSS(const string& Codon){//open definition
 		if (Codon=="atg"||Codon=="cat"){
-			return (.77);
+			return (.858);
 		}
 		else if (Codon=="gtg"||Codon=="cac"){
-			return (.14);
+			return (.079);
 		}
 		else if (Codon=="ttg"||Codon=="caa"){
-			return (.08);
+			return (.063);
 		}
 		return .08;
 	}

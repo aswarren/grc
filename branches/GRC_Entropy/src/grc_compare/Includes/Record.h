@@ -445,7 +445,7 @@ public:
         bool ConfExist=false;//whether there is confidence info coming
         bool ConfEligible=false;
         double Confidence=0;
-        
+
         while (Breakup>>Term){ //read in terms
             if(Term[0]=='(' && ConfEligible){
                 Term.erase(0,1);//remove the '(' character
@@ -482,6 +482,7 @@ public:
             else {//else its a description Term
                 Description.push_back(Term);
                 FindIt=GOTerms.end();
+                ConfEligible=false;
             }
         }//close while loop
         

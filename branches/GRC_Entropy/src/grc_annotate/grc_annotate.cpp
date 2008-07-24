@@ -222,7 +222,7 @@ int main(int argc, char* argv[]) {   //  Main is open
     }
     
     
-    cout<<"******************GRC v0.01******************"<<"\n";
+    cout<<"******************GRC Annotate******************"<<"\n";
     cout<<"Total # of initial ORFS created:   "<<PositionMap.size()<<"\n";
     cout<<"Total # non-overlapping orfs:   "<<WinnerList.size()<<"\n";
     cout<<"Total # annotated:   "<<NumWinHits<<"\n\n";

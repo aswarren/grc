@@ -83,7 +83,6 @@ if($opt_i=~/.CP/){
 	$GoaFile=~s/.CP/.goa/;#create chromosome table name
 
 	local @Lines=<$Map>;#get contents
-	chomp(@Lines);
 	close $Map;
 
 	$count=0;
@@ -91,6 +90,7 @@ if($opt_i=~/.CP/){
 		open ($IPfile, "< $GoaFile")
 			or die "Couldn't open input file: $!\n";#open goa file
 		@GoaLines=<$IPfile>;#get contents
+		chomp(@GoaLines);
 		#Create hash
 		while ($count<@GoaLines) {#for each line of the goa file
 			local @Terms=split(/\t/, $GoaLines[$count]);
@@ -113,7 +113,7 @@ if($opt_i=~/.CP/){
 		local @Terms=split(/\t/, $Lines[$count]);
 		local $ID=$Terms[8];
 		local $Info=$Annotation{$ID};#find the ID
-		$OtherFunc=$Terms[-2];#get the function
+		$OtherFunc=$Terms[-3];#get the function
 		$OtherFunc=~s/\|+|\-+/ /g; #replace | or - with a space
 		$OtherFunc=~s/\(+|\)+|\[+|\]+|\{+|\}+|,+|\/+|\\+|\,+|\-+|\'+|\;+|\t+/ /g; #replace brackets and punct with space
 		$OtherFunc=~ tr/A-Z/a-z/; #convert everything to lower case

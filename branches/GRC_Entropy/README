@@ -1,4 +1,4 @@
-
+See the file named "LICENSE" for license information.
 
 About GRC:
 
@@ -70,6 +70,10 @@ explained in the "Evaluation, Using GO" section.
 
 (*.CP) EMBL "chromosome table" format. This format is used only in the evaluation of GRC
 performance (-r command line option) when EMBL formats are in use.
+
+*.goa, *.CP, and *.fasta files can be found at http://www.ebi.ac.uk/integr8/
+
+*.ptt, *.fna, and *.faa files can be found at http://www.ncbi.nlm.nih.gov/genomes/lproks.cgi
 
 
 Running the program:

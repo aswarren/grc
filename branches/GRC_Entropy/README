@@ -106,7 +106,7 @@ Other command line options include:
 
 -m [Min. Length(nt)]	The minimum length, in nucleotides, used for finding ORFs (default is 300). All ORFs found will be of at least this many nucleotides or greater.
 -h [Num. BLAST hits]	The number of BLAST hits to use in determining whether a gene exists (default is 10), its start site, and its function.
--r [reference annotation] A reference annotation provided by the user which GRC will use to evaluate the results of the annotation using the grc_compare test module (see below). This file should be a *.ptt file (NCBI) or a *.goa file (EMBL) with its corresponding *.CP file placed in the same directory.
+-r [reference annotation] A reference annotation provided by the user which GRC will use to evaluate the results of the annotation using the grc_compare test module (see below). This file should be a *.ptt file (NCBI) or a *.CP file (EMBL) with its corresponding *.goa file placed in the same directory.
 -k Option to keep the name the blast results uniquely with date and time so that they will not be over written during the next run.
 -y [Gene Ontology obo file] This file must be specified for GRC to use options (f, a, n, c). When this file is specified the GRC will automatically check the GO terms provided in the database
 to see if any terms have been out dated and will update them with an appropriate warning message.

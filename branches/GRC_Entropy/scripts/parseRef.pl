@@ -41,10 +41,11 @@ if($opt_i=~/.ptt/){
 		if($Words[4] ne "-"){#if the synonym exists
 			$Function=$Function." $Words[4]";#add the synonym to the end
 		}
-		$Function=~s/\|+|\-+/ /g; #replace | or - with a space
-		$Function=~s/\(+|\)+|\[+|\]+|\{+|\}+|,+|\/+|\\+|\,+|\-+|\'+|\;+|\t+/ /g; #replace brackets and punct with space
-		$Function=~ tr/A-Z/a-z/; #convert everything to lower case
-		$Function=~s/ protein +| and +| the +/ /g; #remove undesirable annotations
+		#$Function=~s/\|+|\-+/ /g; #replace | or - with a space
+		#$Function=~s/\(+|\)+|\[+|\]+|\{+|\}+|,+|\/+|\\+|\,+|\-+|\'+|\;+|\t+/ /g; #replace brackets and punct with space
+		$Function=~s/\(+|\)+|\t+/ /g; #replace brackets and punct with space
+		#$Function=~ tr/A-Z/a-z/; #convert everything to lower case
+		#$Function=~s/ protein +| and +| the +/ /g; #remove undesirable annotations
 		$Function=~ s/^\s+//gm; #remove leading whitespace
 		$Function=~ s/\s+$//; #remove trailing whitespace
 		
@@ -114,10 +115,11 @@ if($opt_i=~/.CP/){
 		local $ID=$Terms[8];
 		local $Info=$Annotation{$ID};#find the ID
 		$OtherFunc=$Terms[-3];#get the function
-		$OtherFunc=~s/\|+|\-+/ /g; #replace | or - with a space
-		$OtherFunc=~s/\(+|\)+|\[+|\]+|\{+|\}+|,+|\/+|\\+|\,+|\-+|\'+|\;+|\t+/ /g; #replace brackets and punct with space
-		$OtherFunc=~ tr/A-Z/a-z/; #convert everything to lower case
-		$OtherFunc=~s/ protein +| and +| the +/ /g; #remove undesirable annotations
+		#$OtherFunc=~s/\|+|\-+/ /g; #replace | or - with a space
+		#$OtherFunc=~s/\(+|\)+|\[+|\]+|\{+|\}+|,+|\/+|\\+|\,+|\-+|\'+|\;+|\t+/ /g; #replace brackets and punct with space
+		$OtherFunc=~s/\(+|\)+|\t+/ /g; #replace brackets and punct with space
+		#$OtherFunc=~ tr/A-Z/a-z/; #convert everything to lower case
+		#$OtherFunc=~s/ protein +| and +| the +/ /g; #remove undesirable annotations
 		$OtherFunc=~ s/^\s+//gm; #remove leading whitespace
 		$OtherFunc=~ s/\s+$//; #remove trailing whitespace
 		$Start=$Terms[5];#get the Start                          PARSE OTHER FUNCTION

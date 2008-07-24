@@ -145,8 +145,9 @@ while($a<$NumParam){
 					else{#else not in hash
 						$Function=$Terms[-1];#everything after last | in faa header
 					}
-					$Function=~s/\|+|\-+/ /g; #replace | or - with a space
-					$Function=~s/\(+|\)+|\[+|\]+|\{+|\}+|,+|\/+|\\+|\,+|\-+|\'+|\;+|\t+/ /g; #replace brackets and punct with space
+					#$Function=~s/\|+|\-+/ /g; #replace | or - with a space
+					#$Function=~s/\(+|\)+|\[+|\]+|\{+|\}+|,+|\/+|\\+|\,+|\-+|\'+|\;+|\t+/ /g; #replace brackets and punct with space
+					$Function=~s/\(+|\)+|\t+/ /g; #replace brackets and punct with space
 					#$Function=~ tr/A-Z/a-z/; #convert everything to lower case
 					#$Function=~s/ protein +| and +| the +/ /g; #remove undesirable annotations
 					$Function=~ s/^\s+//gm; #remove leading whitespace

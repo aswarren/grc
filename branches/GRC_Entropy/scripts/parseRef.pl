@@ -106,7 +106,7 @@ if($opt_i=~/.CP/){
 		} #close while loop
 		close $IPfile;
 	}
-	@GoaLines=()
+	@GoaLines=();
 	
 	$count=5;#start at 6th line
 	while($count<@Lines){#open while loop

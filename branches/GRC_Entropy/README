@@ -25,10 +25,12 @@ of their corresponding best BLAST hits.
 Downloading, installing, and requirements:
 
 The GRC is available to download as source code and comes with precompiled binaries
-on an intel x86 linux machine.  It requires that you have standard
-installations of g++ and perl.  If you are unable to execute the binaries provided
+on an intel x86 linux machine. If you are unable to execute the binaries provided
 then you must recompile.  An install script is available under the scripts directory
 which will attempt to recompile each executable and place it in its appropriate location. 
+In order to use the automated install of GRC you must have Perl, g++, and GNU Make (or an equivalent) 
+installed on your system. GRC has been successfully tested in a Linux environment. 
+For Windows users it is also possible to run GRC in Cygwin as long as the above install requirements are met.
 
 On a typical unix system you can decompress using the following commands:
 gzip -d GRC.tar.gz

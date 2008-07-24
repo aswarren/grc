@@ -254,8 +254,9 @@ public:
 	//this score is the sum of the bit fraction, start codon frequency, and relative performance score.
 	int SetScore(const double& HighScore){
 		RP=Bit/HighScore;//relative performance to all other alignments
-		double Alpha=(BitFrac+StartScore+RP);
-		AlignScore=Alpha;//set align score to conditional probability
+                double Alpha=(BitFrac+StartScore+RP);
+		//double Alpha=(BitFrac+RP);
+		AlignScore=Alpha;//set align score 
 		return 0;
 	}
 

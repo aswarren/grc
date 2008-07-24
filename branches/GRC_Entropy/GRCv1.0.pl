@@ -65,13 +65,7 @@ my $DBSize=2879860; #effecive size of the DB to adjust e-values accordingly  Set
 
 my $CDir=getcwd;#get current working directory
 my $BinDir=get_dir($0);#Get the path for current script
-#@BinTerms=split(/\//, $BinDir); #split the path for script
-#$BinName=$BinTerms[-1]; #set the bin name to be the script name
-#$BinDir=~ s/$BinName//g; #remove text
-#$BinDir=~ s/\/$//;#remove trailing /
-#chomp($BinDir);
-#chdir("$BinDir");
-#$BinDir=getcwd;#get absolute path for script
+
 
 
 $OntFile=$BinDir."/GO/$OntFile";#set absolute ontology filename

@@ -70,7 +70,7 @@ my $BinDir=get_dir($0);#Get the path for current script
 
 $OntFile=$BinDir."/GO/$OntFile";#set absolute ontology filename
 my $orfsout ="grc_orfs.out";#variable specifying grc_orf results
-my $transdir=$BinDir."/translate/";
+my $transdir=$BinDir."/resources/";
 my $blastdir=$BinDir."/fsablast/";
 my $tempdir=$BinDir."/temp/";
 my $transeqout="translate.out";

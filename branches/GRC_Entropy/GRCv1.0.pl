@@ -70,7 +70,7 @@ my $BinDir=get_dir($0);#Get the path for current script
 
 $OntFile=$BinDir."/GO/$OntFile";#set absolute ontology filename
 my $orfsout ="grc_orfs.out";#variable specifying grc_orf results
-my $transdir=$BinDir."/resources/";
+my $resourcedir=$BinDir."/resources/";
 my $blastdir=$BinDir."/fsablast/";
 my $tempdir=$BinDir."/temp/";
 my $transeqout="translate.out";
@@ -262,8 +262,8 @@ if ($status != 0){
 #run grc_translate to translate ORFs to AA
 #table 11 use bacterial translation table NO OTHER TABLES SUPPORTED YET
 print "\nTranslating sequences.\n";
-chdir("$transdir");
-$status = system("./grc_translate $transdir$TransFile 11 $tempdir$orfsout $tempdir$transeqout");
+chdir("$resourcedir");
+$status = system("./grc_translate $resourcedir$TransFile 11 $tempdir$orfsout $tempdir$transeqout");
 
 if ($status != 0){
 	die "grc_translate did not run successfully";
@@ -314,7 +314,7 @@ chdir("$BinDir");
 
 
 #-b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA,ND') \n"
-$AnnotateCommand=$BinDir."/grc_annotate -b $BHParsed -o $GenomeName -g $GFile -m $MaxFile -t $transdir$TransFile -l $MinLength";
+$AnnotateCommand=$BinDir."/grc_annotate -b $BHParsed -o $GenomeName -g $GFile -m $MaxFile -t $resourcedir$TransFile -l $MinLength";
 if($UseGO==1){
 	$AnnotateCommand=$AnnotateCommand." -y $OntFile";
 	if(defined $opt_f){#enable Evidence code filtering

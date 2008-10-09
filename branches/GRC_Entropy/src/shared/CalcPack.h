@@ -41,6 +41,8 @@ public:
 	map <string,int> ConsValue;//map for storing the max value of a conserved amino acid
 	map<string,string> Genomes; //for storing the genome
 	map<string,string>::iterator CurrentGenome;//iterator that points to the genome currently being used
+        map<string,double> FStartCodons;//stores the start codons and their weight
+        map<string,double> RStartCodons;
 	string CurrentGenomeID;
 	string TransFile;//the command for running entropy-calc
 	string Matrix;
@@ -92,21 +94,13 @@ public:
 	//expects that any non-AA coding seq. enountered will be translated to '*'
 	int MapAA(char AA);
 		
-
-
-
 	//This function calculates the entropy distance for the section of the genome specified
 	double GetEntropy(int AACount[]);//open definition
-
-	
-
 
 	//create EDP from AACounts
 	int CountToEDP(int AACount[], double ResultEDP[]);
 	
-
-
-	//Create new EDP for coding and non coding genes specific to this organism
+        //Create new EDP for coding and non coding genes specific to this organism
 	int CreateOrgEDPs();
 		
 	//function for finding setting the frequencies of the amino acids in a sequence
@@ -116,7 +110,9 @@ public:
 	//function for retrieving the Gene's sequence from the genome given the LowBase HighBase and Reverse status
 	string GeneSequence(const string& GenomeSeq, const long& LB, const long& HB, const bool& Reverse);
 		
-
+        int SetStarts(string filename);
+        
+        bool CheckStarts(); //checks to see if the reverse and forward starts have been initialized
 
 	//Get the Entropy Distance Ratio
 	double GetEDR(double EntropyProfile[]);
@@ -139,11 +135,8 @@ public:
 	//This function is designed to check if submitted string is reverse codon
 	bool ReverseStart(const string& Codon);//open definition
 		
-
 	//This function is designed to check if submitted string is forward start
 	bool ForwardStart(const string& Codon);//open definition
-		
-	
 
 	//This function is designed to check if submitted string a forward stop
 	bool ForwardStop(const string& Codon);//open definition

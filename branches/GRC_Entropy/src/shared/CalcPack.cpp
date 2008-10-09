@@ -135,6 +135,40 @@
 
 		return 0;
 	}//close definition
+        
+        //this function is for reading in the start codon's and their weight
+        int CalcPack::SetStarts(string filename){
+            ifstream In;
+            string line="";
+            In.open(filename.c_str());
+            while(getline(In, line)){
+                if(line.find("#", 0 )==string::npos && line!=""){
+                    stringstream ss;
+                    string Codon;
+                    string rCodon;
+                    double Weight;
+                    ss <<line;
+                    ss >>Codon;
+                    ss >>Weight;
+                    LowerTheCase(Codon);
+                    rCodon=CalcPack::ReverseComp(Codon);
+                    FStartCodons.insert(map<string,double>::value_type(Codon,Weight));
+                    RStartCodons.insert(map<string,double>::value_type(rCodon,Weight));
+                }
+                line="";
+            }
+            In.close();
+            return 0;
+        }
+        
+        bool CalcPack::CheckStarts(){
+            if(FStartCodons.size()==0 || RStartCodons.size()==0){
+                cerr<<"error: starts not initialized\n";
+		throw 20;
+                return false;
+            }
+            else return true;
+        }
 
 
 	int CalcPack::SetDefaultEDP(){
@@ -428,22 +462,15 @@
 	
 	//This function is designed to check if submitted string is reverse codon
 	bool CalcPack::ReverseStart(const string& Codon){//open definition
-		if(Codon=="cat"||Codon=="cac"||Codon=="caa"){
-			return true;
-		}
-		else return false;
+            CheckStarts();
+            return (RStartCodons.find(Codon)!=RStartCodons.end());
 	}
-	
-
 
 	//This function is designed to check if submitted string is forward start
 	bool CalcPack::ForwardStart(const string& Codon){//open definition
-		if(Codon=="atg"||Codon=="gtg"||Codon=="ttg"){
-			return true;
-		}
-		else return false;
-	}
-	
+            CheckStarts();
+            return (FStartCodons.find(Codon)!=RStartCodons.end());
+	}	
 
 	//This function is designed to check if submitted string a forward stop
 	bool CalcPack::ForwardStop(const string& Codon){//open definition
@@ -463,17 +490,23 @@
 
 	//This function is intended to give a likelihood of correctness relative to other starts
 	double CalcPack::CalcSS(const string& Codon){//open definition
-		if (Codon=="atg"||Codon=="cat"){
-			return (.858);
-		}
-		else if (Codon=="gtg"||Codon=="cac"){
-			return (.079);
-		}
-		else if (Codon=="ttg"||Codon=="caa"){
-			return (.063);
-		}
-		return .08;
-	}
+            CheckStarts();
+            map<string,double>::iterator FindIt;
+            FindIt=FStartCodons.end();
+            FindIt=FStartCodons.find(Codon);
+            if (FindIt!=FStartCodons.end()){
+                return (FindIt->second);
+            }
+            else{
+                FindIt=RStartCodons.find(Codon);
+                if (FindIt!=RStartCodons.end()){
+                    return (FindIt->second);
+                }
+                else{
+                    return .08;
+                }
+            }
+	}//close definition
 
 
 
@@ -629,7 +662,8 @@
 	//This function continually adjusts the start site until its back at the original
 	//assumes there is a query alignment offset to start at and an original start site to come back to
 	bool CalcPack::FindStarts(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, double& StartScore){//open definition
-		long Start=St;
+                CheckStarts();
+                long Start=St;
 		long Stop=Sp;
 		long OrigStart=OSt;
 		long QAlignStart=QAS;

@@ -22,14 +22,15 @@ string itos(int i){	// convert int to string
 
 
 int main (int argc, char* argv[]) {   //  Main is open
-	if(argc<4){//if enough parameters
-		cerr<<"Usage: grc_orfs [sequence file]  [minimum gene length] [output file]\n";
+	if(argc<5){//if enough parameters
+		cerr<<"Usage: grc_orfs [start codon file] [sequence file]  [minimum gene length] [output file]\n";
 		return -1;
 		
 	}
-	char* SeqFile = argv[1]; //get the name of the sequences file
-	char* ML = argv[2];
-	char* OutFile = argv[3];
+        char* StartFile =argv[1];
+	char* SeqFile = argv[2]; //get the name of the sequences file
+	char* ML = argv[3];
+	char* OutFile = argv[4];
 
 	int MinLength = atoi(ML);
 	FastaRead Reader;//Object designed for reading in fasta files
@@ -40,6 +41,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 	
 	OrfFinder Finder(MinLength);//create OrfFinder with specified minimum length
 	CalcPack Calculator;//for calculating sequence related things
+        Calculator.SetStarts(StartFile);
 	int OrfCounter=0;//for constructing ID's of orfs found
 	multimap<int,string> StartStopMap;//stores orf information according to LowBase in increasing order
 	map<string,string> IDToSeq;//map that provides access to nucleotide sequence based on ID ASSUMES unique FASTA style ID

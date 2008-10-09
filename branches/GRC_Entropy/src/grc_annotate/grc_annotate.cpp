@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {   //  Main is open
     SSMap Options;
     Options=ParseCommandLine(argc, argv);
     if(Options.size()==0){
-        cerr<<"Usage: grc_overlap -b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA ND')  -c (create consensus annotations) -d [minimum depth of GO term]\n";
+        cerr<<"Usage: grc_overlap -b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -s [start codon file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA ND')  -c (create consensus annotations) -d [minimum depth of GO term]\n";
         return -1;
     }
     string BlastFile = Options.find("-b")->second; //get the name of the blast test results file
@@ -56,6 +56,7 @@ int main(int argc, char* argv[]) {   //  Main is open
     string GenomeFile= Options.find("-g")->second;//the name of the fna file
     string Matrix=Options.find("-m")->second;//the matrix used for blast
     string TransFile=Options.find("-t")->second;//file used for translating sequences in entropy calculations
+    string StartFile=Options.find("-s")->second;//file used for translating sequences in entropy calculations
     string GOFile="none";
     stringstream Convert;
     int GFMinLength=300;
@@ -63,6 +64,7 @@ int main(int argc, char* argv[]) {   //  Main is open
     Convert>>GFMinLength;
     GO Ontology;//ontology object for storing Gene Ontology
     CalcPack InfoPack(Matrix, GenomeFile, TransFile);//create information package
+    InfoPack.SetStarts(StartFile);
     StringSet ECodeFilter;
     int MinDepth=-1;//minimum depth for GO term filtering
     
@@ -293,6 +295,10 @@ SSMap ParseCommandLine(const int& ac, char* const av[]){
     }
     if(Result.find("-l")==Result.end()){
         cerr<<"Missing parameter -l\n";
+        Result.clear();
+    }
+    if(Result.find("-s")==Result.end()){
+        cerr<<"Missing parameter -s\n";
         Result.clear();
     }
     return(Result);

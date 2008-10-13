@@ -171,8 +171,7 @@
             for(set<string>::iterator It=FStopCodons.begin(); It!=FStopCodons.end(); It++){
                 string Codon;
                 Codon=*It;
-                ReverseComp(Codon);
-                RStopCodons.insert(Codon);
+                RStopCodons.insert(ReverseComp(Codon));
             }
             return 0;
         }
@@ -181,11 +180,14 @@
         //Still need to set the Translate to take a Table Number
         int CalcPack::SetupTrans(const int & TN, const string & TF){
             Translator.SetTransFile(TN, TF);
+            Translator.InitCodes();
             SetStops();
         }
         
         bool CalcPack::CheckStarts(){
-            if(FStartCodons.size()==0 || RStartCodons.size()==0){
+            int FSize=FStartCodons.size();
+            int RSize=RStartCodons.size();
+            if(FSize==0 || RSize==0){
                 cerr<<"error: starts not initialized\n";
 		throw 20;
                 return false;

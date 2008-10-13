@@ -38,11 +38,11 @@ int main (int argc, char* argv[]) {   //  Main is open
 	ifstream In; //input for the 
 	In.open(SeqFile); //open the input file
 	Reader.SetInput(&In);//set the input file in the reader
-	
+        
 	OrfFinder Finder(MinLength);//create OrfFinder with specified minimum length
-	CalcPack Calculator;//for calculating sequence related things
-        Calculator.SetStarts(StartFile);
-        Calculator.SetupTrans(TableNum,TransFile);
+        Finder.SetStarts(StartFile);
+        Finder.SetupTrans(TableNum,TransFile);
+        
 	int OrfCounter=0;//for constructing ID's of orfs found
 	multimap<int,string> StartStopMap;//stores orf information according to LowBase in increasing order
 	map<string,string> IDToSeq;//map that provides access to nucleotide sequence based on ID ASSUMES unique FASTA style ID
@@ -135,7 +135,7 @@ int main (int argc, char* argv[]) {   //  Main is open
 		if(SeqFinder!=IDToSeq.end()){//if the sequence is found
 			TotalSeq+=(HB-LB+1);
 			OrfCounter++;
-			string GeneSeq=Calculator.GeneSequence(SeqFinder->second,LB,HB,Reverse);
+			string GeneSeq=Finder.GeneSequence(SeqFinder->second,LB,HB,Reverse);
 			string OutID="";
 			if(IDToSeq.size()>1){//if there is more than one genome adjust IDs to indicate
 				Out<<">T"<<OrfCounter<<"_"<<StartOut<<"_"<<StopOut<<"|REPLICON|"<<LookupID<<"|OFFSET|"<<OffsetOut<<"\n";

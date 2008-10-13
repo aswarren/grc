@@ -26,12 +26,11 @@ using std::map;
 using std::stringstream;
 using std::set;
 
-class OrfFinder{//open prototype
+class OrfFinder: public CalcPack{//open prototype
 	int Position;
 	bool MoreStatus;
 	int MinLength;
 	string* CurrentSeq;//keeps track of the current sequence
-	CalcPack Calculator;
 	int CurrentFrame;
 	
 	public:
@@ -94,10 +93,10 @@ class OrfFinder{//open prototype
 		}
 		//
 		for(int s=Position; s<=(Seq.size()-3); s+=3){
-			if(Start==-1 && Calculator.ForwardStart(Seq.substr(s,3))){//if its a start codon and not yet assigned
+			if(Start==-1 && ForwardStart(Seq.substr(s,3))){//if its a start codon and not yet assigned
 				Start=s+1;//set start coordinate
 			}
-			else if(Calculator.ForwardStop(Seq.substr(s,3))){//if its a stop codon
+			else if(ForwardStop(Seq.substr(s,3))){//if its a stop codon
 				if(Start!=-1){// start site already found
 					Stop=s+3;//stop includes the stop codon
 					if((Stop-Start)+1-3>=MinLength){
@@ -145,10 +144,10 @@ class OrfFinder{//open prototype
 		for(int s=Position; s<=(Seq.size()-3); s+=3){
 
 
-			if(Calculator.ReverseStart(Seq.substr(s,3))){//if its a start codon
+			if(ReverseStart(Seq.substr(s,3))){//if its a start codon
 				Start=s+1+2;//set start coordinate +1 to get to genome coordinate and +2 because first base of the reverse start
 			}
-			else if(Calculator.ReverseStop(Seq.substr(s,3))){//if its a stop codon
+			else if(ReverseStop(Seq.substr(s,3))){//if its a stop codon
 				if(Start!=-1 && Stop!=-1){// start site and stop already found (at next in frame stop)
 					if((Start-Stop)+1-3>=MinLength){//minus 3 since the stop coordinate includes the stop codon
 						Position=s;//begin here to pick up this stop

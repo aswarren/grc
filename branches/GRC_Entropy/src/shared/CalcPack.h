@@ -43,6 +43,8 @@ public:
 	map<string,string>::iterator CurrentGenome;//iterator that points to the genome currently being used
         map<string,double> FStartCodons;//stores the start codons and their weight
         map<string,double> RStartCodons;
+        set<string> FStopCodons;
+        set<string> RStopCodons;
 	string CurrentGenomeID;
 	string TransFile;//the command for running entropy-calc
 	string Matrix;
@@ -69,7 +71,7 @@ public:
 	CalcPack();//default constructor
 	
 
-	CalcPack(string Matx, string GF, string TF);//parameterized constructor
+	CalcPack(string Matx, string GF, string TF, int TN);//parameterized constructor
 		
 	//Copy Constructor
 	//Should not be USED!! pack contains GENOME
@@ -110,9 +112,12 @@ public:
 	//function for retrieving the Gene's sequence from the genome given the LowBase HighBase and Reverse status
 	string GeneSequence(const string& GenomeSeq, const long& LB, const long& HB, const bool& Reverse);
 		
-        int SetStarts(string filename);
+        int SetStarts(const string& filename);
+        int SetStops();
+        int SetupTrans(const int& TN, const string& TF);
         
         bool CheckStarts(); //checks to see if the reverse and forward starts have been initialized
+        bool CheckStops();
 
 	//Get the Entropy Distance Ratio
 	double GetEDR(double EntropyProfile[]);

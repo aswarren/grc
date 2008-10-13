@@ -10,7 +10,7 @@ getopt('gdrkmyhfanc');# get and assign the command line parameters $opt_g $opt_d
 
 
 unless (defined($opt_g) && defined($opt_d) && -e $opt_g && -e $opt_d) { #check for command line parameter existence
-	die "Usage: GRCv1.0.pl -g <genome.fna> -d <DB_dir> -r <reference file> -k (keep blast results) -m <min. gene length> -h <num hits to use> -y <GO.obo> -f <ECode filter e.g. IEA> -a <GO cat. e.g. mbc> -n <minimum GO depth> -c (enable GO consensus)\n";
+	die "Usage: GRCv1.0.pl -g <genome.fna> -d <DB_dir> -r <reference file> -k (keep blast results) -m <min. gene length> -h <num hits to use> -t <translation table number> -y <GO.obo> -f <ECode filter e.g. IEA> -a <GO cat. e.g. mbc> -n <minimum GO depth> -c (enable GO consensus)\n";
 }
 
 #get a timestamp for creating the results directory
@@ -86,6 +86,8 @@ my $DBDir;
 my $UseGO=0;#boolean variable that tells whether GO is to be used
 my $MergeDB=$BinDir."/DB/AutoMerge.faa";
 my $TransFile="GCode.txt";#file used for translating
+my $StartFile="StartCodons.txt";#specifies the start codons to use
+my $TransNum=11;#the translation table to use. Follows NCBI's translation table numbering scheme.
 my @AminoFiles;
 my %AnnotHash; #annotation complement files stored in hash
 my $MergeCommand ="$BinDir"."/scripts/mergeseqannot.pl";
@@ -112,7 +114,10 @@ if(defined $opt_h){
 if(defined $opt_y){
 	$UseGO=1;
 	$OntFile=get_abspath("$opt_y"); #set absolute file name
-		
+}
+
+if(defined $opt_t){
+	$TransNum=$opt_t;
 }
 
 
@@ -252,7 +257,7 @@ chdir("$BinDir");
 
 #Run grc_orfs 
 print "Running grc_orfs:\n";
-$status = system("./grc_orfs $GFile $MinLength $tempdir$orfsout");
+$status = system("./grc_orfs $resourcedir$StartFile $resourcedir$TransFile $TransNum $GFile $MinLength $tempdir$orfsout");
 
 if ($status != 0){
 	die "grc_orfs did not run successfully";
@@ -260,10 +265,9 @@ if ($status != 0){
 
 
 #run grc_translate to translate ORFs to AA
-#table 11 use bacterial translation table NO OTHER TABLES SUPPORTED YET
+#default table 11: bacterial translation table (see resources/GCode.txt)
 print "\nTranslating sequences.\n";
-chdir("$resourcedir");
-$status = system("./grc_translate $resourcedir$TransFile 11 $tempdir$orfsout $tempdir$transeqout");
+$status = system("./grc_translate $resourcedir$TransFile $TransNum $tempdir$orfsout $tempdir$transeqout");
 
 if ($status != 0){
 	die "grc_translate did not run successfully";
@@ -314,7 +318,7 @@ chdir("$BinDir");
 
 
 #-b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA,ND') \n"
-$AnnotateCommand=$BinDir."/grc_annotate -b $BHParsed -o $GenomeName -g $GFile -m $MaxFile -t $resourcedir$TransFile -l $MinLength";
+$AnnotateCommand=$BinDir."/grc_annotate -b $BHParsed -o $GenomeName -g $GFile -m $MaxFile -t $resourcedir$TransFile -n $TransNum -s $resourcedir$StartFile -l $MinLength";
 if($UseGO==1){
 	$AnnotateCommand=$AnnotateCommand." -y $OntFile";
 	if(defined $opt_f){#enable Evidence code filtering

@@ -21,7 +21,7 @@
 		}
 	}
 
-	CalcPack::CalcPack(string Matx, string GF, string TF){//parameterized constructor
+	CalcPack::CalcPack(string Matx, string GF, string TF, int TN){//parameterized constructor
 		TransFile=TF;
 		Matrix=Matx;
 		OStartCount=0;
@@ -38,11 +38,11 @@
 			=SmallNCProfile[t]=SmallCProfile[t]=0;
 		}
 		if(Status!=0){
-			cout<<"\ngrc_overlap unable to initialize BLAST parameters:exiting...\n";
+			cerr<<"\ngrc_overlap unable to initialize BLAST parameters:exiting...\n";
 			throw 20;
 		}
 		SetDefaultEDP();
-		Translator.SetTransFile(TransFile);
+                SetupTrans(TN, TransFile);
 		Translator.InitCodes();
 		GenomeFile=GF;
 		GetGenome();
@@ -137,7 +137,7 @@
 	}//close definition
         
         //this function is for reading in the start codon's and their weight
-        int CalcPack::SetStarts(string filename){
+        int CalcPack::SetStarts(const string & filename){
             ifstream In;
             string line="";
             In.open(filename.c_str());
@@ -151,7 +151,7 @@
                     ss >>Codon;
                     ss >>Weight;
                     LowerTheCase(Codon);
-                    rCodon=CalcPack::ReverseComp(Codon);
+                    rCodon=ReverseComp(Codon);
                     FStartCodons.insert(map<string,double>::value_type(Codon,Weight));
                     RStartCodons.insert(map<string,double>::value_type(rCodon,Weight));
                 }
@@ -161,9 +161,40 @@
             return 0;
         }
         
+        //This function initializes that stop codon sets for forward and reverse
+        //frames. 
+        //TODO: set the functions for checking codon status for f and r stops
+        int CalcPack::SetStops(){
+            //get stops from translator
+            FStopCodons=Translator.GetStops();
+            //set the stops for the resverse frame
+            for(set<string>::iterator It=FStopCodons.begin(); It!=FStopCodons.end(); It++){
+                string Codon;
+                Codon=*It;
+                ReverseComp(Codon);
+                RStopCodons.insert(Codon);
+            }
+            return 0;
+        }
+        
+        //Setup the translator and get the stop codons from it
+        //Still need to set the Translate to take a Table Number
+        int CalcPack::SetupTrans(const int & TN, const string & TF){
+            Translator.SetTransFile(TN, TF);
+            SetStops();
+        }
+        
         bool CalcPack::CheckStarts(){
             if(FStartCodons.size()==0 || RStartCodons.size()==0){
                 cerr<<"error: starts not initialized\n";
+		throw 20;
+                return false;
+            }
+            else return true;
+        }
+        bool CalcPack::CheckStops(){
+            if(FStopCodons.size()==0 || RStopCodons.size()==0){
+                cerr<<"error: stops not initialized\n";
 		throw 20;
                 return false;
             }
@@ -469,22 +500,18 @@
 	//This function is designed to check if submitted string is forward start
 	bool CalcPack::ForwardStart(const string& Codon){//open definition
             CheckStarts();
-            return (FStartCodons.find(Codon)!=RStartCodons.end());
+            return (FStartCodons.find(Codon)!=FStartCodons.end());
 	}	
 
 	//This function is designed to check if submitted string a forward stop
 	bool CalcPack::ForwardStop(const string& Codon){//open definition
-		if(Codon=="taa"||Codon=="tag"||Codon=="tga"){
-			return true;
-		}
-		else return false;
+            CheckStops();
+            return (FStopCodons.find(Codon)!=FStopCodons.end());
 	}
 	//This function is designed to check if submitted string a forward stop
 	bool CalcPack::ReverseStop(const string& Codon){//open definition
-		if(Codon=="tta"||Codon=="cta"||Codon=="tca"){
-			return true;
-		}
-		else return false;
+            CheckStops();
+            return (RStopCodons.find(Codon)!=RStopCodons.end());
 	}
 	
 

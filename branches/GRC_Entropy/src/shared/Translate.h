@@ -12,12 +12,14 @@
 #define Translate_H
 
 #include <map>
+#include <set>
 #include <iostream>
 #include <string>
 #include <fstream>
 #include <stdio.h>
 
 using std::map;
+using std::set;
 using std::cout;
 using std::cerr;
 using std::string;
@@ -74,8 +76,10 @@ public:
 
 
 	//Set Input File
-	int SetTransFile(const string& IF){
-		InputFile=IF;
+	int SetTransFile(const int& TN, const string& IF){
+		TransCode=TN;
+		TransCodePosition=TransCode-1;
+                InputFile=IF;
 		return 0;
 	}
 
@@ -122,6 +126,33 @@ public:
 		InCode.close();
 		return 0;
 	}//close definition
+	
+        //function to lower the case of all characters in a string
+	int LowerTheCase(string & Seq){
+		for(int i=0; i<Seq.length(); i++){
+			Seq[i]=tolower(Seq[i]);
+		}
+		return 1;
+	}//close definition
+        
+        //Return the codons that are marked as stops in the translation table
+       set <string> GetStops(){
+            set<string> TempSet;
+            if(TTables[TransCodePosition].size()==0){
+                cerr<<"\nNo translation table for determining stop codons\n";
+                throw 20;
+            }
+            else{
+                for(map<string,char>::iterator It=TTables[TransCodePosition].begin(); It!=TTables[TransCodePosition].end(); It++){
+                    if(It->second=='*'){
+                        string Codon=It->first;
+                        LowerTheCase(Codon);
+                        TempSet.insert(Codon);
+                    }
+                }
+            }
+            return TempSet;
+        }
 
 
 //TranslateSeq

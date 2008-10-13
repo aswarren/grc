@@ -68,7 +68,7 @@ print "compiling grc_translate\n";
 chdir("../grc_translate/");
 $status = system("make clean");
 $status = $status + system("make");
-$status = $status + system("cp ./grc_translate ../../translate/");
+$status = $status + system("cp ./grc_translate ../../");
 
 
 if ($status != 0){

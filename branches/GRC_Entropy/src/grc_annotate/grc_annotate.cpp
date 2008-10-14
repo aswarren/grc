@@ -12,7 +12,7 @@
 #include "Compete.h"
 #include "CalcPack.h"
 #include "GO.h"
-
+#include "FastaRead.h"
 
 
 
@@ -39,6 +39,8 @@ int ProcessID(string& ID, long& Start, long& Stop, long& Offset);
 int GetBlastResults(const string BlastFile, list<AARecord>& RecordList, map<string, AARecord*> & HitList, CalcPack& InfoPack);
 SSMap ParseCommandLine(const int& ac, char* const av[]);
 int SetEFilter(StringSet& ECodeFilter, const string& ECodeTxt);
+int FastaPrint(list<AARecord*>& RecList, const string& FileName, const int& GFMin, CalcPack& InfoPack);
+string ConstructHeader(const string& prefix, const string& delim, vector<string>& Terms);
 
 
 //run as GRC_overlap
@@ -601,10 +603,43 @@ int DumpList(list<AARecord*>& InitList, string PosName, const int& GFMin){//open
                 ChkOut<<*It1;//print to minout
             }
         }
-        else ChkOut<<"NULL record: grc_overlap error\n";
+        else ChkOut<<"NULL record: grc_annotate error\n";
     }
     ChkOut.close();
     return 0;
+}
+
+
+//function to print out master list of ORFS
+int FastaPrint(list<AARecord*>& RecList, const string& FileName, const int& GFMin, CalcPack& InfoPack){//open definition
+    ofstream ChkOut;
+    ChkOut.open(FileName.c_str());
+    string Delimiter="|";
+    string Prefix=">lcl";
+    ChkOut<<"ID\tStart\tStop\tLength(nt)\tStrand\tEDR\tDBID1\tDBID2\tDBID3\tDBOrg\tGOTerms(Conf)\tDescription(Conf)\tBit\tEScore\tHitLength\t%QueryAligned\t%HSPAligned\n";
+    
+    for (list<AARecord*>::iterator It =RecList.begin(); It!=RecList.end(); It++ ){
+        if(*It!=NULL){
+            //cout<<**It1;//print out the Records
+            if((*It)->ReportLength()>=GFMin){//only print those records over the minimum gene length
+                vector<string> components=(*It)->GetBasicInfo();
+                ChkOut<<ConstructHeader(Prefix, Delimiter, components)<<"\n";
+                FastaRead::OutputSeq((*It)->GetNuclSeq(InfoPack), ChkOut);
+            }
+        }
+        else ChkOut<<"NULL record: grc_annotate error\n";
+    }
+    ChkOut.close();
+    return 0;
+}
+
+//Take header components, prefix, and delimiter to construct header line
+string ConstructHeader(const string& prefix, const string& delim, vector<string>& Terms){
+    string result=prefix;
+    for(vector<string>::iterator It=Terms.begin(); It!=Terms.end(); It++){
+        result+=delim+(*It);
+    }
+    return result;
 }
 
 
@@ -664,8 +699,8 @@ std::ostream& operator<<(std::ostream& Out, const Compete& C){
 std::ostream& operator<<(std::ostream& ChkOut, AARecord* AC){
     //ChkOut<<"PPCG**"<<"\t";
     ChkOut<<AC->ID<<"\t";
-    ChkOut<<((AC->Start)-(AC->Offset))<<"\t";
-    ChkOut<<((AC->Stop)-(AC->Offset))<<"\t";
+    ChkOut<<(AC->ReportStart())<<"\t";
+    ChkOut<<(AC->ReportStop())<<"\t";
     ChkOut<<AC->CurrentLength<<"\t";
     
     if (AC->Reverse){

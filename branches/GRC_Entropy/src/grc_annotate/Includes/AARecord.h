@@ -132,6 +132,8 @@ private:
     Subject* CurrentRep;//subject whose alignment is serving as the current representative of this orf
     FuncToSubject GOTerms;//maps the GO terms to the subjects from which they come (unique GO Terms and Subject pointers enforced)
     FuncToSubject ConsensusAnnot;//annotations indicated by multiple non-CurrentRep subjects currentRep is excluded becuase this would duplicate information
+    string ConsensusResult;
+    string GOResult;
     
 public:
     
@@ -148,6 +150,8 @@ public:
         EDR=0;
         Start=Stop=LowBase=HighBase=0;
         CurrentRep=NULL;
+        ConsensusResult="NONE";
+        GOResult="NONE";
     }
     
     //Initialize the Values for the record
@@ -163,6 +167,8 @@ public:
         HighScore=0;//highest score so far
         Blank=(B==0); //if the bit score is 0 then blank is true
         CurrentRep=NULL;
+        ConsensusResult="NONE";
+        GOResult="NONE";
         CalcMap.clear();
         if (Start>Stop){
             Reverse=true;//see if the orf is reversed
@@ -211,6 +217,8 @@ public:
         CalcMap=Source.CalcMap;
         GOTerms=Source.GOTerms;
         Offset=Source.Offset;
+        ConsensusResult=Source.ConsensusResult;
+        GOResult=Source.GOResult;
         ConsensusAnnot=Source.ConsensusAnnot;
         string TempName="none";
         for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
@@ -251,6 +259,8 @@ public:
             CalcMap=Source.CalcMap;
             string TempName="none";
             GOTerms=Source.GOTerms;
+            ConsensusResult=Source.ConsensusResult;
+            GOResult=Source.GOResult;
             ConsensusAnnot=Source.ConsensusAnnot;
             for(list<Subject>::iterator It=PrimaryHits.begin(); It!=PrimaryHits.end(); It++){
                 SubjectNames.insert(map<string, Subject*>::value_type(It->GetID(), &(*It)));//insert pointer to Subject based on name
@@ -343,6 +353,14 @@ public:
         else{
             return CurrentRep->ReportHighBase();
         }
+    }
+    
+    long ReportStart(){
+        return Start-Offset;
+    }
+    
+    long ReportStop(){
+        return Stop-Offset;
     }
     
     
@@ -1079,10 +1097,54 @@ public:
 //and its current representatives
 //this function violates information hiding
     int DisplayInfo(std::ostream& Out){
-        double ConsensusConfidence=0;
-        if(CurrentRep!=NULL){
-            
-            Out<<CurrentRep->SubjectInfo();
+        RepCheck();
+        Out<<CurrentRep->SubjectInfo();
+        //print out any GO annotations
+        if(ConsensusAnnot.size()==0 && GOTerms.size()==0){
+            Out<<"-";
+        }
+        else{
+            Out<<RetrieveConsensus();//these are all infered by consensus annotation
+            //If an obo file is provided then term verification and updating
+            //will be turned on and the GOTerms structure will be used
+            Out<<RetrieveGO(); 
+        }
+        Out<<"\t"<<CurrentRep->AlignInfo();
+        return 0;
+    }
+    
+    //returns a vector of the basic components of the AARecord
+    vector<string> GetBasicInfo(){
+        RepCheck();
+        vector<string> Result;
+        Result.push_back(ltos(ReportStart()));
+        Result.push_back(ltos(ReportStop()));
+        string tempstr="";
+        if(!Blank){
+            tempstr+=RetrieveConsensus();
+            tempstr+=RetrieveGO();
+            tempstr+=CurrentRep->GetDescription();
+            Result.push_back(tempstr);
+        }
+        return Result;  
+    }
+    
+    //retrieves nucleotide sequence
+    string GetNuclSeq(CalcPack& CP){
+        return CP.GenomeSubseq(Reverse, LowBase, HighBase);
+    }
+    
+    //retrieves nucleotide sequence
+    string GetTrans(CalcPack& CP){
+        return CP.GetTrans(Reverse, LowBase, HighBase);
+    }
+    
+    //Creates a string for the result of consensus annotations
+    string RetrieveConsensus(){
+        string TempResult="";
+        RepCheck();
+        double ConsensusConfidence=0; 
+        if(ConsensusResult=="NONE"){
             //print out any consensus GO annotations
             for(FuncToSubject::iterator It= ConsensusAnnot.begin(); It!= ConsensusAnnot.end(); It++){
                 for(SubjectSet::iterator SIt=(It->second).begin(); SIt!=(It->second).end(); SIt++){
@@ -1090,27 +1152,50 @@ public:
                         ConsensusConfidence= (*SIt)->ReportTopBitFrac();
                     }
                 }
-                Out<<GO::IDToString(It->first->ReportID())<<" ("<<ConsensusConfidence<<" ICA) ";//these are all infered by consensus annotation
+                TempResult+=GO::IDToString(It->first->ReportID())+" ("+dtos(ConsensusConfidence)+" ICA) ";//these are all infered by consensus annotation
             }
-            
-            //If an obo file is provided then term verification and updating
-            //will be turned on and the GOTerms structure will be used
+        }
+        else{
+            return ConsensusResult;
+        }
+        if (TempResult==""){
+            return TempResult;
+        }
+        else{
+            ConsensusResult=TempResult;
+            return ConsensusResult;
+        }
+    }
+    
+    //Creates a string for the result of GO annotations
+    string RetrieveGO(){
+        RepCheck();
+        string TempResult="";
+        if(GOResult=="NONE"){
             for(FuncToSubject::iterator It=GOTerms.begin(); It!=GOTerms.end(); It++){
                 string ECode="";
                 ECode=CurrentRep->GetECode(It->first->ReportID());
                 if(ECode!="noGO"){
-                    Out<<GO::IDToString(It->first->ReportID())<<" ("<<CurrentRep->ReportTopBitFrac()<<ECode<<") ";
+                    TempResult+=GO::IDToString(It->first->ReportID())+" ("+dtos(CurrentRep->ReportTopBitFrac())+ECode+") ";
                 }
             }
-            //if there are no recognized GO terms
-            if(GOTerms.size()==0){
-                Out<<"-";
-            }            
-            Out<<"\t"<<CurrentRep->AlignInfo();
-            
-            
+            if(TempResult!=""){
+                GOResult=TempResult;
+                return GOResult;
+            }
+            else{
+                return "";
+            }
         }
         else{
+            return GOResult;
+        }
+    }
+    
+    //Function to check if the CurrentRep has been initialized
+    //and if not throw an error
+    int RepCheck(){
+        if(CurrentRep==NULL){
             cerr<<"Error in Displaying record information\n";
             throw 20;
         }

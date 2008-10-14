@@ -111,7 +111,9 @@ public:
 	
 	//function for retrieving the Gene's sequence from the genome given the LowBase HighBase and Reverse status
 	string GeneSequence(const string& GenomeSeq, const long& LB, const long& HB, const bool& Reverse);
-		
+        string GenomeSubseq(const bool& Reverse, const long& LB, const long& HB);
+        string GetTrans(const bool& Reverse, const long& LB, const long& HB);
+                
         int SetStarts(const string& filename);
         int SetStops();
         int SetupTrans(const int& TN, const string& TF);

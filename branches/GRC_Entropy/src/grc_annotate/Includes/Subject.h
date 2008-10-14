@@ -384,6 +384,15 @@ public:
         result=HitID+"\t"+HitGeneName+"\t"+HitSynonym+"\t"+HitOrg+"\t";
         return result;
     }
+    
+    string GetDescription(){
+        string result="";
+        for(list<string>::iterator DIt=Description.begin(); DIt!=Description.end(); DIt++){
+            result+=*DIt+" ";
+        }
+        result+="("+dtos(BestBitFrac)+")";
+        return result;
+    }
     //Return the Information about this Subject and its representative alignment
     string AlignInfo(){
         string result="";
@@ -478,12 +487,12 @@ struct OrderSubject {
 };//close prototype
 
 
-string ltos(long i)	// convert long to string
+/*string ltos(long i)	// convert long to string
 {
     stringstream s;
     s << i;
     return s.str();
-}
+}*/
 string btos(bool i)	// convert bool to string
 {
     stringstream s;

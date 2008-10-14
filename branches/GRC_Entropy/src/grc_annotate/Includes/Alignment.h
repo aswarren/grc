@@ -40,11 +40,9 @@ string dtos(const double& target){
 }
 
 string ltos(const long& target){
-    stringstream Convert;
-    string result="";
-    Convert<<target;
-    Convert>>result;
-    return result;
+    stringstream s;
+    s << target;
+    return s.str();
 }
 
 int stoi(const string& target){

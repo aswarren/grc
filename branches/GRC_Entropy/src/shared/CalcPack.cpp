@@ -383,23 +383,31 @@
 		}
 		return 0;
 	}
+        
+        //retrieves a specific subsequence from the current genome
+        string CalcPack::GenomeSubseq(const bool& Reverse, const long& LB, const long& HB){
+            long Length=HB-LB+1;
+            long Begin=LB-1;
+            string result="";
+            if(Reverse){//if in the reverse frame
+                    result=ReverseComp((CurrentGenome->second).substr(Begin,Length));	
+            }
+            else{//not reverse complement
+                    result=(CurrentGenome->second).substr(Begin, Length);
+            }
+            return result;
+        }
+        
+        string CalcPack::GetTrans(const bool& Reverse, const long& LB, const long& HB){
+            string Translation="";
+            Translation=Translator.TranslateSeq(GeneSequence(CurrentGenome->second, LB, HB, Reverse));
+            return Translation;
+        }
 
 	//function for finding setting the frequencies of the amino acids in a sequence
 	int CalcPack::GetAACount(int AACount[],const long& LB, const long& HB, const bool& Reverse){
-		long Length=HB-LB+1;
-		long Begin=LB-1;
 		string Translation="";
-
-
-		if(Reverse){//if the pGene is reversed
-			Translation=Translator.TranslateSeq(ReverseComp((CurrentGenome->second).substr(Begin,Length)));
-			//Command=Command+ReverseComp(Genome.substr(Begin, Length));	
-		}
-		else{//not reverse complement
-			Translation=Translator.TranslateSeq((CurrentGenome->second).substr(Begin, Length));
-			//Command=Command+Genome.substr(Begin, Length);
-		}
-		
+                Translation=Translator.TranslateSeq(GeneSequence(CurrentGenome->second, LB, HB, Reverse));
 		//for each amino acid in the sequence
 		for (int t=0; t<Translation.size(); t++){
 			int Coord=MapAA(Translation[t]);

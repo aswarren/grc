@@ -113,7 +113,7 @@ public:
 	}
 	
 	//function for outputing sequence in fasta format
-	int OutputSeq(const string& Seq, ostream& Out){
+	static int OutputSeq(const string& Seq, ostream& Out){
 		int LineLength=70;
 		for (int s=0; s<Seq.size(); s+=LineLength){
 			if((Seq.size()-s)>=LineLength){//if its the end of the next codon

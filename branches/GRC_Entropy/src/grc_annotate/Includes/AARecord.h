@@ -1115,12 +1115,17 @@ public:
     
     //returns a vector of the basic components of the AARecord
     vector<string> GetBasicInfo(){
-        RepCheck();
         vector<string> Result;
-        Result.push_back(ltos(ReportStart()));
-        Result.push_back(ltos(ReportStop()));
+        Result.push_back(ID);
+        string Coords=":";
+        if(Reverse){
+            Coords+="c";
+        }
+        Coords+=ltos(ReportStart())+"-"+ltos(ReportStop());
+        Result.push_back(Coords);
         string tempstr="";
         if(!Blank){
+            RepCheck();
             tempstr+=RetrieveConsensus();
             tempstr+=RetrieveGO();
             tempstr+=CurrentRep->GetDescription();

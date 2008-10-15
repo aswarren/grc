@@ -39,7 +39,7 @@ int ProcessID(string& ID, long& Start, long& Stop, long& Offset);
 int GetBlastResults(const string BlastFile, list<AARecord>& RecordList, map<string, AARecord*> & HitList, CalcPack& InfoPack);
 SSMap ParseCommandLine(const int& ac, char* const av[]);
 int SetEFilter(StringSet& ECodeFilter, const string& ECodeTxt);
-int FastaPrint(list<AARecord*>& RecList, const string& FileName, const int& GFMin, CalcPack& InfoPack);
+int FastaPrint(list<AARecord*>& RecList, const string& FilePrefix, const int& GFMin, CalcPack& InfoPack, const bool& NFasta, const bool& AAFasta);
 string ConstructHeader(const string& prefix, const string& delim, vector<string>& Terms);
 
 
@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {   //  Main is open
     SSMap Options;
     Options=ParseCommandLine(argc, argv);
     if(Options.size()==0){
-        cerr<<"Usage: grc_annotate -b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -n [trans. table num.] -s [start codon file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA ND')  -c (create consensus annotations) -d [minimum depth of GO term]\n";
+        cerr<<"Usage: grc_annotate -b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -n [trans. table num.] -s [start codon file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA ND')] -p [N or A (nucleotide or amino acid fasta)]  -c (create consensus annotations) -d [minimum depth of GO term]\n";
         return -1;
     }
     string BlastFile = Options.find("-b")->second; //get the name of the blast test results file
@@ -70,16 +70,16 @@ int main(int argc, char* argv[]) {   //  Main is open
     InfoPack.SetStarts(StartFile);
     StringSet ECodeFilter;
     int MinDepth=-1;//minimum depth for GO term filtering
-    
+    SSMap::iterator Oit=Options.end();
     if(Options.find("-y")!=Options.end()){//if GO.obo specified
         GOFile=Options.find("-y")->second;
         bool MFunc, BProc, CComp;
         MFunc=BProc=CComp=true;
-        SSMap::iterator GOit=Options.find("-a");
-        if(GOit!=Options.end()){
+        Oit=Options.find("-a");
+        if(Oit!=Options.end()){
             Ontology.FindWarningOff();
             MFunc=BProc=CComp=false;
-            string aOptions=GOit->second;
+            string aOptions=Oit->second;
             if(aOptions.find("m",0)!=string::npos){
                 MFunc=true;
             }
@@ -90,13 +90,13 @@ int main(int argc, char* argv[]) {   //  Main is open
                 CComp=true;
             }
         }
-        GOit=Options.find("-f");
-        if(GOit!=Options.end()){//if there is a filter option
-            SetEFilter(ECodeFilter, GOit->second);
+        Oit=Options.find("-f");
+        if(Oit!=Options.end()){//if there is a filter option
+            SetEFilter(ECodeFilter, Oit->second);
         }
-        GOit=Options.find("-d");
-        if(GOit!=Options.end()){
-            MinDepth=stoi(GOit->second);
+        Oit=Options.find("-d");
+        if(Oit!=Options.end()){
+            MinDepth=stoi(Oit->second);
         }
         ifstream GOIn;
         GOIn.open(GOFile.c_str());
@@ -107,6 +107,21 @@ int main(int argc, char* argv[]) {   //  Main is open
             ICAon=true;
         }
     }
+    //check what type of fasta output
+    string OptFasta="x";
+    bool AAFasta=false;
+    bool NFasta=false;
+    Oit=Options.find("-p");
+    if(Oit!=Options.end()){
+        OptFasta=Oit->second;
+        if(OptFasta.find("N",0)!=string::npos){
+            NFasta=true;
+        }
+        if(OptFasta.find("A",0)!=string::npos){
+            AAFasta=true;
+        }
+    }
+    
     
     list<AARecord> RecordList;//storage for all of the records
     RecordMap PositionMap; //the initial map for the aa records ordered by HighBase of the orf
@@ -149,8 +164,9 @@ int main(int argc, char* argv[]) {   //  Main is open
         PositionMap.insert(RecordMap::value_type(PosIt->ReportLowBase(), &(*PosIt))); //Add to position map
     }//close for loop
     
-    
-    InfoPack.ClearGenome();//clear the genome (no longer needed)
+    if(!AAFasta && !NFasta){
+        InfoPack.ClearGenome();//clear the genome (no longer needed)
+    }
     
     
     //DumpList(InitList);//print out the orfs from initlist
@@ -233,6 +249,7 @@ int main(int argc, char* argv[]) {   //  Main is open
     cout<<"Total # annotated:   "<<NumWinHits<<"\n\n";
     cout<<"Number of orfs filtered from entropy\t"<<NumFiltered<<"\n";
     
+    FastaPrint(WinnerList, GenomeName, GFMinLength, InfoPack, NFasta, AAFasta);
     DumpList(WinnerList, Positives, GFMinLength);
     //DumpList(InitList);
     DumpList(LoserList, Negatives, GFMinLength);
@@ -611,25 +628,47 @@ int DumpList(list<AARecord*>& InitList, string PosName, const int& GFMin){//open
 
 
 //function to print out master list of ORFS
-int FastaPrint(list<AARecord*>& RecList, const string& FileName, const int& GFMin, CalcPack& InfoPack){//open definition
-    ofstream ChkOut;
-    ChkOut.open(FileName.c_str());
-    string Delimiter="|";
-    string Prefix=">lcl";
-    ChkOut<<"ID\tStart\tStop\tLength(nt)\tStrand\tEDR\tDBID1\tDBID2\tDBID3\tDBOrg\tGOTerms(Conf)\tDescription(Conf)\tBit\tEScore\tHitLength\t%QueryAligned\t%HSPAligned\n";
-    
-    for (list<AARecord*>::iterator It =RecList.begin(); It!=RecList.end(); It++ ){
-        if(*It!=NULL){
-            //cout<<**It1;//print out the Records
-            if((*It)->ReportLength()>=GFMin){//only print those records over the minimum gene length
-                vector<string> components=(*It)->GetBasicInfo();
-                ChkOut<<ConstructHeader(Prefix, Delimiter, components)<<"\n";
-                FastaRead::OutputSeq((*It)->GetNuclSeq(InfoPack), ChkOut);
+int FastaPrint(list<AARecord*>& RecList, const string& FilePrefix, const int& GFMin, CalcPack& InfoPack, const bool& NFasta, const bool& AAFasta){//open definition
+    if(NFasta){
+        string FileName=FilePrefix+".ffn";
+        ofstream ChkOut;
+        ChkOut.open(FileName.c_str());
+        string Delimiter="|";
+        string Prefix=">lcl";
+
+        for (list<AARecord*>::iterator It =RecList.begin(); It!=RecList.end(); It++ ){
+            if(*It!=NULL){
+                //cout<<**It1;//print out the Records
+                if((*It)->ReportLength()>=GFMin){//only print those records over the minimum gene length
+                    vector<string> components=(*It)->GetBasicInfo();
+                    ChkOut<<ConstructHeader(Prefix, Delimiter, components)<<"\n";
+                    FastaRead::OutputSeq((*It)->GetNuclSeq(InfoPack), ChkOut);
+                }
             }
+            else ChkOut<<"NULL record: grc_annotate error\n";
         }
-        else ChkOut<<"NULL record: grc_annotate error\n";
+        ChkOut.close();
     }
-    ChkOut.close();
+    if(AAFasta){
+        string FileName=FilePrefix+".faa";
+        ofstream ChkOut;
+        ChkOut.open(FileName.c_str());
+        string Delimiter="|";
+        string Prefix=">lcl";
+
+        for (list<AARecord*>::iterator It =RecList.begin(); It!=RecList.end(); It++ ){
+            if(*It!=NULL){
+                //cout<<**It1;//print out the Records
+                if((*It)->ReportLength()>=GFMin){//only print those records over the minimum gene length
+                    vector<string> components=(*It)->GetBasicInfo();
+                    ChkOut<<ConstructHeader(Prefix, Delimiter, components)<<"\n";
+                    FastaRead::OutputSeq((*It)->GetTrans(InfoPack), ChkOut);
+                }
+            }
+            else ChkOut<<"NULL record: grc_annotate error\n";
+        }
+        ChkOut.close();
+    }
     return 0;
 }
 

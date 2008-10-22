@@ -784,7 +784,7 @@
         //Writes the genomic sequence to a file
         int CalcPack::WriteGenome(std::ostream& Out){
             for(map<string,string>::iterator It=Genomes.begin(); It!=Genomes.end(); It++){
-                Out<<">"<<It->first<<" [mol_type=genomic DNA] [gcode="<<Translator.GetTransCode()<<"]\n";
+                Out<<">"<<It->first<<" [mol_type=genomic DNA] [organism=INSERT] [gcode="<<Translator.GetTransCode()<<"]\n";
                 FastaRead::OutputSeq(It->second, Out);
             }
             return 0;

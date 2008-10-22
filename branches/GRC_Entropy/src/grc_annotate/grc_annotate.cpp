@@ -395,7 +395,6 @@ int GetBlastResults(string BlastFile, list<AARecord>& RecordList, map<string, AA
             //EditList.push_back(&((MapIt.first)->second));//add a pointer to the location of the record
         }//close consq.
         else {//there is a hit
-            //string TempHack=HitID;//SWITCHED TO ACCOMODATE INVERSED ID AND DESCRIPTION IN OLD OUTPUT********
             string HitID2="";
             getline(BlastIn, HitID2, '\t');
             HitID=HitID+HitID2;

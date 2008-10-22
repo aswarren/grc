@@ -184,6 +184,9 @@ public:
 	//This function continually adjusts the start site until its back at the original
 	//assumes there is a query alignment offset to start at and an original start site to come back to
 	bool FindStarts(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, double& StartScore);//open definition
+        
+        //Write out the genomes
+        int WriteGenome(std::ostream& Out);
 		
 
 

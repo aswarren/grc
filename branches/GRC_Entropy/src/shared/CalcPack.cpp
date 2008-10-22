@@ -779,6 +779,16 @@
 		OStartCount++;
 		return true;
 	}//close defintion
+        
+        
+        //Writes the genomic sequence to a file
+        int CalcPack::WriteGenome(std::ostream& Out){
+            for(map<string,string>::iterator It=Genomes.begin(); It!=Genomes.end(); It++){
+                Out<<">"<<It->first<<" [mol_type=genomic DNA] [gcode="<<Translator.GetTransCode()<<"]\n";
+                FastaRead::OutputSeq(It->second, Out);
+            }
+            return 0;
+        }
 
 
 /*	//Function to Adjust the start site based on where the alignment begins

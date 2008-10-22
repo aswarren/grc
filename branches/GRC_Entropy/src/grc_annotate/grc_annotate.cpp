@@ -39,7 +39,7 @@ int ProcessID(string& ID, long& Start, long& Stop, long& Offset);
 int GetBlastResults(const string BlastFile, list<AARecord>& RecordList, map<string, AARecord*> & HitList, CalcPack& InfoPack);
 SSMap ParseCommandLine(const int& ac, char* const av[]);
 int SetEFilter(StringSet& ECodeFilter, const string& ECodeTxt);
-int FastaPrint(list<AARecord*>& RecList, const string& FilePrefix, const int& GFMin, CalcPack& InfoPack, const bool& NFasta, const bool& AAFasta);
+int FastaPrint(list<AARecord*>& RecList, const string& FilePrefix, const int& GFMin, CalcPack& InfoPack, const string& OptFasta);
 string ConstructHeader(const string& prefix, const string& delim, vector<string>& Terms);
 
 
@@ -109,17 +109,9 @@ int main(int argc, char* argv[]) {   //  Main is open
     }
     //check what type of fasta output
     string OptFasta="x";
-    bool AAFasta=false;
-    bool NFasta=false;
     Oit=Options.find("-p");
     if(Oit!=Options.end()){
         OptFasta=Oit->second;
-        if(OptFasta.find("N",0)!=string::npos){
-            NFasta=true;
-        }
-        if(OptFasta.find("A",0)!=string::npos){
-            AAFasta=true;
-        }
     }
     
     
@@ -163,11 +155,6 @@ int main(int argc, char* argv[]) {   //  Main is open
         }
         PositionMap.insert(RecordMap::value_type(PosIt->ReportLowBase(), &(*PosIt))); //Add to position map
     }//close for loop
-    
-    if(!AAFasta && !NFasta){
-        InfoPack.ClearGenome();//clear the genome (no longer needed)
-    }
-    
     
     //DumpList(InitList);//print out the orfs from initlist
     
@@ -249,7 +236,7 @@ int main(int argc, char* argv[]) {   //  Main is open
     cout<<"Total # annotated:   "<<NumWinHits<<"\n\n";
     cout<<"Number of orfs filtered from entropy\t"<<NumFiltered<<"\n";
     
-    FastaPrint(WinnerList, GenomeName, GFMinLength, InfoPack, NFasta, AAFasta);
+    FastaPrint(WinnerList, GenomeName, GFMinLength, InfoPack, OptFasta);
     DumpList(WinnerList, Positives, GFMinLength);
     //DumpList(InitList);
     DumpList(LoserList, Negatives, GFMinLength);
@@ -260,6 +247,7 @@ int main(int argc, char* argv[]) {   //  Main is open
     KOut.open("KnockList.txt");
     DisplayKO(KOut, KOMap, GFMinLength);
     KOut.close();
+    InfoPack.ClearGenome();//clear the genome (no longer needed)
     
     return 0;
 }
@@ -628,13 +616,13 @@ int DumpList(list<AARecord*>& InitList, string PosName, const int& GFMin){//open
 
 
 //function to print out master list of ORFS
-int FastaPrint(list<AARecord*>& RecList, const string& FilePrefix, const int& GFMin, CalcPack& InfoPack, const bool& NFasta, const bool& AAFasta){//open definition
-    if(NFasta){
+int FastaPrint(list<AARecord*>& RecList, const string& FilePrefix, const int& GFMin, CalcPack& InfoPack, const string &OptFasta){//open definition
+    string Delimiter=" ";
+    string Prefix="lcl|";
+    if(OptFasta.find("N",0)!=string::npos){
         string FileName=FilePrefix+".ffn";
         ofstream ChkOut;
         ChkOut.open(FileName.c_str());
-        string Delimiter="|";
-        string Prefix=">lcl";
 
         for (list<AARecord*>::iterator It =RecList.begin(); It!=RecList.end(); It++ ){
             if(*It!=NULL){
@@ -649,12 +637,10 @@ int FastaPrint(list<AARecord*>& RecList, const string& FilePrefix, const int& GF
         }
         ChkOut.close();
     }
-    if(AAFasta){
+    if(OptFasta.find("A",0)!=string::npos){
         string FileName=FilePrefix+".faa";
         ofstream ChkOut;
         ChkOut.open(FileName.c_str());
-        string Delimiter="|";
-        string Prefix=">lcl";
 
         for (list<AARecord*>::iterator It =RecList.begin(); It!=RecList.end(); It++ ){
             if(*It!=NULL){
@@ -669,14 +655,49 @@ int FastaPrint(list<AARecord*>& RecList, const string& FilePrefix, const int& GF
         }
         ChkOut.close();
     }
+    if(OptFasta.find("T",0)!=string::npos){
+        string FileName=FilePrefix+".pep";
+        string TblName=FilePrefix+".tbl";
+        string FsaName=FilePrefix+".fsa";
+        ofstream FsaOut;
+        FsaOut.open(FsaName.c_str());
+        InfoPack.WriteGenome(FsaOut);
+        FsaOut.close();
+        ofstream TblOut;
+        TblOut.open(TblName.c_str());
+        ofstream ChkOut;
+        ChkOut.open(FileName.c_str());
+        TblOut<<">feature "<<InfoPack.CurrentGenomeID<<"\n";
+
+        for (list<AARecord*>::iterator It =RecList.begin(); It!=RecList.end(); It++ ){
+            if(*It!=NULL){
+                //cout<<**It1;//print out the Records
+                if((*It)->ReportLength()>=GFMin){//only print those records over the minimum gene length
+                    vector<string> components=(*It)->GetBasicInfo();
+                    ChkOut<<ConstructHeader(Prefix, Delimiter, components)<<"\n";
+                    FastaRead::OutputSeq((*It)->GetTrans(InfoPack), ChkOut);
+                    (*It)->WriteTBL(TblOut, InfoPack, Prefix);
+                }
+            }
+            else ChkOut<<"NULL record: grc_annotate error\n";
+        }
+        ChkOut.close();
+        TblOut.close();
+    }
     return 0;
 }
 
+
 //Take header components, prefix, and delimiter to construct header line
 string ConstructHeader(const string& prefix, const string& delim, vector<string>& Terms){
-    string result=prefix;
+    string result=">"+prefix;
     for(vector<string>::iterator It=Terms.begin(); It!=Terms.end(); It++){
-        result+=delim+(*It);
+        if(It==Terms.begin()){
+            result+=(*It);
+        }
+        else{
+            result+=delim+(*It);
+        }
     }
     return result;
 }

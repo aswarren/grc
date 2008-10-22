@@ -66,6 +66,7 @@ public:
 	GOFunction* Find(const string& ToFind);//functin for finding goid string
 	ANCESTORID GetAncestorIDs(const int& GOID);//return the GOID's for an ancestor
 	static string IDToString(const int& TempID);//converts xxxx to GO:000xxxx
+        static string IDToString2(const int& TempID);//converts xxxx to 000xxxx
 	static int StringToID(const string& TempS);//converts GO:000xxxx to xxxx
 	static bool StringIsGO(const string& TempS);//returns whether string is a GO Term
 	static bool IsECode(const string& TempS);//returns bool string is evidence code
@@ -73,7 +74,7 @@ public:
         int ExpandAltID(GOFunction** CF);
         int FindWarningOff();
         GOFunction* Find_and_Depth(const int& FindMe);//reports the minimum depth of a term
-	
+	string ConvertGenbank(const int& FindMe);//returns the tbl2asn version of a GO Term
 
 };//close prototype for GO
 

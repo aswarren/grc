@@ -1207,7 +1207,7 @@ public:
         return 0;
     }
     
-//submits the nucleotide frequencies for creation of new EDP coding/ EDP non-coding
+//submits the AA frequencies for creation of new EDP coding/ EDP non-coding
     int SubmitCount(CalcPack& CP){
         SeqCalcMap::iterator FindIt=CalcMap.find(CurrentLength);
         if (FindIt==CalcMap.end()){
@@ -1216,6 +1216,47 @@ public:
         //submit the frequencies of bases, the length of the orf, and whether it was defeated
         CP.TotalEDP(FindIt->second.AACount, CurrentLength, Defeated);
         return 0;
+    }
+    
+    //gets gbk formatted versions of the GO terms for this record
+    vector<string> GetGBK_GO(CalcPack& CP){
+        vector<string> result;
+        if(CP.GOAccess==NULL){
+            return result;
+        }
+        for(FuncToSubject::iterator It=GOTerms.begin(); It!=GOTerms.end(); It++){
+            string ECode="";
+            string temp="NONE";
+            ECode=CurrentRep->GetECode(It->first->ReportID());//way to tell if the GO term is assigned from the alignment representing the record
+            if(ECode!="noGO"){
+                temp=CP.GOAccess->ConvertGenbank(It->first->ReportID());
+                if(temp!="NONE"){
+                    result.push_back(temp);
+                }
+            }
+        }
+        return result;
+    }
+    
+    //prints out a tbl2asn tbl version of a record
+    //takes prefix used for protein_id
+    int WriteTBL(std::ostream& Out, CalcPack& CP, const string& prefix){
+        vector<string> tempGO=GetGBK_GO(CP);
+        Out<<Start<<"\t"<<Stop<<"\tgene"<<"\n";
+        Out<<"\t\t\tlocus_tag\t"<<ID<<"\n";
+        Out<<Start<<"\t"<<Stop<<"\tCDS"<<"\n";
+        Out<<"\t\t\tprotein_id\t"<<prefix+ID<<"\n";
+        if(Blank){
+            Out<<"\t\t\tproduct\thypothetical protein\n";
+        }
+        else{
+            RepCheck();
+            Out<<"\t\t\tproduct\t"<<CurrentRep->GetDescription()<<"\n";
+            for(vector<string>::iterator It=tempGO.begin(); It!=tempGO.end(); It++){
+                Out<<"\t\t\t"<<*It<<"\n";
+            }
+        }
+        return 0;        
     }
     
 }; // close prototype

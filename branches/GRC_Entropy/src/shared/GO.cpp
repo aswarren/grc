@@ -551,6 +551,15 @@ bool GO::StringIsGO(const string& TempS){//open defintion
 
 //Converts an integer ID to a GO formatted string
 string GO::IDToString(const int& TempID){//open definition
+    string TempS;
+    TempS=IDToString2(TempID);
+    TempS="GO:"+TempS;
+    return TempS;
+}//close definition
+
+//Converts an integer ID to a GO formatted string
+//with no GO prepended
+string GO::IDToString2(const int& TempID){//open definition
     stringstream SS;
     SS<<TempID;//read in the ID
     string TempS;
@@ -559,7 +568,6 @@ string GO::IDToString(const int& TempID){//open definition
     for(int t=0; t<NumZero; t++){
         TempS="0"+TempS;
     }
-    TempS="GO:"+TempS;
     return TempS;
 }//close definition
 
@@ -571,6 +579,26 @@ bool GO::IsECode(const string & TempS){//open definition
             || TempS=="NR" || TempS=="IGC" || TempS=="ICA" || TempS=="EXP"
             || TempS=="ISO" || TempS == "ISA" || TempS == "ISM" ||
             TempS =="IGC");//NOTE ICA stands for inferred by consensus annotation and is grc specific evidence code
+}
+
+//returns the tbl2asn version of the GOID
+//if the GO term can't be found returns NONE
+string GO::ConvertGenbank(const int& FindMe){
+    GOFunction* Func=Find(FindMe);
+    string result="NONE";
+    if(Func!=NULL){
+        if(Func->Category=="p"){
+            result="go_process";
+        }
+        else if(Func->Category=="f"){
+            result="go_function";
+        }
+        else if(Func->Category=="c"){
+            result="go_component";
+        }
+        result+="\t"+Func->Name+"|"+IDToString2(FindMe);
+    }
+    return result;
 }
 
 

@@ -116,12 +116,15 @@ public:
 	static int OutputSeq(const string& Seq, ostream& Out){
 		int LineLength=70;
 		for (int s=0; s<Seq.size(); s+=LineLength){
+                        string Line="";
 			if((Seq.size()-s)>=LineLength){//if its the end of the next codon
-				Out<<Seq.substr(s,LineLength)<<"\n";
+                                Line=Seq.substr(s,LineLength);
 			}
 			else{
-				Out<<Seq.substr(s,Seq.size()-s)<<"\n";
+				Line=Seq.substr(s,Seq.size()-s);
 			}
+                        RaiseTheCase(Line);
+                        Out<<Line<<"\n";
 		}
 		return 0;
 	}
@@ -130,6 +133,13 @@ public:
 	int LowerTheCase(string & Seq){
 		for(int i=0; i<Seq.length(); i++){
 			Seq[i]=tolower(Seq[i]);
+		}
+		return 1;
+	}//close definition
+
+	static int RaiseTheCase(string & Seq){
+		for(int i=0; i<Seq.length(); i++){
+			Seq[i]=toupper(Seq[i]);
 		}
 		return 1;
 	}//close definition

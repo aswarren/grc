@@ -82,6 +82,10 @@ public:
                 InputFile=IF;
 		return 0;
 	}
+        
+        int GetTransCode(){
+            return TransCode;
+        }
 
 /* Name:InitCodes
 **	@param1: Array of 23 maps that are to be initialized to contain translation information

@@ -1207,6 +1207,15 @@ public:
         return 0;
     }
     
+    //checks that the function assigned is based on an alignment that
+    //meets certain criteria
+    int ScreenFunction(const double& sbj_cutoff){
+        if(!Blank && CurrentRep->GetSbjAlign() < sbj_cutoff){
+            Blank=true;
+        }
+        return 1;
+    }
+    
 //submits the AA frequencies for creation of new EDP coding/ EDP non-coding
     int SubmitCount(CalcPack& CP){
         SeqCalcMap::iterator FindIt=CalcMap.find(CurrentLength);

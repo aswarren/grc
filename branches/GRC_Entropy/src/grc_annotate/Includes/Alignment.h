@@ -53,6 +53,14 @@ int stoi(const string& target){
     return result;
 }
 
+double stod(const string& target){
+    stringstream Convert;
+    double result;
+    Convert<<target;
+    Convert>>result;
+    return result;
+}
+
 class Alignment {//open prototype
 public:
 

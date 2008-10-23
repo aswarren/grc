@@ -423,6 +423,13 @@ public:
         return result;
     }
     
+    //Get the fraction coverage of the subject in the top alignment
+    double GetSbjAlign(){
+        double ALength=AlignQ.top()->GetALength();
+        double result=ALength/double(HLength);
+        return result;        
+    }
+    
     //This function returns all GO ID's and evidence codes for this subject
     string GOInfo(){
         string result="";

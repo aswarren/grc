@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {   //  Main is open
     SSMap Options;
     Options=ParseCommandLine(argc, argv);
     if(Options.size()==0){
-        cerr<<"Usage: grc_annotate -b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -n [trans. table num.] -s [start codon file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA ND')] -p [N or A (nucleotide or amino acid fasta)]  -c (create consensus annotations) -d [minimum depth of GO term]\n";
+        cerr<<"Usage: grc_annotate -b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -n [trans. table num.] -s [start codon file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA ND')] -p [N or A (nucleotide or amino acid fasta)] -x [% subject aligned cutoff] -c (create consensus annotations) -d [minimum depth of GO term]\n";
         return -1;
     }
     string BlastFile = Options.find("-b")->second; //get the name of the blast test results file
@@ -70,6 +70,8 @@ int main(int argc, char* argv[]) {   //  Main is open
     InfoPack.SetStarts(StartFile);
     StringSet ECodeFilter;
     int MinDepth=-1;//minimum depth for GO term filtering
+    double sbj_cutoff=0;
+    
     SSMap::iterator Oit=Options.end();
     if(Options.find("-y")!=Options.end()){//if GO.obo specified
         GOFile=Options.find("-y")->second;
@@ -112,6 +114,11 @@ int main(int argc, char* argv[]) {   //  Main is open
     Oit=Options.find("-p");
     if(Oit!=Options.end()){
         OptFasta=Oit->second;
+    }
+    
+    Oit=Options.find("-x");
+    if(Oit!=Options.end()){
+        sbj_cutoff=stod(Oit->second);
     }
     
     
@@ -224,6 +231,9 @@ int main(int argc, char* argv[]) {   //  Main is open
     }
     
     for (list<AARecord*>::iterator CountIt =WinnerList.begin(); CountIt!=WinnerList.end(); CountIt++ ){
+        if(sbj_cutoff!=0){
+            (*CountIt)->ScreenFunction(sbj_cutoff);
+        }
         if((*CountIt)->HasHit()){//if this orf has a hit
             NumWinHits++;
         }

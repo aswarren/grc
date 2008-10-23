@@ -6,11 +6,25 @@ use Cwd 'abs_path';
 use Time::HiRes qw(gettimeofday);
 
 #Use command line parameters -g genome.fasta and -d database.faa
-getopt('gdrkmyhfanc');# get and assign the command line parameters $opt_g $opt_d
+getopt('gdrkmyhfanxcp');# get and assign the command line parameters $opt_g $opt_d
+
+
+#for opt_p additional value 'A' gives amino acid fasta file, 'N' gives nucleotide fasta file, and 'T' gives tbl2asn
+#for opt_f enable Evidence code filtering (func. assignments based on spec. evidence code will be removed)
+#for opt_c enable consensus annotations
+#for opt_a enable GO Category filtering: 'm' for molecular function, 'b' for biological process, 'c' for cellular component
+#for opt_n enable minimum depth filtering for GO
+#for opt_x set the fraction of subject and query covered by alignment necessary for functional transfer
 
 
 unless (defined($opt_g) && defined($opt_d) && -e $opt_g && -e $opt_d) { #check for command line parameter existence
-	die "Usage: GRCv1.0.pl -g <genome.fna> -d <DB_dir> -r <reference file> -k (keep blast results) -m <min. gene length> -h <num hits to use> -t <translation table number> -y <GO.obo> -f <ECode filter e.g. IEA> -a <GO cat. e.g. mbc> -n <minimum GO depth> -c (enable GO consensus)\n";
+	die "Usage: GRCv1.0.pl -g <genome.fna> -d <DB_dir>\n\
+OPTIONAL -r <reference file> -k (keep blast results)\n\
+-m <min. gene length> -h <num hits to use>\n\
+-t <translation table number> -x <sbj and query % aligned cutoff>\n\
+-y <GO.obo> -f <ECode filter e.g. IEA> -a <GO cat. e.g. mbc>\n\
+-p <additonal output e.g. ANT> -n <minimum GO depth>\n\
+-c (enable GO consensus)\n";
 }
 
 #get a timestamp for creating the results directory
@@ -333,6 +347,13 @@ if($UseGO==1){
 	if(defined $opt_n){#enable minimum depth filtering
 		$AnnotateCommand=$AnnotateCommand." -d $opt_n";
 	}
+}
+
+if(defined $opt_p){#enable other format output
+	$AnnotateCommand=$AnnotateCommand." -p $opt_p";
+}
+if(defined $opt_x){#enable other format output
+	$AnnotateCommand=$AnnotateCommand." -x $opt_x";
 }
 
 print "$AnnotateCommand\n";

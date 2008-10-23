@@ -418,8 +418,8 @@ public:
         result+="("+dtos(BestBitFrac)+")";
         result+="\t"+AlignQ.top()->ScoreInfo();
         result+=ltos(HLength)+"\t";
-        result+=dtos((ALength/(OLength/3))*100)+"\t";
-        result+=dtos((ALength/HLength)*100);
+        result+=dtos((ALength/(OLength/3.0))*100)+"\t";
+        result+=dtos((ALength/double(HLength))*100);
         return result;
     }
     
@@ -429,6 +429,13 @@ public:
         double result=ALength/double(HLength);
         return result;        
     }
+    double GetQueryAlign(){
+        double ALength=AlignQ.top()->GetALength();
+        double QLength=AlignQ.top()->GetLength();
+        double result=ALength/(QLength/3.0);
+        return result;        
+    }    
+    
     
     //This function returns all GO ID's and evidence codes for this subject
     string GOInfo(){

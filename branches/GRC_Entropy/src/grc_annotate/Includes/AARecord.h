@@ -1210,8 +1210,12 @@ public:
     //checks that the function assigned is based on an alignment that
     //meets certain criteria
     int ScreenFunction(const double& sbj_cutoff){
-        if(!Blank && CurrentRep->GetSbjAlign() < sbj_cutoff){
-            Blank=true;
+        if(!Blank){
+            double sbj_align=CurrentRep->GetSbjAlign();
+            double q_align=CurrentRep->GetQueryAlign();
+            if(sbj_align < sbj_cutoff || q_align < sbj_cutoff){
+                Blank=true;
+            }
         }
         return 1;
     }

@@ -2,99 +2,51 @@ See the file named "LICENSE" for license information.
 
 About GRC:
 
-The Genome Reverse Compiler (GRC) is an automated annotation tool
-designed for prokaryotic genomes. The goal is to provide an
-open-source, easy-to-run, very efficient annotation program.
-In this initial version 1.0, GRC only annotates protein-coding genes.
+The Genome Reverse Compiler (GRC) is an automated annotation tool designed for prokaryotic genomes. The goal is to provide an open-source, easy-to-run, very efficient annotation program. In this initial version 1.0, GRC only annotates protein-coding genes.
 
-In addition to the genome sequence, GRC requires a
-multiFASTA file with annotated genes. GRC will perform best when these
-genes are well annotated and come from organisms closely related to
-the target genome. GRC finds genes and assigns functional annotations
-based on sequence similarity. It incorporates an open source version
-of BLAST (FSA-BLAST)[1] to perform functional assignment.
-First grc_orfs is run to generate all
-possible ORFs for the given genome. The translated sequences are then
-checked for sequence similarity against the user-specified database
-using FSA-BLAST. Some ORFs are then discarded and start sites adjusted
-based on overlap, BLAST score, length, and sequence content[2].
-Resulting putative genes are assigned functions based on the annotation
-of their corresponding best BLAST hits.
+In addition to the genome sequence, GRC requires a multiFASTA file with annotated genes. GRC will perform best when these genes are well annotated and come from organisms closely related to the target genome. GRC finds genes and assigns functional annotations based on sequence similarity. It incorporates an open source version of BLAST (FSA-BLAST)[1] to perform functional assignment.
+First grc_orfs is run to generate all possible ORFs for the given genome. The translated sequences are then checked for sequence similarity against the user-specified database using FSA-BLAST. Some ORFs are then discarded and start sites adjusted based on overlap, BLAST score, length, and sequence content[2]. Resulting putative genes are assigned functions based on the annotation of their corresponding best BLAST hits.
 
 
 Downloading, installing, and requirements:
 
-The GRC is available to download as source code and comes with precompiled binaries
-on an intel x86 linux machine. If you are unable to execute the binaries provided
-then you must recompile.  An install script is available under the scripts directory
-which will attempt to recompile each executable and place it in its appropriate location. 
-In order to use the automated install of GRC you must have Perl, g++, and GNU Make (or an equivalent) 
-installed on your system. GRC has been successfully tested in a Linux environment. 
-For Windows users it is also possible to run GRC in Cygwin as long as the above install requirements are met.
-
+The GRC is available to download as source code and comes with precompiled binaries on an intel x86 linux machine. If you are unable to execute the binaries provided then you must recompile. An install script is available under the scripts directory which will attempt to recompile each executable and place it in its appropriate location.
+In order to use the automated install of GRC you must have Perl, g++, and GNU Make (or an equivalent) installed on your system. GRC has been successfully tested in a Linux environment. For Windows users it is also possible to run GRC in Cygwin as long as the above install requirements are met.
 On a typical unix system you can decompress using the following commands:
 gzip -d GRC.tar.gz
 tar -xf GRC.tar
 
-The install script 'install.pl' in the scripts directory will handle building and moving the 
-binaries to the correct location. This script assumes that g++ and perl are installed.
-
+The install script 'install.pl' in the scripts directory will handle building and moving the binaries to the correct location. This script assumes that g++ and perl are installed.
 
 
 Input formats:
 GRC expects the input to be in a certain format.
-The extensions for these formats are (*.faa *.ptt *.fna *.fasta *.CP *.goa).
-GRC expects that the file's extension match it's formatting, if it does not then GRC
-will most likely crash.
+The extensions for these formats are (*.faa *.ptt *.fna *.fasta *.CP *.goa). GRC expects that the file's extension match it's formatting, if it does not then GRC will most likely crash.
 
 (*.fna) NCBI "nucleotide fasta" format. Currently this is the only format/extension that GRC supports for the genomic sequence. Also it is assumed that there is only one (prokaryotic) replicon per file.
 
 (*.faa) NCBI "amino acid fasta" format. This file is used by GRC to create a sequence database that is used to annotate the genome of interest.
 
-(*.ptt) NCBI "protein table" format. This file can be used in two different ways. (1) If it is
-provided in the specified database folder (see Running the program) then it will be automatically parsed and merged with the
-cooresponding *.faa file. This feature exists because the location of the function
-description is not standard in fasta headers. So the merging of the *.ptt function and the *.faa
-sequence will lead to more concise annotation than if left to *.faa parsing guesswork.
-(2) GRC has a compare feature (using the -r command line option) that gives an evaluation
-of the GRC annotation with respect to a designated reference file. The *.ptt file can be
-used to evaluate GRC's performance if the NCBI formats are in use.
+(*.ptt) NCBI "protein table" format. This file can be used in two different ways. (1) If it is provided in the specified database folder (see Running the program) then it will be automatically parsed and merged with the cooresponding *.faa file. This feature exists because the location of the function description is not standard in fasta headers. So the merging of the *.ptt function and the *.faa sequence will lead to more concise annotation than if left to *.faa parsing guesswork. (2) GRC has a compare feature (using the -r command line option) that gives an evaluation of the GRC annotation with respect to a designated reference file. The *.ptt file can be used to evaluate GRC's performance if the NCBI formats are in use.
 
-(*.fasta) EMBL "amino acid fasta" format. This sequence format is like the *.faa format in
-creating sequence database.
+(*.fasta) EMBL "amino acid fasta" format. This sequence format is like the *.faa format in creating sequence database.
 
-(*.goa) EMBL "gene ontology annnotation" format. Similar to (*.ptt) this format can be used 
-it two ways. (1) As an annotation file used in creating a database with *.fasta files. Again
-each *.goa file in the specified database directory (see below) will be merged with its cooresponding *.fasta file to create
-an annotation database. (2) This format can also be used in conjunction with the *.CP format
-to evaluate the performance of the GRC using the Gene Ontology[3]. This aspect of the GRC is 
-explained in the "Evaluation, Using GO" section.
+(*.goa) EMBL "gene ontology annnotation" format. Similar to (*.ptt) this format can be used it two ways. (1) As an annotation file used in creating a database with *.fasta files. Again each *.goa file in the specified database directory (see below) will be merged with its cooresponding *.fasta file to create an annotation database. (2) This format can also be used in conjunction with the *.CP format to evaluate the performance of the GRC using the Gene Ontology[3]. This aspect of the GRC is explained in the "Evaluation, Using GO" section.
 
-(*.CP) EMBL "chromosome table" format. This format is used only in the evaluation of GRC
-performance (-r command line option) when EMBL formats are in use.
+(*.CP) EMBL "chromosome table" format. This format is used only in the evaluation of GRC performance (-r command line option) when EMBL formats are in use.
 
-*.goa, *.CP, and *.fasta files can be found at http://www.ebi.ac.uk/integr8/
+*.goa, *.CP, and *.fasta files can be found at http://www.ebi.ac.uk/integr8
 
 *.ptt, *.fna, and *.faa files can be found at http://www.ncbi.nlm.nih.gov/genomes/lproks.cgi
 
 
 Running the program:
-
 Required parameters:
 -g [target genome file]
 -d [target annotation database]
 
-In order to annotate a genome the user must provide the target genome and annotated, amino acid file(s) for proteins from closely
-related organisms. Currently the GRC only supports specific fasta formats.  The annotation files 
-(or annotation database) must be in fasta format with *.faa or *.fasta extensions.  The genome sequence must be
- in fasta format with a *.fna extension. 
-There are two options in specifiying the files to be used for the annotation database (1) specify
-a directory containing the appropriate files or (2) specify a file containing all annotations
-that are to be used.  If a directory is given the GRC will attempt to merge all files with the appropriate 
-extensions to create an annotation database file, inside the 'DB' directory, named 'Automerge.faa'.
-For convenience, a fasta merging script is available under the scripts directory that will
-merge fasta files given as command line parameters (*!This file is used by GRC when automerging
-so do not remove it!*).
+In order to annotate a genome the user must provide the target genome and annotated, amino acid file(s) for proteins from closely related organisms. Currently the GRC only supports specific fasta formats. The annotation files (or annotation database) must be in fasta format with *.faa or *.fasta extensions. The genome sequence must be in fasta format with a *.fna extension.
+There are two options in specifiying the files to be used for the annotation database (1) specify a directory containing the appropriate files or (2) specify a file containing all annotations that are to be used. If a directory is given the GRC will attempt to merge all files with the appropriate extensions to create an annotation database file, inside the 'DB' directory, named 'Automerge.faa'. For convenience, a fasta merging script is available under the scripts directory that will merge fasta files given as command line parameters (*!This file is used by GRC when automerging so do not remove it!*).
 
 Example 1 for running GRC:
 ./GRCv1.0.pl -g AE008687.fna -d ./DBdir/
@@ -104,97 +56,65 @@ Example 2 for running GRC:
 
 
 Other options:
+GRC uses the start codons specified in resources/StartCodons.txt to determine ORFs and likely TIS.
+
 Other command line options include:
 
--m [Min. Length(nt)]	The minimum length, in nucleotides, used for finding ORFs (default is 300). All ORFs found will be of at least this many nucleotides or greater.
--h [Num. BLAST hits]	The number of BLAST hits to use in determining whether a gene exists (default is 10), its start site, and its function.
+-m [Min. Length(nt)] The minimum length, in nucleotides, used for finding ORFs (default is 300). All ORFs found will be of at least this many nucleotides or greater.
+-h [Num. BLAST hits] The number of BLAST hits to use in determining whether a gene exists (default is 10), its start site, and its function.
 -r [reference annotation] A reference annotation provided by the user which GRC will use to evaluate the results of the annotation using the grc_compare test module (see below). This file should be a *.ptt file (NCBI) or a *.CP file (EMBL) with its corresponding *.goa file placed in the same directory.
 -k Option to keep the name the blast results uniquely with date and time so that they will not be over written during the next run.
--y [Gene Ontology obo file] This file must be specified for GRC to use options (f, a, n, c). When this file is specified the GRC will automatically check the GO terms provided in the database
-to see if any terms have been out dated and will update them with an appropriate warning message.
+-p [letter codes] With additional value 'A' gives amino acid fasta file output, 'N' gives nucleotide fasta file, and 'T' gives tbl2asn output. e.g. "-p ANT"
+tbl2asn: This free NCBI program can be used to generate ASN and GBK files.
+-x [coverage value 0 to 1] Sets the % coverage, of the query and subject, for the alignment, that is necessary to assign function e.g. "-x 0.70"
+-t [int table number] Specify which genetic code to use, with Table 11 (standard Bacterial code) as the default. Use any one of the translation tables found at http://www.ncbi.nlm.nih.gov/Taxonomy/. The translation table controls which stop codons to use.
+-y [Gene Ontology obo file] This file must be specified for GRC to use options (f, a, n, c). When this file is specified the GRC will automatically check the GO terms provided in the database to see if any terms have been out dated and will update them with an appropriate warning message.
 -f [ECode filter] e.g. 'IEA ISS' Any GO term assignments in the database that are based only on the evidence codes specified will not be used.
 -a [GO cat.] e.g. 'mbc' Only assign GO terms from the specified GO category. 'm' for molecular function, 'b' for biological process, 'c' for cellular component.
 -n [GO min. depth] The minimum depth a GO term must have to be assigned in annotation
 -c Enable consensus annotations. Consensus annotations are made from a distribution of GO terms from the top alignments to an ORF.
 
 
+
+Other features:
+GRC supports multiple replicons in the input genome file in creating the annotation. However, tbl2asn output and the comparison feature do not currently support multiple replicons.
+
+
 Output files & formats:
 Annotation Results:
-Currently folders are created under the GRC/resuts/ directory.  These folders are named according to
-the organism and minimum gene length specified.  Three tab-delimited results files are placed in this folder.
-(1) *.Pos  Gives the putative genes that are likely to exist and their resulting annotation (according to GRC methodology).
-(2) *.Neg  Gives the orfs that were eliminated from the long-orf output.
-(3) KnockList.txt  Provides a record of elimination
+Currently folders are created under the GRC/resuts/ directory. These folders are named according to the organism and minimum gene length specified. Three tab-delimited results files are placed in this folder.
+(1) *.Pos Gives the putative genes that are likely to exist and their resulting annotation (according to GRC methodology).
+(2) *.Neg Gives the orfs that were eliminated from the long-orf output.
+(3) KnockList.txt Provides a record of why ORFs were placed in the *.Neg file (overlap or EDR/Alignment score).
 
 
-(*.Pos) This is the annotation file for the target genome. It contains information
-about the genes that GRC "believes" exists.
+(*.Pos) This is the annotation file for the target genome. It contains information about the genes that GRC "believes" exists.
 
-(*.Neg) These are putative genes generated by the grc_orfs component that
-were later rejected by GRC.
+(*.Neg) These are putative genes generated by the grc_orfs component that were later rejected by GRC.
 
-(KnockList.txt) This file is generated by the rejection phase of GRC as record of "who knocked
-out who" and is used by the compare component to provide detailed information in the *.compare
-and *.FNAnalysis files.
+(KnockList.txt) This file is generated by the rejection phase of GRC as record of "who knocked out who" and is used by the compare component to provide detailed information in the *.compare and *.FNAnalysis files.
+
+(*.tbl) Table file that can be used as tbl2asn input (see above).
+(*.pep) Amino acid file that can be used as tbl2asn input.
 
 
- 
 
 
 
 Evaluation Section:
 
-The test module allows the user to evaluate the performance on a particular genome by
-simply specifying the reference annotation used for comparison as a command line parameter.
-When a reference annotation is given, the GRC generates performance information relative
-to gene finding and functional assignment. The resulting output will not only allow the user
-to evaluate performance at a high level, but also the decisions made by the GRC on an ORF
-by ORF basis. This is done by giving the output ORF’s relevant information paired with the
-reference ORF that led to its evaluation. We pair each true positive, false positive, and false
-negative ORF with the reference gene it overlaps with most. This enables the user to view
-the nature of the agreement/disagreement that is found in the comparison with a reference
-genome. When Gene Ontology is used, this record also includes term by term information
-with respect to how a GO annotation came to be classified as confirmed, compatible, or
-incompatible. It is thought that in this context the information provided will be valuable
-to researchers who wish to review the reference annotation with respect to the evidence
-introduced through the GRC.
+The test module allows the user to evaluate the performance on a particular genome by simply specifying the reference annotation used for comparison as a command line parameter. When a reference annotation is given, the GRC generates performance information relative to gene finding and functional assignment. The resulting output will not only allow the user to evaluate performance at a high level, but also the decisions made by the GRC on an ORF by ORF basis. This is done by giving the output ORF’s relevant information paired with the reference ORF that led to its evaluation. We pair each true positive, false positive, and false negative ORF with the reference gene it overlaps with most. This enables the user to view the nature of the agreement/disagreement that is found in the comparison with a reference genome. When Gene Ontology is used, this record also includes term by term information with respect to how a GO annotation came to be classified as confirmed, compatible, or incompatible. It is thought that in this context the information provided will be valuable to researchers who wish to review the reference annotation with respect to the evidence introduced through the GRC.
 
-As part of the comparison the GRC also creates a record of ORF removal (FNAnalysis.txt). This record
-details the conditions that led to the removal of ORFs deemed false negatives. This enables
-the user to evaluate the case where the GRC removes an ORF that the reference annotation
-asserts is a protein coding gene. This record indicates whether false negatives were removed
-due to their high EDR value or whether they were removed to resolve an overlap with another
-ORF thought to be protein coding. In the case of overlap we provide the information
-generated by GRC for both ORFs from its annotation of the target organism and the information
-from their respective reference ORFs. With this combined view, it is possible to
-both review the decision made by the GRC and to evaluate reference annotation itself. For
-example, if an FN is removed due to significant overlap with a TP or FN, then it is possible
-that this overlap was missed in the original reference annotation. Also, if a high-scoring FP
-occupies the same space as a low-scoring FN, it is possible that new information is being
-introduced that was not considered or not available during the annotation of the reference
-genome.
+As part of the comparison the GRC also creates a record of ORF removal (FNAnalysis.txt). This record details the conditions that led to the removal of ORFs deemed false negatives. This enables the user to evaluate the case where the GRC removes an ORF that the reference annotation asserts is a protein coding gene. This record indicates whether false negatives were removed due to their high EDR value or whether they were removed to resolve an overlap with another ORF thought to be protein coding. In the case of overlap we provide the information generated by GRC for both ORFs from its annotation of the target organism and the information from their respective reference ORFs. With this combined view, it is possible to both review the decision made by the GRC and to evaluate reference annotation itself. For example, if an FN is removed due to significant overlap with a TP or FN, then it is possible that this overlap was missed in the original reference annotation. Also, if a high-scoring FP occupies the same space as a low-scoring FN, it is possible that new information is being introduced that was not considered or not available during the annotation of the reference genome.
 
 
-(*.compare) This file is the generated by the compare component (command option -r) of GRC. It
-gives statistics of GRC's performance with respect to the reference file and classifies
-putative genes as being True Positives (TP- sequences that are correctly put forward as genes), 
-False Positives (FP- sequences that are incorrectly put forward as genes), (TN- sequences that 
-were correctly rejected as genes), and False Negatives (FN- sequences that were incorrectly
-rejected).
+(*.compare) This file is the generated by the compare component (command option -r) of GRC. It gives statistics of GRC's performance with respect to the reference file and classifies putative genes as being True Positives (TP- sequences that are correctly put forward as genes), False Positives (FP- sequences that are incorrectly put forward as genes), (TN- sequences that were correctly rejected as genes), and False Negatives (FN- sequences that were incorrectly rejected).
 
-(FNAnalysis) This file is generated by the compare component (command option -r) of GRC. It
-provides information with respect to the False Negatives (those genes that, according to 
-the reference file, were erroneously rejected) more on this in the "Evaluation, Using GO" section.
+(FNAnalysis) This file is generated by the compare component (command option -r) of GRC. It provides information with respect to the False Negatives (those genes that, according to the reference file, were erroneously rejected) more on this in the "Evaluation, Using GO" section.
+
+
 
 References:
-[1] Cameron M, Williams HE, Cannane A.
-A deterministic finite automaton for faster protein hit detection in BLAST.
-J Comput Biol. 2006 May;13(4):965-78.
-[2] Ouyang Z, Zhu H, Wang J, She ZS. 
-Multivariate entropy distance method for prokaryotic gene identification.
-J Bioinform Comput Biol. 2004 Jun;2(2):353-73
-[3]  	Ashburner M, Ball CA, Blake JA, Botstein D, Butler H, Cherry JM, Davis AP, Dolinski K, Dwight SS, Eppig JT, Harris MA, Hill DP, Issel-Tarver L, Kasarskis A, Lewis S, Matese JC, Richardson JE, Ringwald M, Rubin GM, Sherlock G. 
-Gene ontology: tool for the unification of biology. The Gene Ontology Consortium.
-
-
-.
+[1] Cameron M, Williams HE, Cannane A. A deterministic finite automaton for faster protein hit detection in BLAST. J Comput Biol. 2006 May;13(4):965-78.
+[2] Ouyang Z, Zhu H, Wang J, She ZS. Multivariate entropy distance method for prokaryotic gene identification. J Bioinform Comput Biol. 2004 Jun;2(2):353-73
+[3] Ashburner M, Ball CA, Blake JA, Botstein D, Butler H, Cherry JM, Davis AP, Dolinski K, Dwight SS, Eppig JT, Harris MA, Hill DP, Issel-Tarver L, Kasarskis A, Lewis S, Matese JC, Richardson JE, Ringwald M, Rubin GM, Sherlock G. Gene ontology: tool for the unification of biology. The Gene Ontology Consortium

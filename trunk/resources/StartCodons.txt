@@ -1,0 +1,7 @@
+#This table stores the start sites to use in gene finding
+#and the frequency (used as a weight) of the start site
+#Codon	Weight
+ATG	0.858
+GTG	0.079
+TTG	0.063
+

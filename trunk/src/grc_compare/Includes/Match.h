@@ -11,33 +11,39 @@
 #ifndef Match_H
 #define Match_H
 
-#include "AARecord.h"
+#include "Record.h"
 #include "GO.h"
 #include "GOMatch.h"
 #include <set>
 using std::set;
 
 enum GOSTATUS{GRC, Ref, RefGRC, NoGO};//keeps of whether the match involves prediction/ref with GO terms assigned
-//class AARecord;//forward declaration
+//class Record;//forward declaration
 
+	//NOTE The Match record is getting dual use
+	//it could be improved to use inheritance from a base Match class for both uses
+	//(1)Used for storing the pairs of putative orfs and the reference orf that they overlap with the most
+	//(2)Used for storing pairs of orfs in the KnockAnalysis file which tracks the grc_overlap
+	//results of which orf won and lost the contest between to overlapping orfs
 class Match {//open prototype
 		friend std::ostream& operator<<(std::ostream& Out, const Match& M);
 public:
-	double RefOLapPercent; //Setubal Sequence percent overlap
-	double GRCOLapPercent; //GRC sequence percent overlap
+	double RefOLapPercent; //Subject Sequence percent overlap
+	double GRCOLapPercent; //Query sequence percent overlap
 	double OverLen; //length of overlap
 	double RefWordMatchPercent; //setubal word percent
 	double GRCWordMatchPercent; //grc word percent
 	double CombinedOLap; //keep track of combined overlap
 	result StatScore; //tracks the result for this match
 	list<string> MTerms; //Terms that match
-	AARecord* GRCRecord;//GRC prediction ORF
-	AARecord* RefRecord;//Ref ORF
+	Record* GRCRecord;//GRC prediction ORF
+	Record* RefRecord;//Ref ORF
 	int SmallRef; //tracks if the Reference ORF is less than 300 bp
 	set<GOMatch> Confirmed;//GO annotations that are confirmed (ancestor of a MostSpecificAnnotation)
 	FunctionMap NotCompatible;//Annotations that are not compatible (do not contain a msa on path to root)
 	set<GOMatch> Compatible; //annotations that have a msa as an ancestor
 	GOSTATUS GOStat;//reports of go status of the match
+	bool SameGO;//records whether records matched are described by at least one same ontology
 	
 
 
@@ -53,6 +59,7 @@ public:
 		StatScore=TN;
 		SmallRef=0;
 		GOStat=NoGO;
+		SameGO=false;
 	}// close default
 
 	~Match(){//default destructor
@@ -79,6 +86,7 @@ public:
 		 NotCompatible=Source.NotCompatible;
 		 Confirmed=Source.Confirmed;
 		 GOStat=Source.GOStat;
+		 SameGO=Source.SameGO;
 	 }// close definition
 
 
@@ -100,60 +108,65 @@ public:
 			NotCompatible=Source.NotCompatible;
 			Confirmed=Source.Confirmed;
 			GOStat=Source.GOStat;
+			SameGO=Source.SameGO;
 			}
 		 return *this;
 	 }// close definition
 
+	//The Match record is getting dual use
+	//it could be improved to use inheritance from a base Match class for both uses
+	//(1)Used for storing the pairs of putative orfs and the reference orf that they overlap with the most
+	//(2)Used for storing pairs of orfs in the KnockAnalysis file which tracks the grc_overlap
+	//results of which orf won and lost the contest between to overlapping orfs
 
-
-	 Match(AARecord* BP, AARecord* CP, const double& OLap, bool PosOrNeg, int NumSmall=0, GO* GOAccess=NULL){//parameterized constructor
+	 Match(Record* BP, Record* CP, const double& OLap, bool PosOrNeg, int NumSmall=0, GO* GOAccess=NULL){//parameterized constructor
 		GRCRecord=BP;
 		RefRecord=CP;
 		OverLen=OLap;
-		RefOLapPercent=OverLen/RefRecord->OLength; //reference annotation overlap
-		GRCOLapPercent=OverLen/GRCRecord->OLength; //grc annotation overlap
 		GOStat=NoGO;
-		
+		SameGO=false;
 		//Set RefEval Pointer
 		if(RefRecord->Ref){//if the refernece record  really is a reference record and not a GRC record for FNanalysis
+			RefOLapPercent=OverLen/RefRecord->OLength; //reference annotation overlap
+			GRCOLapPercent=OverLen/GRCRecord->OLength; //grc annotation overlap
 			StatScore=GRCRecord->Evaluation;//get the result of the comparison
 			if(StatScore ==TP || StatScore==FN){//if the reference record is worth tracking
 				GRCRecord->RefEval=RefRecord;//set RefEval to be used in FNAnalysis
 				RefRecord->RefMatched=true;//set RefMatched to keep FP and TN from using the reference
 			}
 		}
-		 
-
-		if(StatScore!=TN){
-			FindMatchTerms();//Find which terms match between the two records.
-		 }//close if not TN
-
-		SmallRef=NumSmall;//keep track of the number of Ref. ORFs <300bp that the GRC ORF overlaps with
-		double WMatches=MTerms.size();
-		double GW=BP->Hit.size();
-		double SW=CP->Hit.size();
-		if(GW==0)GRCWordMatchPercent=0;
-		else GRCWordMatchPercent=WMatches/GW;
-		if(SW==0)RefWordMatchPercent=0;	
-		else RefWordMatchPercent=WMatches/SW;
-
-		CombinedOLap=RefOLapPercent*GRCOLapPercent; //keep track of combined overlap
-		if(RefRecord->MaxOLap<CombinedOLap){//if the maximum overlap for the reference orf is less than the current update it
-			RefRecord->MaxOLap=CombinedOLap;
-			RefRecord->MaxTerms=RefWordMatchPercent;
+		 //if GRCRecord is not null which is the case if this match object is being used to record a knockout for entropy
+		if(GRCRecord!=NULL){
+			if(StatScore!=TN){
+				FindMatchTerms();//Find which terms match between the two records.
+			}//close if not TN
+	
+			SmallRef=NumSmall;//keep track of the number of Ref. ORFs <300bp that the GRC ORF overlaps with
+			double WMatches=MTerms.size();
+			double GW=BP->Hit.size();
+			double SW=CP->Hit.size();
+			if(GW==0)GRCWordMatchPercent=0;
+			else GRCWordMatchPercent=WMatches/GW;
+			if(SW==0)RefWordMatchPercent=0;	
+			else RefWordMatchPercent=WMatches/SW;
+	
+			CombinedOLap=RefOLapPercent*GRCOLapPercent; //keep track of combined overlap
+			if(RefRecord->MaxOLap<CombinedOLap){//if the maximum overlap for the reference orf is less than the current update it
+				RefRecord->MaxOLap=CombinedOLap;
+				RefRecord->MaxTerms=RefWordMatchPercent;
+			}
+			if(GRCRecord->MaxOLap<CombinedOLap){//if the overlap with respect to the grc set orf is the greatest so far update it
+				GRCRecord->MaxOLap=CombinedOLap;//update the maximum overlap for this GRC predicted orf
+				GRCRecord->MaxTerms=GRCWordMatchPercent;//update the percentage of terms that cooresponds to the maxolap
+				
+			}
+			if(GOAccess!=NULL && StatScore==TP){//if the ontology is available
+				FindGOStat();//check the status of the match
+				if(GOStat==RefGRC && SameGO){//if the annotations can be verified
+					CheckGO(GOAccess);//run checkGO for each of the TP orfs with GO terms
+				}//close if verifiable
+			}//close ontology available
 		}
-		if(GRCRecord->MaxOLap<CombinedOLap){//if the overlap with respect to the grc set orf is the greatest so far update it
-			GRCRecord->MaxOLap=CombinedOLap;//update the maximum overlap for this GRC predicted orf
-			GRCRecord->MaxTerms=GRCWordMatchPercent;//update the percentage of terms that cooresponds to the maxolap
-			
-		}
-		if(GOAccess!=NULL && StatScore==TP){//if the ontology is available
-			FindGOStat();//check the status of the match
-			if(GOStat==RefGRC){//if the annotations can be verified
-				CheckGO(GOAccess);//run checkGO for each of the TP orfs with GO terms
-			}//close if verifiable
-		}//close ontology available
-
 	 }//close definition
 
 
@@ -163,6 +176,14 @@ public:
 		if (GRCRecord->HasGO){//if the GRC prediction has GO term
 			if(RefRecord->HasGO){
 				GOStat=RefGRC;
+				//check to see if the two ORFs are described by at least one same ontology
+				for(set<string>::iterator It=GRCRecord->GOCat.begin(); It!=GRCRecord->GOCat.end(); It++){
+					string GRCat=*It;
+					if(RefRecord->GOCat.find(GRCat)!=RefRecord->GOCat.end()){
+						SameGO=true;//set boolean value
+						break;
+					}
+				}
 			}
 			else {
 				GOStat=GRC;
@@ -174,12 +195,14 @@ public:
 		else{
 			GOStat=NoGO;
 		}
+
 		return 0;
 	 }//close defintion
 
 
 	 //This function performs checks to see if annotation is Confirmed, Compatible, or NotCompatible
 	 int CheckGO(GO* GOAccess){//open def.
+		//RefRecord->RemoveAncestor(GOAccess);//remove any non-msp ref. annotations
 		 ANCESTOR RefAncestors;
 		 set<int> Verified;//all the grc annotations that are confirmed or compatible
 		 //get all reference annotation ancestors
@@ -192,12 +215,12 @@ public:
 		 for(ANCESTOR::iterator AncIt=RefAncestors.begin(); AncIt!=RefAncestors.end();AncIt++){
 			 if(AncIt->first!=NULL){//NULL check
 				 FunctionMap::iterator GRCIt=GRCRecord->GOTerms.find(AncIt->first->ID);//if any of GRC terms are ancestors of any Ref term
-				 if(GRCIt!=GRCRecord->GOTerms.end()){//if its an ancestor
-					 GOFunction* OrigRef=GOAccess->Find(AncIt->first->DistID);//find the original Ref. that created this ancestor
-					 FunctionMap::iterator RefIt=RefRecord->GOTerms.find(AncIt->first->DistID);//find the original in the refernce
+				 if(GRCIt!=GRCRecord->GOTerms.end() && Verified.find(AncIt->first->ID)==Verified.end()){//if its an ancestor and has not been verified already
+					 GOFunction* OrigRef=GOAccess->Find(AncIt->first->DistID);//find the original Ref. that created this ancestor in the GO heirarchy
+					 FunctionMap::iterator RefIt=RefRecord->GOTerms.find(AncIt->first->DistID);//find the same term in the refernce record so can access the evidence code information
 					 if (OrigRef !=NULL && RefIt!=RefRecord->GOTerms.end()){
 						 Verified.insert(GRCIt->first);//insert id as being verified
-						 Confirmed.insert(GOMatch(OrigRef->ID, RefIt->second, OrigRef->Depth, GRCIt->first, GRCIt->second, (OrigRef->Depth)-(AncIt->first->Distance), AncIt->first->Distance));
+						 Confirmed.insert(GOMatch(OrigRef->ID, RefIt->second.first, OrigRef->Depth, GRCIt->first, GRCIt->second.first, (OrigRef->Depth)-(AncIt->first->Distance), AncIt->first->Distance, GRCIt->second.second));
 					 }//close if OrigRef Found
 					 else {//else original refernce not found
 						 cerr<<"WARNING: Error in GOCheck Analysis at "<<AncIt->first->DistID<<'\n';
@@ -212,30 +235,38 @@ public:
 		 //are contained therein
 
 		 for(FunctionMap::iterator GRCIt=GRCRecord->GOTerms.begin(); GRCIt!=GRCRecord->GOTerms.end(); GRCIt++){
-			 ANCESTOR GRCAncestors;
-			 GRCAncestors=GOAccess->GetAncestors(GRCIt->first);//get the ancestors of the GRC id
-			 for(ANCESTOR::iterator AncIt=GRCAncestors.begin(); AncIt!=GRCAncestors.end();AncIt++){
-				 if(AncIt->first!=NULL){//NULL check
-					 FunctionMap::iterator RefIt=RefRecord->GOTerms.find(AncIt->first->ID);//if any of Ref terms are ancestors of any GRC term
-					 if(RefIt!=RefRecord->GOTerms.end()){//if its an ancestor
-						 GOFunction* OrigGRC=GOAccess->Find(AncIt->first->DistID);//find the original GRC. that created this ancestor
-						 if (OrigGRC !=NULL){//if the original exists in hierarchy
-							 Verified.insert(GRCIt->first);//insert id as being verified
-							 Compatible.insert(GOMatch(RefIt->first, RefIt->second, (OrigGRC->Depth)-(AncIt->first->Distance), GRCIt->first, GRCIt->second, OrigGRC->Depth, AncIt->first->Distance));
-						 }
-						 else{
-							 cerr<<"WARNING: Error in GOCheck Analysis at "<<AncIt->first->DistID<<'\n';
-						 }
-					 }//close if ancestor
-				 }//close null check
-			 }//close ancestor loop
+			if(Verified.find(GRCIt->first)==Verified.end()){//if the term has not yet been verified
+				ANCESTOR GRCAncestors;
+				GRCAncestors=GOAccess->GetAncestors(GRCIt->first);//get the ancestors of the GRC id
+				for(ANCESTOR::iterator AncIt=GRCAncestors.begin(); AncIt!=GRCAncestors.end();AncIt++){
+					if(AncIt->first!=NULL){//NULL check 
+						FunctionMap::iterator RefIt=RefRecord->GOTerms.find(AncIt->first->ID);//if any of Ref terms are ancestors of any GRC term
+						if(RefIt!=RefRecord->GOTerms.end()){//if its an ancestor
+							GOFunction* OrigGRC=GOAccess->Find(AncIt->first->DistID);//get access to the original GRC. that created this ancestor
+							if (OrigGRC !=NULL){//if the original exists in hierarchy
+								Verified.insert(GRCIt->first);//insert id as being verified
+								Compatible.insert(GOMatch(RefIt->first, RefIt->second.first, (OrigGRC->Depth)-(AncIt->first->Distance), GRCIt->first, GRCIt->second.first, OrigGRC->Depth, AncIt->first->Distance, GRCIt->second.second));
+							}
+							else{
+								cerr<<"WARNING: Error in GOCheck Analysis at "<<AncIt->first->DistID<<'\n';
+							}
+						}//close if ancestor
+					}//close null check
+				}//close ancestor loop
+			}//close if not verified
 		 }//close compatibility loop
 
          
 		 //else they are NotCompatible
-		 for(FunctionMap::iterator FindIt=GRCRecord->GOTerms.begin(); FindIt!=GRCRecord->GOTerms.end(); FindIt++){
-			 if(Verified.find(FindIt->first)==Verified.end()){//if the term is not found in the verified set
-				 NotCompatible.insert(*FindIt);
+		 for(FunctionMap::iterator It=GRCRecord->GOTerms.begin(); It!=GRCRecord->GOTerms.end(); It++){
+			GOFunction* TermPtr=GOAccess->Find(It->first);//setup access the GO term information
+			if(TermPtr!=NULL){
+				//check to see if the reference record uses the same ontology this term is from
+				if( (RefRecord->GOCat.find(TermPtr->Category)) != RefRecord->GOCat.end() ){
+					if(Verified.find(It->first)==Verified.end()){//if the term is not found in the verified set
+						NotCompatible.insert(*It);
+					}
+				}
 			 }
 		 }//close for every GRC GOTerm
 		 return 0;
@@ -280,14 +311,15 @@ public:
 		}
 		for(FunctionMap::iterator NCom=NotCompatible.begin(); NCom!=NotCompatible.end(); NCom++){
 			Out<<"Incompatible\t"<<GO::IDToString(NCom->first);
-			for(set<string>::iterator GIt=NCom->second.begin(); GIt!=NCom->second.end(); GIt++){//open for loop
-				if(GIt!=NCom->second.begin()){
+			for(set<string>::iterator GIt=NCom->second.first.begin(); GIt!=NCom->second.first.end(); GIt++){//open for loop
+				if(GIt!=NCom->second.first.begin()){
 					Out<<" "<<*GIt;
 				}
 				else{
 					Out<<"\t"<<*GIt;
 				}
 			}//close inner for loop
+			Out<<"\t"<<NotCompatible.begin()->second.second<<"\n";
 		}//close outer for loop
 		Out<<Delim<<"\n";
 
@@ -308,8 +340,13 @@ public:
 		}
 
 		Out<<OverLen<<'\t'<<RefOLapPercent<<'\n';
-		Out<<PrintEval(GRCRecord->Evaluation)<<"\t";
-		GRCRecord->RecordOut(Out);
+		if(GRCRecord==NULL){
+			Out<<"ENTROPY\n";
+		}
+		else{
+			Out<<PrintEval(GRCRecord->Evaluation)<<"\t";
+			GRCRecord->RecordOut(Out);
+		}
 		Out<<PrintEval(RefRecord->Evaluation)<<"\t";
 		RefRecord->RecordOut(Out);
 		Out<<"NA\t";
@@ -373,6 +410,55 @@ public:
 	}
 	int GONotCompat(){
 		return (NotCompatible.size());
+	}
+
+	//gets the distribution of confidence values in bins of .10
+	int GOCompatDist(int Array[]){
+		int Bin=0;//for calculating which bin confidence
+		double BinSize=.10;
+		for(set<GOMatch>::iterator It=Compatible.begin(); It!=Compatible.end(); It++){
+			Bin= (((It->Confidence)/BinSize)/1);//sloppy int division to get correct
+			if(Bin>=0 && Bin<10){
+				Array[Bin]++;
+			}
+			else if(Bin>=10){
+				Array[9]++;
+			}
+		}
+		return 0;
+	}
+
+	//gets the distribution of confidence values in bins of .10
+	int GOConfirmDist(int Array[]){
+		int Bin=0;//for calculating which bin confidence
+		double BinSize=.10;
+		for(set<GOMatch>::iterator It=Confirmed.begin(); It!=Confirmed.end(); It++){
+			Bin= (((It->Confidence)/BinSize)/1);//sloppy int division to get correct
+			if(Bin>=0 && Bin<10){
+				Array[Bin]++;
+			}
+			else if(Bin>=10){
+				Array[9]++;
+			}
+		}
+		return 0;
+	}
+
+	//gets the distribution of confidence values in bins of .10
+	int GOIncompatDist(int Array[]){
+		int Bin=0;//for calculating which bin confidence
+		double BinSize=.10;
+		for(FunctionMap::iterator It=NotCompatible.begin(); It!=NotCompatible.end(); It++){
+			double Temp=It->second.second;
+			Bin= (((It->second.second)/BinSize)/1);//sloppy int division to get correct
+			if(Bin>=0 && Bin<10){
+				Array[Bin]++;
+			}
+			else if(Bin>=10){
+				Array[9]++;
+			}
+		}
+		return 0;
 	}
 
 	//Sum up the Depth and Distance Stats for each Confirmed Annotation

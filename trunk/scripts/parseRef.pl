@@ -41,10 +41,11 @@ if($opt_i=~/.ptt/){
 		if($Words[4] ne "-"){#if the synonym exists
 			$Function=$Function." $Words[4]";#add the synonym to the end
 		}
-		$Function=~s/\|+|\-+/ /g; #replace | or - with a space
-		$Function=~s/\(+|\)+|\[+|\]+|\{+|\}+|,+|\/+|\\+|\,+|\-+|\'+|\;+|\t+/ /g; #replace brackets and punct with space
-		$Function=~ tr/A-Z/a-z/; #convert everything to lower case
-		$Function=~s/ protein +| and +| the +/ /g; #remove undesirable annotations
+		#$Function=~s/\|+|\-+/ /g; #replace | or - with a space
+		#$Function=~s/\(+|\)+|\[+|\]+|\{+|\}+|,+|\/+|\\+|\,+|\-+|\'+|\;+|\t+/ /g; #replace brackets and punct with space
+		$Function=~s/\(+|\)+|\t+/ /g; #replace brackets and punct with space
+		#$Function=~ tr/A-Z/a-z/; #convert everything to lower case
+		#$Function=~s/ protein +| and +| the +/ /g; #remove undesirable annotations
 		$Function=~ s/^\s+//gm; #remove leading whitespace
 		$Function=~ s/\s+$//; #remove trailing whitespace
 		
@@ -75,49 +76,55 @@ if($opt_i=~/.ptt/){
 #This section supports the merging of goa and .CP files for use as a reference
 #Assumes for example.goa there is example.CP in the same directory
 #if the Uniprot ID in goa annotation is not in the cooresponding CP file then the protein will have NotFound as the annotation
-if($opt_i=~/.goa/){
-	$CTable=$opt_i;#create chromosome table name
-	$CTable=~s/.goa/.CP/;#create chromosome table name
-	unless(-e $CTable){#if the CTable file does not exist
-		die "ABORT: Could not find cooresponding chromosome table for specified reference $opt_i\n";
-	}
+if($opt_i=~/.CP/){
+	$IDColumngoa=1;
+	$GOColumn=4;
+	$ECodeColumn=6;
+	$GoaFile=$opt_i;#create chromosome table name
+	$GoaFile=~s/.CP/.goa/;#create chromosome table name
+
 	local @Lines=<$Map>;#get contents
-	chomp(@Lines);
-	$count=0;
-	
-	#Create hash
-	while ($count<@Lines) {#for each line of the goa file
-		local @Terms=split(/\t/, $Lines[$count]);
-		if(defined $Annotation{$Terms[2]}){#if this ID is in the hash
-			$Annotation{$Terms[2]}="$Annotation{$Terms[2]} $Terms[4] $Terms[6]"; #hash the goa line to the ID
-		}
-		else{
-			$Annotation{$Terms[2]}="";#clear the string
-			$Annotation{$Terms[2]}="$Terms[4] $Terms[6]";
-		}
-		
-		$count++;
-	} #close while loop
-	@Lines=();#clear the array
 	close $Map;
-	open ($IPfile, "< $CTable")
-		or die "Couldn't open input file: $!\n";#open ptt file
+
+	$count=0;
+	if(-e $GoaFile){#if the goa file exists
+		open ($IPfile, "< $GoaFile")
+			or die "Couldn't open input file: $!\n";#open goa file
+		@GoaLines=<$IPfile>;#get contents
+		chomp(@GoaLines);
+		#Create hash
+		while ($count<@GoaLines) {#for each line of the goa file
+			local @Terms=split(/\t/, $GoaLines[$count]);
+			if(defined $Annotation{$Terms[$IDColumngoa]}){#if this ID is in the hash
+				$Annotation{$Terms[$IDColumngoa]}="$Annotation{$Terms[$IDColumngoa]} $Terms[$GOColumn] $Terms[$ECodeColumn]"; #hash the goa line to the ID
+			}
+			else{
+				$Annotation{$Terms[$IDColumngoa]}="";#clear the string
+				$Annotation{$Terms[$IDColumngoa]}="$Terms[$GOColumn] $Terms[$ECodeColumn]";
+			}
+			
+			$count++;
+		} #close while loop
+		close $IPfile;
+	}
+	@GoaLines=();
+	
 	$count=5;#start at 6th line
-	@Lines=<$IPfile>;#get contents
 	while($count<@Lines){#open while loop
 		local @Terms=split(/\t/, $Lines[$count]);
 		local $ID=$Terms[8];
 		local $Info=$Annotation{$ID};#find the ID
-		$OtherFunc=$Terms[-2];#get the function
-		$OtherFunc=~s/\|+|\-+/ /g; #replace | or - with a space
-		$OtherFunc=~s/\(+|\)+|\[+|\]+|\{+|\}+|,+|\/+|\\+|\,+|\-+|\'+|\;+|\t+/ /g; #replace brackets and punct with space
-		$OtherFunc=~ tr/A-Z/a-z/; #convert everything to lower case
-		$OtherFunc=~s/ protein +| and +| the +/ /g; #remove undesirable annotations
+		$OtherFunc=$Terms[-3];#get the function
+		#$OtherFunc=~s/\|+|\-+/ /g; #replace | or - with a space
+		#$OtherFunc=~s/\(+|\)+|\[+|\]+|\{+|\}+|,+|\/+|\\+|\,+|\-+|\'+|\;+|\t+/ /g; #replace brackets and punct with space
+		$OtherFunc=~s/\(+|\)+|\t+/ /g; #replace brackets and punct with space
+		#$OtherFunc=~ tr/A-Z/a-z/; #convert everything to lower case
+		#$OtherFunc=~s/ protein +| and +| the +/ /g; #remove undesirable annotations
 		$OtherFunc=~ s/^\s+//gm; #remove leading whitespace
 		$OtherFunc=~ s/\s+$//; #remove trailing whitespace
-		$Start=$Terms[4];#get the Start                          PARSE OTHER FUNCTION
-		$Length=$Terms[5];#get the Length
-		$Direction=$Terms[6];#get the Direction
+		$Start=$Terms[5];#get the Start                          PARSE OTHER FUNCTION
+		$Length=$Terms[6];#get the Length
+		$Direction=$Terms[7];#get the Direction
 		if($Direction eq "F"){#if forward
 			$Stop=$Start+$Length;
 		}
@@ -137,7 +144,7 @@ if($opt_i=~/.goa/){
 		}
 		$count++;
 	}#close while loop
-	close $IPfile;
+	@Lines=();#clear the array
 }#close if goa
 	
 

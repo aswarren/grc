@@ -130,14 +130,14 @@ int4 main(int4 argc, char* argv[])
     //		wordLookupDFA_print();
         }
 
-	if((strlen(query)-Filtered)>3){//MODIFIED BY ANDREW
+	if((strlen(query)-Filtered)>20){//MODIFIED BY ANDREW
 		PSSMatrix.NumLow=Filtered;
         	blast_search(parameters_subjectDatabaseFile, PSSMatrix, query);//if there are at least 3 non-low complexity aminoacids
 	}
-	else if(parameters_outputType ==parameters_tabular){//if its a tabular output print no hit info
-		float LowFrac=((float)Filtered/(float)strlen(query));
-		printf("%s	%s	%2f\n",queryDescription,"No_hits",LowFrac);
-	}//close no hit
+	//else if(parameters_outputType ==parameters_tabular){//if its a tabular output print no hit info
+	//	float LowFrac=((float)Filtered/(float)strlen(query));
+	//	printf("%s	%s	%2f\n",queryDescription,"No_hits",LowFrac);
+	//}//close no hit
 
 
 /*	    if (parameters_outputType != parameters_xml && parameters_outputType != parameters_tabular)
@@ -153,8 +153,9 @@ int4 main(int4 argc, char* argv[])
 
         // Free score matrix, and PSSMatrix columes at the same time
 	PSSMatrix_free(PSSMatrix);//MODIFIED BY ANDREW to deallocate memory at the same time
-        readdb_close();// this fixes a bug that occurs when a AA sequence is completely SEG filtered and there is no
-	blast_finalizeTime += clock();//need to do a BLAST
+	readdb_close();// this fixes a bug that occurs when a AA sequence is completely SEG filtered and there is no need to do a BLAST
+	
+	blast_finalizeTime += clock();
 	scoreMatrix_free(scoreMatrix);
         wordLookupDFA_free();
         nucleotideLookup_free();

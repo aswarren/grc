@@ -13,7 +13,7 @@ LDFLAGS=-lm
 # Linux
 ifeq ($(PLATFORM), Linux)
     CC=gcc
-    CFLAGS=-I$(INC) -O3 -mcpu=pentiumpro -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE
+    CFLAGS=-I$(INC) -O3 -m32 -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE
     LDFLAGS=-lm
 endif
 

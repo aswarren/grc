@@ -5,13 +5,6 @@
 //
 // Functions for displaying final alignments to the user in standard BLAST format
 
-//********************************MODIFIED*******************************************
-//This source file has been modified from its origninal version by Andrew Warren anwarren@vt.edu on 01/09/06
-//Modified lines are those marked by "MODIFIED BY ANDREW"
-//The intent of the modifications is to include additional blast information in the tab delimited format when using
-//command line parameter -m 8
-//********************************MODIFIED*******************************************
-
 #include "blast.h"
 
 // Prototypes
@@ -24,11 +17,9 @@ char* print_cafeDescription(int4 sequenceNumber, int4 startChar);
 void print_XMLgappedExtension(struct gappedExtension* gappedExtension, struct PSSMatrix PSSMatrix,
                               char* query, unsigned char* subject, uint4 hspNum);
 // Print a gapped extension using tabular output
-//MODIFIED BY ANDREW
 void print_tabularGappedExtension(struct gappedExtension* gappedExtension, struct PSSMatrix PSSMatrix,
                                   char* query, unsigned char* subject, char* queryDescription,
-                                  char* subjectDescription, int SL);
-char* print_afterWhitespace(char* description);
+                                  char* subjectDescription);
 
 // Construct the pairwise alignment
 void print_constructAlignment(char* queryLine, char* subjectLine, char* midLine,
@@ -327,38 +318,6 @@ char* print_untilWhitespace(char* description)
     return newDescription;
 }
 
-// Return new version of description that ends at first whitespace
-char* print_afterWhitespace(char* description)
-{
-	char* newDescription;
-	uint4 count = 0, markspot=1, spot=0, length;
-    length = strlen(description);
-
-    while (count < length)
-    {
-    	if (description[count] == ' '){
-			break;
-	}
-	
-
-        count++;
-    }
-
-    if(count<length-1){
-	newDescription = (char*)global_malloc((length-count));
-	memcpy(newDescription, description, (length-count)-1);
-	newDescription[length-count] = '\0';
-	free(description);
-    }
-
-    else{
-	return description;
-	}
-    
- 
-    return newDescription;
-}
-
 // Format a sequence description so it wraps around lines nicely
 char* print_encodeGreaterLessThan(char* description)
 {
@@ -411,12 +370,11 @@ void print_gappedAlignmentsFull(char* query, struct PSSMatrix PSSMatrix)
 	int4 count = 0, descriptionLength, hspNum;
     uint4 clusterSizes[alignments_numClusters];
     uint4 queryDescriptionLength;
-    int SubjectLen=0;
 
     queryDescriptionLength = strlen(blast_queryDescription);
     queryDescription = (char*)global_malloc(queryDescriptionLength + 1);
     strcpy(queryDescription, blast_queryDescription);
-    //queryDescription = print_untilWhitespace(queryDescription);
+    queryDescription = print_untilWhitespace(queryDescription);
 
     // Clear array of cluster sizes
     count = 0;
@@ -439,17 +397,6 @@ void print_gappedAlignmentsFull(char* query, struct PSSMatrix PSSMatrix)
         }
         count++;
 	}
-	//MODIFIED BY ANDREW
-	//THIS PORTION Prints the query discription and the No_Hits tag for those queries that have no
-	//hits in the db and 5% of their sequence is not low complexity as determined by SEG
-	
-	if(alignments_finalAlignments->numEntries==0){
-		float LowFrac=((float)PSSMatrix.NumLow/(float)strlen(query));
-		//if(LowFrac<0.95){
-			printf("%s	%s	%2f\n",queryDescription, "No_hits", LowFrac);
-		//}
-	}
-
 
     // For each alignment we are to print the traceback
     count = 0;
@@ -481,7 +428,7 @@ void print_gappedAlignmentsFull(char* query, struct PSSMatrix PSSMatrix)
 				}
                 else if (parameters_outputType == parameters_tabular)
                 {
-                	//description = print_untilWhitespace(description);
+                	description = print_untilWhitespace(description);
                 }
                 else
                 {
@@ -506,7 +453,6 @@ void print_gappedAlignmentsFull(char* query, struct PSSMatrix PSSMatrix)
             }
             else if (parameters_outputType == parameters_tabular)
             {
-
             }
 			else
             {
@@ -541,11 +487,9 @@ void print_gappedAlignmentsFull(char* query, struct PSSMatrix PSSMatrix)
                 // Print the gapped extension
                 if (parameters_outputType == parameters_xml)
                     print_XMLgappedExtension(currentExtension, PSSMatrix, query, subject, hspNum);
-                else if (parameters_outputType == parameters_tabular){
-		    SubjectLen=alignment->subjectLength;
+                else if (parameters_outputType == parameters_tabular)
                     print_tabularGappedExtension(currentExtension, PSSMatrix, query, subject,
-                                                 queryDescription, description, SubjectLen);
-		}
+                                                 queryDescription, description);
                 else if (parameters_outputType != parameters_tabular)
                 	print_gappedExtension(currentExtension, PSSMatrix, query, subject);
 
@@ -967,13 +911,12 @@ void print_XMLfooter()
 // Print a gapped extension using tabular output
 void print_tabularGappedExtension(struct gappedExtension* gappedExtension, struct PSSMatrix PSSMatrix,
                                   char* query, unsigned char* subject, char* queryDescription,
-                                  char* subjectDescription, int SL)
-{ //MODIFIED BY ANDREW
+                                  char* subjectDescription)
+{
 	char *queryLine, *subjectLine, *midLine;
 	int4 identities = 0, positives = 0, gaps = 0, length, gapopens = 0;
 	struct trace trace;
-	char reverseComplement = 0;
-	float LowFrac=((float)PSSMatrix.NumLow/(float)strlen(query));
+    char reverseComplement = 0;
 
 	trace = gappedExtension->trace;
 
@@ -994,14 +937,13 @@ void print_tabularGappedExtension(struct gappedExtension* gappedExtension, struc
     print_constructAlignment(queryLine, subjectLine, midLine, &identities, &positives, &gaps,
                              &gapopens, reverseComplement, trace, query, subject, PSSMatrix);
 
-    // Fields: query id, q. start, q. end, subject id, function, organism, % identity, alignment length, subject length, mismatches, gap opens,
-    //         q. align start, q. align end, s. align start, s. align end, evalue, bit score, lowfrac
-    //MODIFIED BY ANDREW
-    printf("%s	%s	%.2f	%d	%d	%d	%d	%d	%d	%d	%d	%s	%.1f	%2f\n",
-           queryDescription,subjectDescription, 100.0 * (float)identities / (float)length,
-           length, SL, length - identities, gapopens, trace.queryStart + 1,
+    // Fields: query id, subject ids, % identity, alignment length, mismatches, gap opens,
+    //         q. start, q. end, s. start, s. end, evalue, bit score
+    printf("%s	%s	%.2f	%d	%d	%d	%d	%d	%d	%d	%s	%.1f\n",
+           queryDescription, subjectDescription, 100.0 * (float)identities / (float)length,
+           length, length - identities, gapopens, trace.queryStart + 1,
            gappedExtension->queryEnd + 1, trace.subjectStart + 1, gappedExtension->subjectEnd + 1,
-           print_eValue2String(gappedExtension->eValue), gappedExtension->normalizedScore,LowFrac);
+           print_eValue2String(gappedExtension->eValue), gappedExtension->normalizedScore);
 
     free(queryLine);
 	free(subjectLine);

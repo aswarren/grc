@@ -80,13 +80,21 @@ my $DBSize=2879860; #effecive size of the DB to adjust e-values accordingly  Set
 my $CDir=getcwd;#get current working directory
 my $BinDir=get_dir($0);#Get the path for current script
 
-
-
+#setup the temp directory according whether the temp run directory exists
+my $tempdir=$BinDir."/temp/run";
+my $run_number=1;
+while(-e $tempdir.$run_number){
+	$run_number+=1;
+}
+$tempdir=$tempdir.$run_number."/";
+print $tempdir;
+$status = system("mkdir $tempdir");
+print "next";
 $OntFile=$BinDir."/GO/$OntFile";#set absolute ontology filename
+my $sep='_';
 my $orfsout ="grc_orfs.out";#variable specifying grc_orf results
 my $resourcedir=$BinDir."/resources/";
 my $blastdir=$BinDir."/fsablast/";
-my $tempdir=$BinDir."/temp/";
 my $transeqout="translate.out";
 my $BHName="$tempdir"."bestblast.out";
 my $BHParsed="$tempdir"."bestblast.parsed";
@@ -98,7 +106,7 @@ my $GDir;
 my $RDir;
 my $DBDir;
 my $UseGO=0;#boolean variable that tells whether GO is to be used
-my $MergeDB=$BinDir."/DB/AutoMerge.faa";
+my $MergeDB=$tempdir."AutoMerge.faa";
 my $TransFile="GCode.txt";#file used for translating
 my $StartFile="StartCodons.txt";#specifies the start codons to use
 my $TransNum=11;#the translation table to use. Follows NCBI's translation table numbering scheme.
@@ -114,7 +122,7 @@ my $MaxFile="$blastdir"."Max".substr($Matrix,0,1).substr($Matrix,-2).".txt";
 
 
 
-
+print "\nnext2\n";
 
 
 if(defined $opt_m){
@@ -165,7 +173,7 @@ if(defined $opt_k){#if the user desires to keep the blast and reference files
 	$BHName="$ResultDir"."$GenomeName".".bh";
 	$BHParsed="$ResultDir"."$GenomeName".".bh_parsed";
 	$ReferenceName=$GenomeName.".ref";
-	$opt_k="";#hack shutup perl warning
+	$opt_k="-";#hack shutup perl warning
 }
 
 
@@ -244,7 +252,6 @@ else {#else its not a directory  NOTE Must specify a sequence file *.faa or *.fa
 }
 
 $DBFile=$MergeDB;#the database file is now the merged database
-
 
 
 
@@ -386,9 +393,16 @@ if(defined $opt_r){#if there is a reference file to compare to
 		die "grc_compare did not run successfully";
 	}
 }
-	
-	
 
+$status = system("rm -rf ".$tempdir);
+#if(!defined $opt_k){
+#	$status = system("rm ".$orfsout);
+#	$status = system("rm ".$transeqout)+$status;
+#	$status = system("rm ".$BHName)+$status;
+#	$status = system("rm ".$BHParsed)+$status;
+#	$status = system("rm ".$ReferenceName)+$status;
+#	$status = system("rm ".$MergeDB)+$status;
+#}
 #move other results files
 #$status= system("mv ./KnockList.txt $ResultDir");#move the knocklist to the compare directory
 #$status = $status + system("mv ./$Negatives $ResultDir$NegParsed");#move the negatives file
@@ -396,7 +410,3 @@ if(defined $opt_r){#if there is a reference file to compare to
 #if ($status != 0){
 #		print "Problem moving additional $GenomeName results \n";
 #	}
-
-
-
-

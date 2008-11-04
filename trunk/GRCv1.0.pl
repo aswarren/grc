@@ -83,13 +83,27 @@ my $BinDir=get_dir($0);#Get the path for current script
 #setup the temp directory according whether the temp run directory exists
 my $tempdir=$BinDir."/temp/run";
 my $run_number=1;
-while(-e $tempdir.$run_number){
-	$run_number+=1;
+
+my $tries=0;
+my $stop=0;
+while($tries<10 && $stop==0){
+  while(-e $tempdir.$run_number){
+	  $run_number+=1;
+  }
+  $makethis=$tempdir.$run_number;
+  $status = system("mkdir $makethis");
+  if($status !=0){
+    $tries+=1;
+  }
+  else{
+    $tempdir=$tempdir.$run_number."/";
+    $stop=1;#break from try loop
+  }
 }
-$tempdir=$tempdir.$run_number."/";
-print $tempdir;
-$status = system("mkdir $tempdir");
-print "next";
+if($tries==10){
+  die "Could not create temp run directory at: $tempdir\n";#exit
+}
+
 $OntFile=$BinDir."/GO/$OntFile";#set absolute ontology filename
 my $sep='_';
 my $orfsout ="grc_orfs.out";#variable specifying grc_orf results
@@ -122,7 +136,7 @@ my $MaxFile="$blastdir"."Max".substr($Matrix,0,1).substr($Matrix,-2).".txt";
 
 
 
-print "\nnext2\n";
+
 
 
 if(defined $opt_m){

@@ -15,6 +15,7 @@
 #include <string>
 #include <fstream>
 #include <math.h>
+#include <stdlib.h>
 #include <cmath>
 #include <list>
 #include <iomanip>

@@ -10,6 +10,7 @@ The default is to use the bacteria map but a command line parameter is available
 #include <string>
 #include <fstream>
 #include <stdio.h>
+#include <stdlib.h>
 #include "FastaRead.h"
 #include "Translate.h"
 

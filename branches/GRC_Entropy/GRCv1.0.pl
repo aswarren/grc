@@ -6,7 +6,7 @@ use Cwd 'abs_path';
 use Time::HiRes qw(gettimeofday);
 
 #Use command line parameters -g genome.fasta and -d database.faa
-getopt('gdrkmyhfanxcp');# get and assign the command line parameters $opt_g $opt_d
+getopt('gdrkmyhfanxcpb');# get and assign the command line parameters $opt_g $opt_d
 
 
 #for opt_p additional value 'A' gives amino acid fasta file, 'N' gives nucleotide fasta file, and 'T' gives tbl2asn
@@ -190,6 +190,10 @@ if(defined $opt_k){#if the user desires to keep the blast and reference files
 	$opt_k="-";#hack shutup perl warning
 }
 
+if(defined $opt_b){#if there are already blast files to use
+	$SpecialDir=abs_path(glob("$opt_b"))
+	$BHName="$SpecialDir"."/$GenomeName".".bh";
+}
 
 
 $DBFile=get_abspath("$opt_d");
@@ -321,8 +325,9 @@ if($status != 0){
 #Run FSA-BLAST on AA sequences
 print "\nBlasting sequences.\n";
 chdir("$blastdir");
-$status = system("./blast -d $DBFile -e .001 -i $tempdir$transeqout -m 8 -v 1 -b $NumBHits -M $Matrix -z $DBSize >"."$BHName");
-
+if(!defined $opt_b){
+	$status = system("./blast -d $DBFile -e .001 -i $tempdir$transeqout -m 8 -v 1 -b $NumBHits -M $Matrix -z $DBSize >"."$BHName");
+}
 if ($status != 0){
 	die "blast did not run successfully";
 }
@@ -394,7 +399,7 @@ print "Running time: $Minutes minutes\n";
 #"Usage: grc_compare -r [reference annotation] -p [grc results *.Pos] -n [grc results *.Neg] -k [knocklist] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -d (dumps stats to *.Pos.stats)\n"
 if(defined $opt_r){#if there is a reference file to compare to
 	print "grc_compare: comparing to reference file $opt_r\n";
-	$CompareCommand=$BinDir."/grc_compare -r $tempdir"."$ReferenceName -p $GenomeName".".Pos -n $GenomeName".".Neg -k ./KnockList.txt -l $MinLength";
+	$CompareCommand=$BinDir."/grc_compare -r $tempdir"."$ReferenceName -p $GenomeName".".Pos -n $GenomeName".".Neg -k ./KnockList.txt -l $MinLength -d";
 	if($UseGO==1){
 		$CompareCommand=$CompareCommand." -y $OntFile";
 	}

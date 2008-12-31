@@ -12,7 +12,7 @@ $UseGO=0;
 
 my $MainScript = "../GRCv0.01.pl";
 my $CDir=getcwd;#get current working directory
-getopt('gdrmybs');# get and assign the command line parameters $opt_g $opt_d
+getopt('gdrmybsz');# get and assign the command line parameters $opt_g $opt_d
 
 unless (-e $opt_g && -e $opt_d) { #check for command line parameter existence
 	die "Either $opt_g or $opt_d does not exist\n";
@@ -20,6 +20,7 @@ unless (-e $opt_g && -e $opt_d) { #check for command line parameter existence
 my $GenomeFolder=$opt_g;
 my $DBFolder=$opt_d;
 my $ReferenceFolder="none";
+my $SpecialFolder=$opt_z;
 if(defined $opt_r){
 	$ReferenceFolder=$opt_r;
 	chdir("$opt_r");
@@ -110,7 +111,7 @@ foreach $Genome(@gcontentsort){#for each file in the genomes folder
 			}
 		}
 
-		$RunCommand="$MainScript -g $GenomeFolder"."/$Genome -d $DBFolder -m $MinSize -h $BHits -k $GenomeName";
+		$RunCommand="$MainScript -g $GenomeFolder"."/$Genome -d $DBFolder -m $MinSize -h $BHits -k $GenomeName -b $SpecialFolder";
 		if($UseGO==1){
 			$RunCommand=$RunCommand." -y $opt_y";
 		}

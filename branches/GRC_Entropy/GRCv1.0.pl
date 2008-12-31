@@ -191,7 +191,8 @@ if(defined $opt_k){#if the user desires to keep the blast and reference files
 }
 
 if(defined $opt_b){#if there are already blast files to use
-	$SpecialDir=abs_path(glob("$opt_b"))
+	print "$opt_b";
+	$SpecialDir=abs_path(glob("$opt_b"));
 	$BHName="$SpecialDir"."/$GenomeName".".bh";
 }
 
@@ -325,11 +326,11 @@ if($status != 0){
 #Run FSA-BLAST on AA sequences
 print "\nBlasting sequences.\n";
 chdir("$blastdir");
-if(!defined $opt_b){
+if(not defined($opt_b)){
 	$status = system("./blast -d $DBFile -e .001 -i $tempdir$transeqout -m 8 -v 1 -b $NumBHits -M $Matrix -z $DBSize >"."$BHName");
-}
-if ($status != 0){
-	die "blast did not run successfully";
+	if($status != 0){
+		die "blast did not run successfully";
+	}
 }
 chdir("$BinDir");
 

@@ -6,6 +6,7 @@
 // Code for encoding representives using wildcards
 
 #include "blast.h"
+#include <stdio.h> //MODIFIED BY ANDREW WARREN 01/01/09
 
 struct scoreMatrix wildcards_scoreMatrix;
 int wildcards_printWilds = 0;

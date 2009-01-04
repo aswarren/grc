@@ -17,7 +17,8 @@
 
 #include <errno.h>
 #include "blast.h"
-
+#include <stdio.h>//MODIFIED BY ANDREW 01/01/09
+#include <stdlib.h>
 #define DEFAULT -1
 
 char* parameters_queryFile = "";
@@ -594,17 +595,18 @@ void parameters_findScoringMatrix()
     char* homeDirectory, *ncbircFilename;
 
     // Get home user's directory
-    homeDirectory = "./fsablast";//MODIFIED BY ANDREW
+    homeDirectory = ".";//MODIFIED BY ANDREW
 
     // Construct name of .ncbirc file
     ncbircFilename = (char*)global_malloc(sizeof(char) * (strlen(homeDirectory) + 9));
     sprintf(ncbircFilename, "%s/.ncbirc", homeDirectory);
+    //fprintf(stderr, "ncbiFilename: %s homeDirectory: %s\n", ncbircFilename, homeDirectory);//DEBUG MODIFIED by ANDREW
 
     // Check for existence of NCBI file
 	if ((ncbircFile = fopen(ncbircFilename, "r")) != NULL)
     {
         // Determine the location of the scoring matrix file by consulting the .ncbirc file
-        parameters_scoringMatrixPath = (char*)global_malloc(sizeof(char) * 1024);
+        parameters_scoringMatrixPath = (char*)global_malloc(sizeof(char) * 1024);//MODIFIED BY ANDREW 01/02/09
 
         if (!(fscanf(ncbircFile, "[NCBI]\nData=%s", parameters_scoringMatrixPath)))
         {
@@ -620,15 +622,20 @@ void parameters_findScoringMatrix()
     }
     else
     {
+        //fprintf(stderr, "guessing location\n");//DEBUG MODIFIED by ANDREW
     	// If not available guess location of scoring matrix files
         parameters_scoringMatrixPath = (char*)global_malloc(sizeof(char) * 1024);
         strcpy(parameters_scoringMatrixPath, "data");
     }
 
     // Append scoring matrix filename then check for existance
+    //fprintf(stderr, "parameters_scoringMatrixPath1: %s\n", parameters_scoringMatrixPath);//DEBUG MODIFIED by ANDREW
+    //fprintf(stderr, "parameters_scoringMatrix: %s\n", parameters_scoringMatrix);//DEBUG MODIFIED by ANDREW
     sprintf(parameters_scoringMatrixPath, "%s/%s", parameters_scoringMatrixPath,
             parameters_scoringMatrix);
+    //parameters_scoringMatrixPath="./data/BLOSUM62";//MODIFIED BY ANDREW 01/02/09
     matrixFile = fopen(parameters_scoringMatrixPath, "r");
+    //fprintf(stderr, "parameters_scoringMatrixPath2: %s\n", parameters_scoringMatrixPath);//DEBUG MODIFIED by ANDREW
     if (matrixFile == NULL)
     {
         fprintf(stderr, "%s\n", strerror(errno));

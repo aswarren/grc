@@ -14,7 +14,7 @@
 #include "genwin.h"
 #include "genwin.c"
 #include "lnfac.h"
-
+#include <stdio.h>//MODIFIED BY ANDREW 01/01/09
 /*---------------------------------------------------------------(defines)---*/
 
 #define LENCORRLIM 120

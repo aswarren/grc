@@ -67,7 +67,7 @@ my $out_file=$ARGV[-1];
 
 
 #read in blast input
-open ($blast_handle, "< ".$blast_file) or die "Couldn't open blast output for parsing: $!\n";
+open ($blast_handle, "< ".$blast_file) or die "Couldn't open $blast_file for parsing: $!\n";
 my @BlastLines=<$blast_handle>;#get contents
 chomp(@BlastLines);
 

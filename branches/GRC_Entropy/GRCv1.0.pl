@@ -327,6 +327,8 @@ if($status != 0){
 print "\nBlasting sequences.\n";
 chdir("$blastdir");
 if(not defined($opt_b)){
+	#print "$blastdir\n";
+	print "./blast -d $DBFile -e .001 -i $tempdir$transeqout -m 8 -v 1 -b $NumBHits -M $Matrix -z $DBSize >"."$BHName\n";
 	$status = system("./blast -d $DBFile -e .001 -i $tempdir$transeqout -m 8 -v 1 -b $NumBHits -M $Matrix -z $DBSize >"."$BHName");
 	if($status != 0){
 		die "blast did not run successfully";

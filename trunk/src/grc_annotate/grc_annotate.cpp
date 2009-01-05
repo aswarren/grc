@@ -32,6 +32,7 @@ int DumpList(list<AARecord*>& InitList, string PosName, const int& GFMin);
 int Nulify(list<AARecord*>& InitList, list<AARecord*>& InitList2);
 int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CompeteMap& KOMap);
 int EntropyFilter(list<AARecord>& RecordList, list<AARecord*>& LoserList, CompeteMap& KOMap, const double& EntCutoff, const double& BitCutoff);//removes orfs that are "winners" that have high entropy
+int SmallFilter(list<AARecord>& RecordList, list<AARecord*>& LoserList, CompeteMap& KOMap, const double& EntCutoff, const double& BitCutoff);
 void DisplayKO(ostream& Out, CompeteMap& KOMap, const int& GFMin);
 int RefreshRecords(list<AARecord>& RecordList, CalcPack& CP);
 int TrainEDP(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CalcPack& CP);
@@ -58,7 +59,7 @@ int main(int argc, char* argv[]) {   //  Main is open
     string GenomeFile= Options.find("-g")->second;//the name of the fna file
     string Matrix=Options.find("-m")->second;//the matrix used for blast
     string TransFile=Options.find("-t")->second;//file used for translating sequences in entropy calculations
-    int TableNum=atoi(Options.find("-n")->second.c_str());
+    int TableNum=stoi(Options.find("-n")->second);
     string StartFile=Options.find("-s")->second;//file used to specify which stops are used
     string GOFile="none";
     stringstream Convert;
@@ -182,8 +183,10 @@ int main(int argc, char* argv[]) {   //  Main is open
     double AvgEntropy=0;//The average entropy
     int NumForAvg=0;
     for (list<AARecord*>::iterator AvgIt =TrainingWinners.begin(); AvgIt!=TrainingWinners.end(); AvgIt++ ){
-        NumForAvg++;
-        AvgEntropy+=(*AvgIt)->ReportEntropy();
+        if((*AvgIt)->ReportLength()>300){
+            NumForAvg++;
+            AvgEntropy+=(*AvgIt)->ReportEntropy();
+        }
     }
     AvgEntropy=AvgEntropy/double(NumForAvg);//finish avg entropy calc. by dividing by number of orfs with hits
     
@@ -191,19 +194,27 @@ int main(int argc, char* argv[]) {   //  Main is open
     double Variance=0;
     for (list<AARecord*>::iterator EntIt =TrainingWinners.begin(); EntIt!=TrainingWinners.end(); EntIt++ ){
         //if((*EntIt)->HasHit() && (*EntIt)->ReportBitFrac()>ConservCutoff){//if this orf has a hit
-        double Diff=(*EntIt)->ReportEntropy()-AvgEntropy;//get difference between mean and current
-        Variance+=(Diff*Diff);//square the difference of mean and current and add to total variance
+        if((*EntIt)->ReportLength()>300){
+            double Diff=(*EntIt)->ReportEntropy()-AvgEntropy;//get difference between mean and current
+            Variance+=(Diff*Diff);//square the difference of mean and current and add to total variance
+        }
         //}
     }
     double EntropyDev=sqrt((Variance/double(NumForAvg)));//calculate std deviation
     double EDRCutoff=1.0;
+    double EDRStrict=1.0;
     //if for some reason the EDRCutoff is too lenient
     //that 1.0 is > Avg+2*Std Dev.
     if(EDRCutoff>AvgEntropy+(2*EntropyDev)){
         EDRCutoff=AvgEntropy+(2*EntropyDev);
     }
-    double ConservCutoff=.50;//Bit fraction cutoff for being evaluated by entropy Bit/MaxBit
-    int NumFiltered=EntropyFilter(RecordList, LoserList, KOMap, EDRCutoff, ConservCutoff);//filter the orfs based on entropy
+    if(EDRStrict>AvgEntropy+(EntropyDev)){
+        EDRStrict=AvgEntropy+(EntropyDev);
+    }
+    double BitCutoff=.50;//Bit fraction cutoff for being evaluated by entropy Bit/MaxBit
+    double BitStrict=.80;//bit fraction necessary for short alignments
+    int NumFiltered=EntropyFilter(RecordList, LoserList, KOMap, EDRCutoff, BitCutoff);//filter the orfs based on entropy
+    NumFiltered+=SmallFilter(RecordList, LoserList, KOMap, EDRStrict, BitStrict);
     
     //compare the ORFs and remove the ones that conflict due to overlap
     Compare(PositionMap, WinnerList, LoserList, KOMap);
@@ -825,6 +836,30 @@ int EntropyFilter(list<AARecord>& RecordList, list<AARecord*>& LoserList, Compet
     //check each orf for high EDR
     for (list<AARecord>::iterator CheckIt=RecordList.begin(); CheckIt!=RecordList.end(); CheckIt++){
         if(CheckIt->ReportEntropy()>=EntCutoff && (!CheckIt->HasHit() || CheckIt->ReportBitFrac()<BitCutoff)){//if the record has a no/poor hit and its entropy is over cutoff
+            NumFiltered++;
+            CheckIt->KnockOut();//this orf is out of contention
+            LoserList.push_back(&(*CheckIt));//add it to the loser list
+            CompeteMap::iterator TempC=KOMap.find("Entropy");//look for the entropy entry in the KOMap
+            if(TempC!=KOMap.end()){//if its found add another loser
+                (TempC->second).AddLoser(&(*CheckIt));
+            }
+            else{//if not found add a new entry
+                KOMap.insert(CompeteMap::value_type("Entropy", Compete(NULL, (&(*CheckIt)))));
+            }
+            
+        }
+    }
+    
+    return NumFiltered;//return number of orfs removed
+}
+
+//this function subjects ORFs that are <300bp to a second round of filtering
+int SmallFilter(list<AARecord>& RecordList, list<AARecord*>& LoserList, CompeteMap& KOMap, const double& EntCutoff, const double& BitCutoff){
+    
+    int NumFiltered=0;
+    //check each orf for high EDR
+    for (list<AARecord>::iterator CheckIt=RecordList.begin(); CheckIt!=RecordList.end(); CheckIt++){
+        if(!CheckIt->Dead() && CheckIt->ReportLength()<300 && CheckIt->ReportEntropy()>=EntCutoff && (!CheckIt->HasHit() || CheckIt->ReportBitFrac()<BitCutoff)){//if the record has a no/poor hit and its entropy is over cutoff
             NumFiltered++;
             CheckIt->KnockOut();//this orf is out of contention
             LoserList.push_back(&(*CheckIt));//add it to the loser list

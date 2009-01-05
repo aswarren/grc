@@ -7,6 +7,7 @@
 #define CalcPack_H
 
 #include <iostream>
+#include <stdlib.h>
 #include <string>
 #define _USE_MATH_DEFINES
 #include <math.h>

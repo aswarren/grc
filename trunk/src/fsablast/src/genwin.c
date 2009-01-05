@@ -8,7 +8,8 @@
 //#include "genwin.h"
 
 /*---------------------------------------------------------------(defines)---*/
-
+#include <stdlib.h>// MODIFIED BY ANDREW WARREN 01/01/09
+#include <string.h>// MODIFIED BY ANDREW WARREN 01/01/09
 #define STRSIZE 100
 
 /*----------------------------------------------------------------(protos)---*/

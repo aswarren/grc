@@ -25,7 +25,7 @@ sub get_replicon_info {
 		@IDSplit2=split(/\|/,$source);
 		$ReturnID=$IDSplit2[0];
 		$ReturnInfo=$source;
-		$ReturnInfo=~s/$LookupID//;#remove ID with ID_start_stop
+		$ReturnInfo=~s/$ReturnID//;#remove ID with ID_start_stop
 	}
 	else{
 		$ReturnID=$source;
@@ -99,7 +99,12 @@ while($a<$NumParam){
 		#Create hash
 		while ($count<@Lines) {#for each line of the ptt (starting at 4th line)
 			local @Terms=split(/\t/, $Lines[$count]);
-			$Annotation{$Terms[3]}=$Lines[$count]; #hash the ptt line to the gi number
+			if($Terms[3] ne '-'){
+				$Annotation{$Terms[3]}=$Lines[$count]; #hash the ptt line to the gi number
+			}
+			elsif($Terms[5] ne '-'){
+				$Annotation{$Terms[5]}=$Lines[$count]; #hash the ptt line to the locus id
+			}
 			$count++;
 		} #close while loop
 		

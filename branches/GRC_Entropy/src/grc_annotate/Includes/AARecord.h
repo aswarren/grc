@@ -124,7 +124,7 @@ private:
     bool Defeated; //marks whether this record has been knocked out(tombstone method)
     double HighScore;//the highest bit score out of all alignmnets for this query
     list<Subject> PrimaryHits;//other blast hits for this query orf
-    PQSubject SubjectQ;;
+    PQSubject SubjectQ;
     map<string, Subject*> SubjectNames;//map of the subject names used to enforce unique subject addition in AddPrimary function
     //sequence specific calculations are stored here, according to increasing offset from the stop site
     SeqCalcMap CalcMap;//for storing and retrieving RawBitValues and entropy values stored according to decreasing length
@@ -1131,6 +1131,9 @@ public:
             tempstr+=CurrentRep->GetDescription();
             Result.push_back(tempstr);
         }
+        else{
+            Result.push_back("No_hits");
+        }
         return Result;  
     }
     
@@ -1260,7 +1263,7 @@ public:
         Out<<Start<<"\t"<<Stop<<"\tCDS"<<"\n";
         Out<<"\t\t\tprotein_id\t"<<prefix+ID<<"\n";
         if(Blank){
-            Out<<"\t\t\tproduct\thypothetical protein\n";
+            Out<<"\t\t\tproduct\tNo_hits\n";
         }
         else{
             RepCheck();

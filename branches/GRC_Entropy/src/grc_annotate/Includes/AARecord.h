@@ -161,6 +161,7 @@ public:
         Start=St;
         Stop=Sp;
         Offset=Offst;
+        ProcessID();
         Reverse =false;
         Blank =true;
         Defeated=false;;
@@ -192,12 +193,41 @@ public:
         else{//it is blank set entropy
             CalcMap.insert(map<long, SeqCalc>::value_type(CurrentLength, SeqCalc()));//insert new SeqCalc based on this segment of sequence
             SeqCalcMap::iterator MarkIt=CalcMap.find(CurrentLength);
-            CP.GetAACount(MarkIt->second.AACount, LowBase, HighBase, Reverse);
+            CP.GetAACount(MarkIt->second.AACount, LowBase, HighBase, Reverse, GenomeID);
             EDR=CP.GetEntropy(MarkIt->second.AACount);
         }
         return 0;
     }
-    
+    //This function parses the incoming ID incase and adjusts coord. based on offset of multiple genomes
+    int ProcessID(){
+
+        unsigned int ChPosition=ID.find("|REPLICON|");//look for tag in ID indicating that there is a genome ID attached
+        unsigned int OPosition=ID.find("|OFFSET|");
+        string Junk;
+        if(ChPosition!=string::npos && OPosition!=string::npos){
+            string TempID=ID;
+            //TempID.replace(ChPosition,2," ");//replace '_' with a space
+            //ChPosition=ID.find("**");
+            //TempID.replace(ChPosition,2," ");//replace '_' with a space
+            stringstream ParseSS;
+            ParseSS<<TempID;
+            getline(ParseSS, ID, '|');
+            //ParseSS.ignore();//ignore the next |
+            getline(ParseSS, Junk, '|');
+            //ParseSS>>ID;//pass orf id through
+            getline(ParseSS, GenomeID, '|');
+            getline(ParseSS, Junk, '|');
+            //ParseSS>>GenomeID; //assign genome id
+            ParseSS>>Offset;//assign offset value for contig coordinate conversioni
+            //Start=Start+Offset;//adjust start/stop positions for multiple contigs. so that concatenated genome sequence can be used
+            //Stop=Stop+Offset;
+            ID+="_"+GenomeID;//reassign ORF ID to be orf_contig
+        }
+        else{
+            GenomeID="NONE";
+        }
+        return 0;
+    }
     
     //Copy Constructor
     AARecord(const AARecord &Source){// open defintion
@@ -355,15 +385,34 @@ public:
         }
     }
     
-    long ReportStart(){
-        return Start-Offset;
+    long ReturnStart(){
+        return Start;
     }
     
-    long ReportStop(){
-        return Stop-Offset;
+    long ReturnStop(){
+        return Stop;
     }
     
+    //return actual coordinate of high base
+    long ReturnHigh(){
+        return HighBase;
+    }
     
+    //return actual coordinate of low base
+    long ReturnLow(){
+        return LowBase;
+    }
+    
+    long RelHigh(){
+        return HighBase+Offset;
+    }
+    long RelLow(){
+        return LowBase+Offset;
+    }
+    
+    string ReturnGenomeID(){
+        return GenomeID;
+    }
     //Update Coordinates
     //Because some orfs do not have alignments all coordinate information will
     //be evaluated at the AARecord level
@@ -390,20 +439,20 @@ public:
     int Overlap(AARecord& RHS){//open def
         int OverLen=0;
         
-        if (RHS.LowBase>=LowBase && RHS.LowBase <=HighBase){
-            if(HighBase>=RHS.HighBase){OverLen=RHS.CurrentLength;}//if one frame encompasses the other
-            else OverLen=HighBase-RHS.LowBase+1;
+        if (RHS.RelLow()>=RelLow() && RHS.RelLow() <=RelHigh()){
+            if(RelHigh()>=RHS.RelHigh()){OverLen=RHS.CurrentLength;}//if one frame encompasses the other
+            else OverLen=RelHigh()-RHS.RelLow()+1;
         }
-        else if(RHS.LowBase <= LowBase && RHS.HighBase >= LowBase){
-            if(RHS.HighBase>=HighBase){OverLen=CurrentLength;}//if one frame encompasses the other
-            else OverLen=RHS.HighBase-LowBase+1;
+        else if(RHS.RelLow() <= RelLow() && RHS.RelHigh() >= RelLow()){
+            if(RHS.RelHigh()>=RelHigh()){OverLen=CurrentLength;}//if one frame encompasses the other
+            else OverLen=RHS.RelHigh()-RelLow()+1;
         }
         //else if(RHS.Bit==0 && Bit==0){//neither have hits return distance between two orfs in possible intergenic region
-        //	if(LowBase<RHS.LowBase){
-        //		OverLen=HighBase-RHS.LowBase;//Negative overlap is distance between
+        //	if(RelLow()<RHS.RelLow()){
+        //		OverLen=RelHigh()-RHS.RelLow();//Negative overlap is distance between
         //	}
         //	else {
-        //		OverLen=RHS.HighBase-LowBase;
+        //		OverLen=RHS.RelHigh()-RelLow();
         //	}
         //}
         return OverLen;
@@ -423,8 +472,8 @@ public:
             return false;//if the loser has no alignment do not make an adjustment
         }
         
-        if (Winner.LowBase>=LowBase && Winner.LowBase <=HighBase){
-            if(HighBase>=Winner.HighBase){//if loser encompasses the winner
+        if (Winner.RelLow()>=RelLow() && Winner.RelLow() <=RelHigh()){
+            if(RelHigh()>=Winner.RelHigh()){//if loser encompasses the winner
                 return true;
             }
             else{//else overlap on high side of loser
@@ -437,9 +486,9 @@ public:
             }
         }
         //if the overlap occurs on the low side of this loser orf
-        else if(Winner.LowBase <= LowBase && Winner.HighBase >= LowBase){
+        else if(Winner.RelLow() <= RelLow() && Winner.RelHigh() >= RelLow()){
             //if winner encompasses loser
-            if(Winner.HighBase>=HighBase){
+            if(Winner.RelHigh()>=RelHigh()){
                 return false;//there is no hope
             }
             else {//else overlap on low side of loser
@@ -827,7 +876,7 @@ public:
             map<string, Subject*>::iterator FindIt;
             //Search for the subject ID
             FindIt=SubjectNames.find(HID);
-            SeqCalcMap::iterator CalcIt=CalcSeqScore(CP, LBase, HBase, Reverse);
+            SeqCalcMap::iterator CalcIt=CalcSeqScore(CP, LBase, HBase, Reverse, GenomeID);
             if(FindIt!=SubjectNames.end()){//if the subject ID is found
                 TempAlign=FindIt->second->AddAlign(St, Sp, B, ES, AL, QASt, QASp, CalcIt->second.MaxBit, StartScore, CalcIt->second.EDR);//add Alignment
                 int SizeAlignV=CalcIt->second.AlignV.size();
@@ -1014,7 +1063,7 @@ public:
     //Calculates the rawbit additively so that the same sequence is not iterated
     //over multiple times
     //Need to clean up this coordinate to string conversion +1 -1 stuff
-    SeqCalcMap::iterator CalcSeqScore(CalcPack& CP, const long& LowB, const long& HighB, const bool& Rev){
+    SeqCalcMap::iterator CalcSeqScore(CalcPack& CP, const long& LowB, const long& HighB, const bool& Rev, const string& gid){
         //CP.SelectGenome(GenomeID);
         long LowerBound=0;//lower bound on calc raw bit
         long UpperBound=0;//upper bound on calc raw bit
@@ -1046,9 +1095,9 @@ public:
                         LowerBound=LowB;
                     }
                     //Rawbit is the sum of both the subsequence and additional sequence
-                    MarkIt->second.RawBit=CP.CalcRawBit(LowerBound, UpperBound, Rev)+CalcMap.begin()->second.RawBit;
+                    MarkIt->second.RawBit=CP.CalcRawBit(LowerBound, UpperBound, Rev, gid)+CalcMap.begin()->second.RawBit;
                     //Calculate frequencies for the new segment
-                    CP.GetAACount(MarkIt->second.AACount, LowerBound, UpperBound, Rev);
+                    CP.GetAACount(MarkIt->second.AACount, LowerBound, UpperBound, Rev, gid);
                     //Add AACounts of the rest of the orf to the current section's
                     MarkIt->second.AddCounts(CalcMap.begin()->second);
                 }
@@ -1060,8 +1109,8 @@ public:
                     }
                     //if not small enough do self calc
                     if(FindIt==CalcMap.end()){//if it walked off the end then there wasn't one small enough
-                        MarkIt->second.RawBit=CP.CalcRawBit(LowB, HighB, Rev);
-                        CP.GetAACount(MarkIt->second.AACount, LowB, HighB, Rev);
+                        MarkIt->second.RawBit=CP.CalcRawBit(LowB, HighB, Rev, gid);
+                        CP.GetAACount(MarkIt->second.AACount, LowB, HighB, Rev, gid);
                     }
                     //else small enough do additive calc
                     else{
@@ -1074,17 +1123,17 @@ public:
                             LowerBound=LowB;
                         }
                         //Rawbit is the sum of both the subsequence and additional sequence
-                        MarkIt->second.RawBit=CP.CalcRawBit(LowerBound, UpperBound, Rev)+FindIt->second.RawBit;
+                        MarkIt->second.RawBit=CP.CalcRawBit(LowerBound, UpperBound, Rev, gid)+FindIt->second.RawBit;
                         //Calculate frequencies for the new segment
-                        CP.GetAACount(MarkIt->second.AACount, LowerBound, UpperBound, Rev);
+                        CP.GetAACount(MarkIt->second.AACount, LowerBound, UpperBound, Rev, gid);
                         //Add AACounts of the rest of the orf to the current section's
                         MarkIt->second.AddCounts(FindIt->second);
                     }
                 }
             }//close if the calc map has values
             else{//no values
-                MarkIt->second.RawBit=CP.CalcRawBit(LowB, HighB, Rev);
-                CP.GetAACount(MarkIt->second.AACount, LowB, HighB, Rev);
+                MarkIt->second.RawBit=CP.CalcRawBit(LowB, HighB, Rev, gid);
+                CP.GetAACount(MarkIt->second.AACount, LowB, HighB, Rev, gid);
             }
         }
         MarkIt->second.MaxBit=((MarkIt->second.RawBit*CP.Lambda)-log(CP.K))/M_LN2;
@@ -1121,7 +1170,7 @@ public:
         if(Reverse){
             Coords+="c";
         }
-        Coords+=ltos(ReportStart())+"-"+ltos(ReportStop());
+        Coords+=ltos(ReturnStart())+"-"+ltos(ReturnStop());
         Result.push_back(Coords);
         string tempstr="";
         if(!Blank){
@@ -1139,12 +1188,12 @@ public:
     
     //retrieves nucleotide sequence
     string GetNuclSeq(CalcPack& CP){
-        return CP.GenomeSubseq(Reverse, LowBase, HighBase);
+        return CP.GenomeSubseq(Reverse, ReturnLow(), ReturnHigh(), GenomeID);
     }
     
     //retrieves nucleotide sequence
     string GetTrans(CalcPack& CP){
-        return CP.GetTrans(Reverse, LowBase, HighBase);
+        return CP.GetTrans(Reverse, ReturnLow(), ReturnHigh(), GenomeID);
     }
     
     //Creates a string for the result of consensus annotations

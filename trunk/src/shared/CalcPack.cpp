@@ -13,7 +13,7 @@
 		UseNCProfile=DefaultNCProfile;
 		UseSmallProf=false;
 		GOAccess=NULL;
-		CurrentGenomeID="NONE";
+		CurrentGenomeID ="";
 		GenomeSize=0;
 		for(int t=0; t<20; t++){
 			DefaultCProfile[t]=DefaultNCProfile[t]=CProfile[t]=NCProfile[t]\
@@ -30,7 +30,7 @@
 		UseCProfile=DefaultCProfile;
 		UseNCProfile=DefaultNCProfile;
 		GOAccess=NULL;
-		CurrentGenomeID="NONE";
+		CurrentGenomeID="";
 		GenomeSize=0;
 		int Status=InitCodes();//read in the values.
 		for(int t=0; t<20; t++){
@@ -45,7 +45,7 @@
                 SetupTrans(TN, TransFile);
 		Translator.InitCodes();
 		GenomeFile=GF;
-		GetGenome();
+		ReadGenome();
 	}
 
 	//Copy Constructor
@@ -385,7 +385,8 @@
 	}
         
         //retrieves a specific subsequence from the current genome
-        string CalcPack::GenomeSubseq(const bool& Reverse, const long& LB, const long& HB){
+        string CalcPack::GenomeSubseq(const bool& Reverse, const long& LB, const long& HB, const string& gid){
+            SelectGenome(gid);
             long Length=HB-LB+1;
             long Begin=LB-1;
             string result="";
@@ -398,14 +399,16 @@
             return result;
         }
         
-        string CalcPack::GetTrans(const bool& Reverse, const long& LB, const long& HB){
+        string CalcPack::GetTrans(const bool& Reverse, const long& LB, const long& HB, const string& gid){
+            SelectGenome(gid);
             string Translation="";
             Translation=Translator.TranslateSeq(GeneSequence(CurrentGenome->second, LB, HB, Reverse));
             return Translation;
         }
 
 	//function for finding setting the frequencies of the amino acids in a sequence
-	int CalcPack::GetAACount(int AACount[],const long& LB, const long& HB, const bool& Reverse){
+	int CalcPack::GetAACount(int AACount[],const long& LB, const long& HB, const bool& Reverse, const string& gid){
+                SelectGenome(gid);
 		string Translation="";
                 Translation=Translator.TranslateSeq(GeneSequence(CurrentGenome->second, LB, HB, Reverse));
 		//for each amino acid in the sequence
@@ -578,34 +581,36 @@
 	}//close definition
 
 	//This function gets the genome based on the genome file name
-	int CalcPack::GetGenome(){
+	int CalcPack::ReadGenome(){
 		ifstream In2;//ofstream operator for reading in the genomic sequence
 		In2.open(GenomeFile.c_str());//open up the translated file
 		Reader.SetInput(&In2);
-		string GenomeID;//for reading in the id
+		string GenomeHeader;//for reading in the id
 		string Seq;//for reading in the sequence
 		string GenomeSeq="";//Initialize to empty string
 		string TempID="";
+                long g_offset=0;
 	
-		while(Reader.ReadFasta(GenomeID, GenomeSeq)){//read in the genome file
+		while(Reader.ReadFasta(GenomeHeader, GenomeSeq)){//read in the genome file
 	
-			GenomeID=Reader.HeaderToID(GenomeID);//Parse the unessary information from the GenomeID
+			GenomeHeader=Reader.HeaderToID(GenomeHeader);//Parse the unessary information from the GenomeID
 			
 			//used to do individual lookup of each contig/genome based on GenomeID
 			//but that is not possible since the overlap function needs relative coordinates
 			//from each ORF to correctly judge overlap
-			if(Genomes.size()==0){
-				Genomes.insert(map<string,string>::value_type(GenomeID, GenomeSeq));//keep track of all the genomes
-			}
-			else {
-				(Genomes.begin()->second)+=GenomeSeq;//cat to create genome
-			}
+			Genomes.insert(map<string,string>::value_type(GenomeHeader, GenomeSeq));//keep track of all the genomes
+                        GenomeInfo.insert(map<string,long>::value_type(GenomeHeader, g_offset));
+			
+			//else {
+			//	(Genomes.begin()->second)+=GenomeSeq;//cat to create genome
+			//}
 	
 			/*FindIt=HitList.find(ID.substr(1,(ID.length())-1));
 	
 			if(FindIt!=HitList.end()){//if its found then its a hit
 				FindIt->second->Sequence=Seq;//assign the sequence
 			}*/
+                        g_offset+=GenomeSeq.size();//add up the how many bases come before next genome
 		}
 		In2.close();//close the input stream
 		GenomeSize=(Genomes.begin()->second).size();
@@ -625,7 +630,8 @@
 
 
 	//Calculate the RawBit score from sequence coordinates
-	double CalcPack::CalcRawBit(const long& LowB, const long& HighB, const bool& Rev){
+	double CalcPack::CalcRawBit(const long& LowB, const long& HighB, const bool& Rev, const string& gid){
+                SelectGenome(gid);
 		long LB=LowB;
 		long HB=HighB;
 		long StartSearch=LB-1;//Subtract one to convert to string coordinates
@@ -661,17 +667,17 @@
 	}//close definition
 
 	//Function for setting the current Genome to be used based on that genomes fasta ID
-	int CalcPack::SelectGenome(string& SeqID){
-		if(SeqID==CurrentGenomeID && SeqID!="NONE"){
+	int CalcPack::SelectGenome(const string& gid){
+		if(gid==CurrentGenomeID){
 			return 0;
 		}
 		if(Genomes.size()>0){
-			if(SeqID=="NONE"){
+			if(Genomes.size()==1){
 				CurrentGenome=Genomes.begin();
 				CurrentGenomeID=Genomes.begin()->first;
 			}
 			else{
-				CurrentGenome=Genomes.find(SeqID);
+				CurrentGenome=Genomes.find(gid);
 				if(CurrentGenome==Genomes.end()){
 					cerr<<"error in setting genome to be used in calcpack\n";
 					throw 20;
@@ -687,6 +693,21 @@
 		}
 		return 0;
 	}
+        
+        //Returns a unique small replicon ID based on the order it appears
+        //in the fna file
+        string CalcPack::SmallGID(const string& gid){
+            SelectGenome(gid);
+            int Position=0;
+            map<string, string>::iterator It=Genomes.begin();
+            while(It!=CurrentGenome && It!=Genomes.end()){
+                Position++;
+                It++;
+            }
+            stringstream ss;
+            ss<<Position;
+            return "R"+ss.str();
+        }
 	
 	//Free memory associate with genome
 	//Clear Genome free memory associated with genomes
@@ -698,7 +719,8 @@
 
 	//This function continually adjusts the start site until its back at the original
 	//assumes there is a query alignment offset to start at and an original start site to come back to
-	bool CalcPack::FindStarts(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, double& StartScore){//open definition
+	bool CalcPack::FindStarts(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, double& StartScore, const string& gid){//open definition
+            SelectGenome(gid);
                 CheckStarts();
                 long Start=St;
 		long Stop=Sp;

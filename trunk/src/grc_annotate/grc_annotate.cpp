@@ -36,7 +36,7 @@ int SmallFilter(list<AARecord>& RecordList, list<AARecord*>& LoserList, CompeteM
 void DisplayKO(ostream& Out, CompeteMap& KOMap, const int& GFMin);
 int RefreshRecords(list<AARecord>& RecordList, CalcPack& CP);
 int TrainEDP(list<AARecord*>& WinnerList, list<AARecord*>& LoserList, CalcPack& CP);
-int ProcessID(string& ID, long& Start, long& Stop, long& Offset);
+//int ProcessID(string& ID, long& Start, long& Stop, long& Offset);
 int GetBlastResults(const string BlastFile, list<AARecord>& RecordList, map<string, AARecord*> & HitList, CalcPack& InfoPack);
 SSMap ParseCommandLine(const int& ac, char* const av[]);
 int SetEFilter(StringSet& ECodeFilter, const string& ECodeTxt);
@@ -161,7 +161,7 @@ int main(int argc, char* argv[]) {   //  Main is open
         if(PosIt->HasHit()){//if the query has a hit
             PosIt->UpdateScores();//now that all blast scores have been read in for each record create priority queues for start sites
         }
-        PositionMap.insert(RecordMap::value_type(PosIt->ReportLowBase(), &(*PosIt))); //Add to position map
+        PositionMap.insert(RecordMap::value_type(PosIt->GlobalLowBase(), &(*PosIt))); //Add to position map
     }//close for loop
     
     //DumpList(InitList);//print out the orfs from initlist
@@ -386,27 +386,15 @@ int GetBlastResults(string BlastFile, list<AARecord>& RecordList, map<string, AA
         BlastIn >>Start; //read in the Start position
         BlastIn >>Stop; //read in the Stop position
         
-        ProcessID(ID, Start, Stop, Offset); //process the ID to see if it indicates multiple replicons
+       // ProcessID(ID, Start, Stop, Offset); //process the ID to see if it indicates multiple replicons
         
         
         getline(BlastIn, HitID, '\t'); //skip next tab
         //getline(BlastIn,HitID,'\t'); //get line for hit ID/No_hits
         BlastIn>>HitID;
-        long LowBase;
-        long HighBase;
-        double LowComplexity=0;//fraction of low complexity AA's as determined by SEG in fsa-blast
-        
-        bool Rev=false;//indicates if ORF is in reverse reading frame
-        if (Start<Stop){
-            LowBase=Start;
-            HighBase=Stop;
-        }
-        else {
-            LowBase=Stop;
-            HighBase=Start;
-            Rev=true;
-        }
-        
+
+       
+
         if (HitID =="No_hits"){//open consq.
             //In>>ES; //read in the delimiter
             //Insert Record into Initial RecordMap
@@ -435,7 +423,7 @@ int GetBlastResults(string BlastFile, list<AARecord>& RecordList, map<string, AA
             BlastIn>>SAlignStop;
             BlastIn>>ES;
             BlastIn>>Bit;
-            //BlastIn>>LowComplexity;//ONLY needs to be entered once per query ID since all is query sequence dependent
+
             long OrigStart=Start;//for start searching purposes
             //boolean value to determine whether any new information is being contributed
             //TO DO: Add org and HitID check to bool Old and update structure for storing
@@ -527,9 +515,9 @@ int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>
                 if(It1!=It2 && !(It2->second->Dead()) && !(It1->second->Dead())){//if not the same
                     
                     OverLen=It1->second->Overlap(*(It2->second));//get the amount the two overlap if at all
-                    //	if(((It1->second.ID=="T2432")||(It2->second.ID=="T2432"))){
-                    //		cout<<"Whats going on?";
-                    //	}
+                    	/*if(((It1->second->ReportID()=="T38_contig00133")||(It2->second->ReportID()=="T38_contig00133"))){
+                    		cout<<"Whats going on?";
+                    	}*/
                     
                     bool KO=false;//default is to not knock one out
                     if(OverLen!=0){//if they overlap
@@ -687,10 +675,20 @@ int FastaPrint(list<AARecord*>& RecList, const string& FilePrefix, const int& GF
         TblOut.open(TblName.c_str());
         ofstream ChkOut;
         ChkOut.open(FileName.c_str());
-        TblOut<<">feature "<<InfoPack.CurrentGenomeID<<"\n";
+        string LocalGenome="";
 
         for (list<AARecord*>::iterator It =RecList.begin(); It!=RecList.end(); It++ ){
             if(*It!=NULL){
+                //check for switch in replicon and print the feature line when it does
+                if(LocalGenome.empty() || (*It)->ReturnGenomeID()!=LocalGenome){
+                    LocalGenome=(*It)->ReturnGenomeID();
+                    InfoPack.SelectGenome(LocalGenome);
+                    TblOut<<">feature "<<InfoPack.CurrentGenomeID<<"\n";
+                    if (LocalGenome.empty()){
+                        cerr<<"Error: mult-replicon input: replicon id in nucleotide file (fna) does not match replicon id in ORF header\n";
+                        throw 20;
+                    }
+                }
                 //cout<<**It1;//print out the Records
                 if((*It)->ReportLength()>=GFMin){//only print those records over the minimum gene length
                     vector<string> components=(*It)->GetBasicInfo();
@@ -779,8 +777,8 @@ std::ostream& operator<<(std::ostream& Out, const Compete& C){
 std::ostream& operator<<(std::ostream& ChkOut, AARecord* AC){
     //ChkOut<<"PPCG**"<<"\t";
     ChkOut<<AC->ID<<"\t";
-    ChkOut<<(AC->ReportStart())<<"\t";
-    ChkOut<<(AC->ReportStop())<<"\t";
+    ChkOut<<(AC->ReturnStart())<<"\t";
+    ChkOut<<(AC->ReturnStop())<<"\t";
     ChkOut<<AC->CurrentLength<<"\t";
     
     if (AC->Reverse){
@@ -908,37 +906,6 @@ int RefreshRecords(list<AARecord>& RecordList, CalcPack& CP){
     return 0;
 }
 
-//This function parses the incoming ID incase and adjusts coord. based on offset of multiple genomes
-int ProcessID(string& ID, long& Start, long& Stop, long& Offset){
-    
-    unsigned int ChPosition=ID.find("|REPLICON|");//look for '_' in ID indicating that there is a genome ID attached
-    unsigned int OPosition=ID.find("|OFFSET|");
-    string GenomeID;
-    string Junk;
-    if(ChPosition!=string::npos && OPosition!=string::npos){
-        string TempID=ID;
-        //TempID.replace(ChPosition,2," ");//replace '_' with a space
-        //ChPosition=ID.find("**");
-        //TempID.replace(ChPosition,2," ");//replace '_' with a space
-        stringstream ParseSS;
-        ParseSS<<TempID;
-        getline(ParseSS, ID, '|');
-        //ParseSS.ignore();//ignore the next |
-        getline(ParseSS, Junk, '|');
-        //ParseSS>>ID;//pass orf id through
-        getline(ParseSS, GenomeID, '|');
-        getline(ParseSS, Junk, '|');
-        //ParseSS>>GenomeID; //assign genome id
-        ParseSS>>Offset;//assign offset value for contig coordinate conversioni
-        Start=Start+Offset;//adjust start/stop positions for multiple contigs. so that concatenated genome sequence can be used
-        Stop=Stop+Offset;
-        ID+="_"+GenomeID;//reassign ORF ID to be orf_contig
-    }
-    else{
-        GenomeID="NONE";
-    }
-    return 0;
-}
 
 //Parses ECodes from the command line into a set
 //and makes sure GRC recognizes it.

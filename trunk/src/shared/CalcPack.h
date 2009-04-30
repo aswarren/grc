@@ -27,6 +27,7 @@ using std::ifstream;
 using std::map;
 using std::stringstream;
 
+
 //Values obtained from Glimmer 3.02
 /*#define  DEFAULT_POS_ENTROPY_PROF  {0.08468,0.01606,0.05739,0.05752,0.04328,\
   0.07042,0.02942,0.05624,0.04442,0.05620,0.03029,0.03975,0.05116,0.04098,\
@@ -42,6 +43,7 @@ public:
 	map <string,int> ConsValue;//map for storing the max value of a conserved amino acid
 	map<string,string> Genomes; //for storing the genome
 	map<string,string>::iterator CurrentGenome;//iterator that points to the genome currently being used
+        map<string, long> GenomeInfo;//stores genome information using the offset
         map<string,double> FStartCodons;//stores the start codons and their weight
         map<string,double> RStartCodons;
         set<string> FStopCodons;
@@ -107,13 +109,13 @@ public:
 	int CreateOrgEDPs();
 		
 	//function for finding setting the frequencies of the amino acids in a sequence
-	int GetAACount(int AACount[],const long& LB, const long& HB, const bool& Reverse);
+	int GetAACount(int AACount[],const long& LB, const long& HB, const bool& Reverse, const string& gid);
 		
 	
 	//function for retrieving the Gene's sequence from the genome given the LowBase HighBase and Reverse status
 	string GeneSequence(const string& GenomeSeq, const long& LB, const long& HB, const bool& Reverse);
-        string GenomeSubseq(const bool& Reverse, const long& LB, const long& HB);
-        string GetTrans(const bool& Reverse, const long& LB, const long& HB);
+        string GenomeSubseq(const bool& Reverse, const long& LB, const long& HB, const string& gid);
+        string GetTrans(const bool& Reverse, const long& LB, const long& HB, const string& gid);
                 
         int SetStarts(const string& filename);
         int SetStops();
@@ -165,7 +167,7 @@ public:
 		
 
 	//This function gets the genome based on the genome file name
-	int GetGenome();
+	int ReadGenome();
 		
 
 	//This function returns the reverse complement of a given sequence
@@ -174,17 +176,20 @@ public:
 
 
 	//Calculate the RawBit score from sequence coordinates
-	double CalcRawBit(const long& LowB, const long& HighB, const bool& Rev);
+	double CalcRawBit(const long& LowB, const long& HighB, const bool& Rev, const string& gid);
 		
 	//Function to select which genomic sequence to use based on its ID
-	int SelectGenome(string& SeqID);
+	int SelectGenome(const string& gid);
+        
+        //Returns a unique, short id for a replicon
+        string SmallGID(const string& gid);
 	
 	//Clear Genome free memory associated with genomes
 	int ClearGenome();
 
 	//This function continually adjusts the start site until its back at the original
 	//assumes there is a query alignment offset to start at and an original start site to come back to
-	bool FindStarts(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, double& StartScore);//open definition
+	bool FindStarts(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, double& StartScore, const string& gid);//open definition
         
         //Write out the genomes
         int WriteGenome(std::ostream& Out);

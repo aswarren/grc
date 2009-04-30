@@ -693,6 +693,21 @@
 		}
 		return 0;
 	}
+        
+        //Returns a unique small replicon ID based on the order it appears
+        //in the fna file
+        string CalcPack::SmallGID(const string& gid){
+            SelectGenome(gid);
+            int Position=0;
+            map<string, string>::iterator It=Genomes.begin();
+            while(It!=CurrentGenome && It!=Genomes.end()){
+                Position++;
+                It++;
+            }
+            stringstream ss;
+            ss<<Position;
+            return "R"+ss.str();
+        }
 	
 	//Free memory associate with genome
 	//Clear Genome free memory associated with genomes
@@ -704,7 +719,8 @@
 
 	//This function continually adjusts the start site until its back at the original
 	//assumes there is a query alignment offset to start at and an original start site to come back to
-	bool CalcPack::FindStarts(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, double& StartScore){//open definition
+	bool CalcPack::FindStarts(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, double& StartScore, const string& gid){//open definition
+            SelectGenome(gid);
                 CheckStarts();
                 long Start=St;
 		long Stop=Sp;

@@ -161,7 +161,7 @@ int main(int argc, char* argv[]) {   //  Main is open
         if(PosIt->HasHit()){//if the query has a hit
             PosIt->UpdateScores();//now that all blast scores have been read in for each record create priority queues for start sites
         }
-        PositionMap.insert(RecordMap::value_type(PosIt->ReportLowBase(), &(*PosIt))); //Add to position map
+        PositionMap.insert(RecordMap::value_type(PosIt->GlobalLowBase(), &(*PosIt))); //Add to position map
     }//close for loop
     
     //DumpList(InitList);//print out the orfs from initlist
@@ -515,9 +515,9 @@ int Compare(RecordMap& PositionMap, list<AARecord*>& WinnerList, list<AARecord*>
                 if(It1!=It2 && !(It2->second->Dead()) && !(It1->second->Dead())){//if not the same
                     
                     OverLen=It1->second->Overlap(*(It2->second));//get the amount the two overlap if at all
-                    //	if(((It1->second.ID=="T2432")||(It2->second.ID=="T2432"))){
-                    //		cout<<"Whats going on?";
-                    //	}
+                    	/*if(((It1->second->ReportID()=="T38_contig00133")||(It2->second->ReportID()=="T38_contig00133"))){
+                    		cout<<"Whats going on?";
+                    	}*/
                     
                     bool KO=false;//default is to not knock one out
                     if(OverLen!=0){//if they overlap
@@ -681,9 +681,9 @@ int FastaPrint(list<AARecord*>& RecList, const string& FilePrefix, const int& GF
             if(*It!=NULL){
                 //check for switch in replicon and print the feature line when it does
                 if(LocalGenome.empty() || (*It)->ReturnGenomeID()!=LocalGenome){
+                    LocalGenome=(*It)->ReturnGenomeID();
                     InfoPack.SelectGenome(LocalGenome);
                     TblOut<<">feature "<<InfoPack.CurrentGenomeID<<"\n";
-                    LocalGenome=InfoPack.CurrentGenomeID;
                     if (LocalGenome.empty()){
                         cerr<<"Error: mult-replicon input: replicon id in nucleotide file (fna) does not match replicon id in ORF header\n";
                         throw 20;

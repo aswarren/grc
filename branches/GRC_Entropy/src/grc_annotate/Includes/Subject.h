@@ -359,6 +359,11 @@ public:
         if (GOTerms.size()>0){
             HasGO=true;
         }
+        
+        //adding this for Nalvo
+        if(CatDescription()=="hypothetical protein"){
+            Description.push_front("conserved");
+        }
         return 0;
     }
     
@@ -385,17 +390,28 @@ public:
         return result;
     }
     
-    string GetDescription(){
+    string CatDescription(){
         string result="";
         for(list<string>::iterator DIt=Description.begin(); DIt!=Description.end(); DIt++){
-            result+=*DIt+" ";
+            if(DIt==Description.begin()){
+                result+=*DIt;
+            }
+            else{
+                result+=" "+*DIt;
+            }
         }
-        result+="("+dtos(BestBitFrac)+")";
+        return result;
+    }
+    
+    string GetDescription(){
+        string result=CatDescription();
+
+        result+=" ("+dtos(BestBitFrac)+")";
         return result;
     }
     //Return the Information about this Subject and its representative alignment
     string AlignInfo(){
-        string result="";
+        string result=GetDescription();
         double ALength=AlignQ.top()->GetALength();
         double OLength=AlignQ.top()->GetLength();
         
@@ -412,10 +428,6 @@ public:
          * Out<<" ) ";
          * }*/
         //print out the description "fasta line function"
-        for(list<string>::iterator DIt=Description.begin(); DIt!=Description.end(); DIt++){
-            result+=*DIt+" ";
-        }
-        result+="("+dtos(BestBitFrac)+")";
         result+="\t"+AlignQ.top()->ScoreInfo();
         result+=ltos(HLength)+"\t";
         result+=dtos((ALength/(OLength/3.0))*100)+"\t";

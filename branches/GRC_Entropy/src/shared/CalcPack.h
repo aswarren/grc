@@ -27,6 +27,7 @@ using std::ifstream;
 using std::map;
 using std::stringstream;
 
+
 //Values obtained from Glimmer 3.02
 /*#define  DEFAULT_POS_ENTROPY_PROF  {0.08468,0.01606,0.05739,0.05752,0.04328,\
   0.07042,0.02942,0.05624,0.04442,0.05620,0.03029,0.03975,0.05116,0.04098,\
@@ -179,13 +180,16 @@ public:
 		
 	//Function to select which genomic sequence to use based on its ID
 	int SelectGenome(const string& gid);
+        
+        //Returns a unique, short id for a replicon
+        string SmallGID(const string& gid);
 	
 	//Clear Genome free memory associated with genomes
 	int ClearGenome();
 
 	//This function continually adjusts the start site until its back at the original
 	//assumes there is a query alignment offset to start at and an original start site to come back to
-	bool FindStarts(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, double& StartScore);//open definition
+	bool FindStarts(long& St, const long& OSt, const long& Sp, const long& QAS, const bool& Reverse, double& StartScore, const string& gid);//open definition
         
         //Write out the genomes
         int WriteGenome(std::ostream& Out);

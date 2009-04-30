@@ -676,7 +676,7 @@ int FastaPrint(list<AARecord*>& RecList, const string& FilePrefix, const int& GF
         ofstream ChkOut;
         ChkOut.open(FileName.c_str());
         string LocalGenome="";
-
+        string tblprefix="gnl|dbname|";
         for (list<AARecord*>::iterator It =RecList.begin(); It!=RecList.end(); It++ ){
             if(*It!=NULL){
                 //check for switch in replicon and print the feature line when it does

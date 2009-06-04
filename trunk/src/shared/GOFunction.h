@@ -138,6 +138,20 @@ public:
         vector<string> GetAltID(){
             return AltIDs;
         }
+	
+	//returns a string indicating the ontology type
+	string OntoType(){
+		if(Category=='b'){
+			return "BP;
+		}
+		else if(Category=='c'){
+			return "CC";
+		}
+		else if(Category=='m'){
+			return "MF";
+		}
+		else return Category;
+	}
 
 	//Function to update distance relative to descendant
 	//Also provides the functionality of a cycle check by updating visitnum

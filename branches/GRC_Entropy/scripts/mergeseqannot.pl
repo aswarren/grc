@@ -126,14 +126,26 @@ while($a<$NumParam){
 		local $PreviousID="!NOBLASTRESULT!";
 		while(<$IPfile>){#open faa for loop
 			if($_=~/^>/){#if aa record header
+				local @Terms;
+				$_=~s/^>//;
 				if($CurrentLength!=0 && $PreviousID ne "!NOBLASTRESULT!"){
 					$BlastHash{$PreviousID}="$PreviousLine"."$CurrentLength";
 					$PreviousID="!NOBLASTRESULT!";
 				}
+				if($_=~/^((.*)\|(.*)\|)/){
+					$IDPosition=1;
+					$Delimit="|";
+					@Terms=split(/\|+/, $_);#break up line to get ID
+				}
+				else{
+					$IDPosition=0;
+					$Delimit='\s';
+					@Terms=split(/($Delimit)+/, $_);#break up line to get ID
+				}
 				$CurrentLength=0;
 				$RecordCount++;
-				local @Terms=split(/\|+/, $_);#break up line to get ID
-				local $SubjectID= $Terms[1];# in faa file format expected is ">gi|number|etc."
+				
+				local $SubjectID= $Terms[$IDPosition];# in faa file format expected is ">gi|number|etc."
 	
 				local $BLine=$BlastHash{$SubjectID};#look up blast results
 				if(defined($BLine) && $BLine eq "INITIAL"){
@@ -148,7 +160,13 @@ while($a<$NumParam){
 						$Function="$AnnTerms[-1]";#assign function description to the product and gene name
 					}#close if in hash
 					else{#else not in hash
-						$Function=$Terms[-1];#everything after last | in faa header
+						if($Delimit eq "|"){
+							$Function=$Terms[-1];
+						}
+						else{
+							$Function=$_;
+							$Function=~ s/$Terms[$IDPosition]//;#everything after last | in faa header
+						}
 					}
 					#$Function=~s/\|+|\-+/ /g; #replace | or - with a space
 					#$Function=~s/\(+|\)+|\[+|\]+|\{+|\}+|,+|\/+|\\+|\,+|\-+|\'+|\;+|\t+/ /g; #replace brackets and punct with space

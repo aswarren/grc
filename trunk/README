@@ -19,7 +19,7 @@ tar -xf GRC.tar
 The install script 'install.pl' in the scripts directory will handle building and moving the binaries to the correct location. This script assumes that g++ and perl are installed.
 
 
-Input formats:
+Input formats: [WARNING! Mac style line breaks ^M are not supported}
 GRC expects the input to be in a certain format.
 The extensions for these formats are (*.faa *.ptt *.fna *.fasta *.CP *.goa). GRC expects that the file's extension match it's formatting, if it does not then GRC will most likely crash.
 

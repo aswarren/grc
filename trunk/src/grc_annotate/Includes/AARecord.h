@@ -1296,7 +1296,7 @@ public:
     
 //submits the AA frequencies for creation of new EDP coding/ EDP non-coding
     int SubmitCount(CalcPack& CP){
-	SeqCalcMap::iterator FindIt=CalcMap.find(CurrentLength);
+        SeqCalcMap::iterator FindIt=CalcMap.find(CurrentLength);
         if (FindIt==CalcMap.end()){
             cerr<<"logic error: in finding AA frequencies in AARecord\n";
         }
@@ -1330,7 +1330,7 @@ public:
     int WriteTBL(std::ostream& Out, CalcPack& CP, const string& prefix){
         vector<string> tempGO=GetGBK_GO(CP);
         Out<<Start<<"\t"<<Stop<<"\tgene"<<"\n";
-        Out<<"\t\t\tlocus_tag\t"<<CP.SmallGID(GenomeID)+orf_id<<"\n";
+        Out<<"\t\t\tlocus_tag\t"<<CP.SmallGID(GenomeID)+"_"+orf_id<<"\n";
         Out<<Start<<"\t"<<Stop<<"\tCDS"<<"\n";
         Out<<"\t\t\tprotein_id\t"<<prefix+ID<<"\n";
         if(Blank){

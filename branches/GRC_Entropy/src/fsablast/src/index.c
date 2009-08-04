@@ -6,6 +6,9 @@
 // Code for creating an in-memory inverted index
 
 #include "blast.h"
+#ifndef uint
+#define uint unsigned int
+#endif
 
 struct wordList* index_words;
 uint4 index_numWords;

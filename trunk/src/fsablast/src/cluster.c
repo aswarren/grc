@@ -14,6 +14,10 @@
 #include "readindex.c"
 #include "vec.c"
 
+#ifndef uint
+#define uint unsigned int
+#endif
+
 #define decoWordLength 30
 #define numIterations 3
 #define decoQantum 9
@@ -368,7 +372,7 @@ void cluster_writeClusters(char* filename, struct sequence* sequences)
 	wilds = wildcards_getOccurences(&numWilds);
 
     // Score the wildcards using occurences
-    wildcards = (struct wild*)global_malloc(sizeof(struct wild) * wildcards_numClusterWildcards); 
+    wildcards = (struct wild*)global_malloc(sizeof(struct wild) * wildcards_numClusterWildcards);
     count = 0;
     while (count < wildcards_numClusterWildcards)
     {

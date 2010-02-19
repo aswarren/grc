@@ -2,10 +2,12 @@ See the file named "LICENSE" for license information.
 
 About GRC:
 
+Due to run time errors in FSA-BLAST encountered by some users, I have created this "NCBI BLAST" dependent version of GRC. You will need to have BLAST correctly installed on your system for this version to run.
+
 The Genome Reverse Compiler (GRC) is an automated annotation tool designed for prokaryotic genomes. The goal is to provide an open-source, easy-to-run, very efficient annotation program. In this initial version 1.0, GRC only annotates protein-coding genes.
 
-In addition to the genome sequence, GRC requires a multiFASTA file with annotated genes. GRC will perform best when these genes are well annotated and come from organisms closely related to the target genome. GRC finds genes and assigns functional annotations based on sequence similarity. It incorporates an open source version of BLAST (FSA-BLAST)[1] to perform functional assignment.
-First grc_orfs is run to generate all possible ORFs for the given genome. The translated sequences are then checked for sequence similarity against the user-specified database using FSA-BLAST. Some ORFs are then discarded and start sites adjusted based on overlap, BLAST score, length, and sequence content[2]. Resulting putative genes are assigned functions based on the annotation of their corresponding best BLAST hits.
+In addition to the genome sequence, GRC requires a multiFASTA file with annotated genes. GRC will perform best when these genes are well annotated and come from organisms closely related to the target genome. GRC finds genes and assigns functional annotations based on sequence similarity. It incorporates BLAST to perform functional assignment.
+First grc_orfs is run to generate all possible ORFs for the given genome. The translated sequences are then checked for sequence similarity against the user-specified database using BLAST. Some ORFs are then discarded and start sites adjusted based on overlap, BLAST score, length, and sequence content[2]. Resulting putative genes are assigned functions based on the annotation of their corresponding best BLAST hits.
 
 
 Downloading, installing, and requirements:
@@ -19,7 +21,11 @@ tar -xf GRC.tar
 The install script 'install.pl' in the scripts directory will handle building and moving the binaries to the correct location. This script assumes that g++ and perl are installed.
 
 
-Input formats: [WARNING! Mac style line breaks ^M are not supported}
+Input formats:
+[WARNING! Mac style line breaks ^M are not supported] If you find that the GRC_orfs component chokes on your fna file or other components choke on the faa files, this is usually and indication that a Mac style line break has been introduced into your input files somewhere. 
+Typically this can be resolved by running: tr '\015' '\012' <  Contigs.fna  > Contigs_clean.fna
+on the command line.
+ 
 GRC expects the input to be in a certain format.
 The extensions for these formats are (*.faa *.ptt *.fna *.fasta *.CP *.goa). GRC expects that the file's extension match it's formatting, if it does not then GRC will most likely crash.
 

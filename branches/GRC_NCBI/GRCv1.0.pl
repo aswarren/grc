@@ -317,7 +317,9 @@ chdir("$BinDir");
 
 #create database
 print "\nFormatting DB:\n";
-$status = system("$blastdir"."formatdb $DBFile");
+#$status = system("$blastdir"."formatdb $DBFile");
+$status = system("formatdb -p T -i $DBFile");
+
 if($status != 0){
 	die "formatdb did not run successfully";
 }
@@ -325,11 +327,13 @@ if($status != 0){
 
 #Run FSA-BLAST on AA sequences
 print "\nBlasting sequences.\n";
-chdir("$blastdir");
+#chdir("$blastdir");
 if(not defined($opt_b)){
 	#print "$blastdir\n";
-	print "./blast -d $DBFile -e .001 -i $tempdir$transeqout -m 8 -v 1 -b $NumBHits -M $Matrix -z $DBSize >"."$BHName\n";
-	$status = system("./blast -d $DBFile -e .001 -i $tempdir$transeqout -m 8 -v 1 -b $NumBHits -M $Matrix -z $DBSize >"."$BHName");
+	#print "./blast -d $DBFile -e .001 -i $tempdir$transeqout -m 8 -v 1 -b $NumBHits -M $Matrix -z $DBSize >"."$BHName\n";
+	print "blastall -d $DBFile -e .001 -i $tempdir$transeqout -m 8 -v 1 -b $NumBHits -p blastp -M $Matrix -z $DBSize -o $BHName";
+	#$status = system("./blast -d $DBFile -e .001 -i $tempdir$transeqout -m 8 -v 1 -b $NumBHits -M $Matrix -z $DBSize >"."$BHName");
+	$status= system("blastall -d $DBFile -e .001 -i $tempdir$transeqout -m 8 -v 1 -b $NumBHits -p blastp -M $Matrix -z $DBSize -o $BHName");
 	if($status != 0){
 		die "blast did not run successfully";
 	}

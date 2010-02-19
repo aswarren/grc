@@ -39,18 +39,6 @@ if ($status != 0){
 }
 
 
-print "compiling fsablast\n";
-chdir("../fsablast/");
-$status = system("make clean");
-$status = $status + system("make");
-$status = $status + system("cp ./blast ../../fsablast/");
-$status = $status + system("cp ./formatdb ../../fsablast/");
-
-
-if ($status != 0){
-	die "blast did not compile successfully";
-}
-
 
 print "compiling grc_annotate\n";
 chdir("../grc_annotate/");

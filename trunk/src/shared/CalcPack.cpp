@@ -668,14 +668,14 @@
 
 	//Function for setting the current Genome to be used based on that genomes fasta ID
 	int CalcPack::SelectGenome(const string& gid){
-		if(gid==CurrentGenomeID){
-			return 0;
-		}
 		if(Genomes.size()>0){
 			if(Genomes.size()==1){
 				CurrentGenome=Genomes.begin();
 				CurrentGenomeID=Genomes.begin()->first;
 			}
+                        else if(gid==CurrentGenomeID){
+                            return 0;
+                	}
 			else{
 				CurrentGenome=Genomes.find(gid);
 				if(CurrentGenome==Genomes.end()){

@@ -193,7 +193,7 @@ if(defined $opt_k){#if the user desires to keep the blast and reference files
 if(defined $opt_b){#if there are already blast files to use
 	print "Trying to use previous blast results from: "."$opt_b";
 	$SpecialDir=abs_path(glob("$opt_b"));
-	$BHName="$SpecialDir"."/$GenomeName".".bh";
+	$BHName=$BHName=get_abspath("$opt_b");
 }
 
 

@@ -130,7 +130,8 @@ With: $status= system("blastall -d $DBFile -e .001 -i $tempdir$transeqout -m 8 -
 
 Reusing Blast output:
 To reuse BLAST output you must use the -k option in order to have blast output copied to the results directory.
-Then use "-b outputdirectory" to reuse the *.bh file from a previous run.
+Then use "-b filename.bh" to reuse the *.bh file from a previous run.
+Warning: This option will expect your BLAST output to be compatible with the DB that you specify in order to lookup the annotations and merge them into a format that GRC can use. If you switch databases and then try to reuse old BLAST results this could have dire consequences.
 
 References:
 [1] Cameron M, Williams HE, Cannane A. A deterministic finite automaton for faster protein hit detection in BLAST. J Comput Biol. 2006 May;13(4):965-78.

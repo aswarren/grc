@@ -141,13 +141,13 @@ public:
 	
 	//returns a string indicating the ontology type
 	string OntoType(){
-		if(Category=="b"){
+		if(Category=="p" || Category=="b"){
 			return "BP";
 		}
 		else if(Category=="c"){
 			return "CC";
 		}
-		else if(Category=="m"){
+		else if(Category=="f" || Category=="m"){
 			return "MF";
 		}
 		else return Category;

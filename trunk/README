@@ -1,5 +1,10 @@
 See the file named "LICENSE" for license information.
 
+
+A. Warren and J. Setubal, “The Genome Reverse Compiler: an explorative annotation tool,” BMC Bioinformatics, vol. 10, no. 1, p. 35, 2009.
+
+
+
 About GRC:
 
 The Genome Reverse Compiler (GRC) is an automated annotation tool designed for prokaryotic genomes. The goal is to provide an open-source, easy-to-run, very efficient annotation program. In this initial version 1.0, GRC only annotates protein-coding genes.

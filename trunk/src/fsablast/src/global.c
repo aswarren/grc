@@ -8,6 +8,8 @@
 #include "blast.h"
 #include <errno.h>
 #include <stdlib.h>//MODIFIED BY ANDREW 01/01/09
+#include <math.h>
+
 
 // Timing variables
 int4 blast_prepTime = 0, blast_searchTime = 0;

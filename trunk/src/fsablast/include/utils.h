@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdint.h>
+#include <math.h>
+
 
 /** A wrapper around malloc that spews if NULL is returned */
 void *check_malloc(size_t size);

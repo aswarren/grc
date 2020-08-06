@@ -74,11 +74,11 @@ public:
 		ID ="NONE";
 		Seq ="";
 		while(MoreStatus && (Line == "NONE" || Line=="")){//if its the first line or a blank line
-			MoreStatus=getline(*Input,Line); //get line for ID
+			MoreStatus=static_cast<bool>(getline(*Input,Line)); //get line for ID
 		}
 		if(MoreStatus && Line[0]=='>'){
 			ID = Line; // assign ID value
-			while(MoreStatus=getline(*Input,Line)){//while not yet at the end of file, get next line
+			while(MoreStatus=static_cast<bool>(getline(*Input,Line))){//while not yet at the end of file, get next line
 				if(Line[0]=='>'){
 					if(Seq.size()==0){
 						cerr<<"Error in sequence file. No sequence for\n";

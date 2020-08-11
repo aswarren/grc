@@ -91,7 +91,7 @@ while($tries<10 && $stop==0){
 	  $run_number+=1;
   }
   $makethis=$tempdir.$run_number;
-  $status = system("mkdir $makethis");
+  $status = system("mkdir -p $makethis");
   if($status !=0){
     $tries+=1;
   }
@@ -174,7 +174,7 @@ $GenomeName=$GenomeName."Min".$MinLength."BH$NumBHits";
 
 
 unless (-e "$ResultDir$GenomeName$theTime" && -d "$ResultDir$GenomeName$theTime") { #check if the directory exists
-	$status = system("mkdir $ResultDir$GenomeName$theTime");
+	$status = system("mkdir -p $ResultDir$GenomeName$theTime");
 	if ($status != 0){
 		print "Problem creating $GenomeName$theTime directory \n";
 	}

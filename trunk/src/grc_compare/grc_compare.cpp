@@ -43,13 +43,13 @@ struct RecVar{
     double HPercent;
 };
 
-long stol(const string& target){
+/*long stol(const string& target){
     stringstream TempSS;
     TempSS<<target;
     long result;
     TempSS>>result;
     return result;
-}
+}*/
 
 
 

@@ -38,13 +38,13 @@ using std::set;
 using std::map;
 using std::pair;
 
-double stod(const string& target){
+/*double stod(const string& target){
     stringstream TempSS;
     TempSS<<target;
     double result;
     TempSS>>result;
     return result;
-}
+}*/
 
 enum compete{WIN, LOSE, TIE, NONE};//keeps track of who won what
 enum result{TP, FP, TN, FN, NA, NRP, NRN};//keeps track status with respect to reference

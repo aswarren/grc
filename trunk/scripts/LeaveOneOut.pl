@@ -10,7 +10,7 @@ $MinSize=300;
 $BHits=10;
 $UseGO=0;
 
-my $MainScript = "../GRCv0.01.pl";
+my $MainScript = "../GRCv1.0.pl";
 my $CDir=getcwd;#get current working directory
 getopt('gdrmybsz');# get and assign the command line parameters $opt_g $opt_d
 
@@ -20,7 +20,6 @@ unless (-e $opt_g && -e $opt_d) { #check for command line parameter existence
 my $GenomeFolder=$opt_g;
 my $DBFolder=$opt_d;
 my $ReferenceFolder="none";
-my $SpecialFolder=$opt_z;
 if(defined $opt_r){
 	$ReferenceFolder=$opt_r;
 	chdir("$opt_r");
@@ -59,7 +58,7 @@ chdir("$CDir"); #change back to orig wd
 chdir("$opt_g");
 $GDir=getcwd;
 opendir Direc, "./";
-@gcontents= readdir Direc; #get the contents of the current directory
+@gcontents= grep { -f && /\.fna$/ } readdir Direc; #get the contents of the current directory
 closedir Direc;
 @gcontentsort = sort @gcontents;#sort the names
 chdir("$CDir"); #change back to orig wd
@@ -69,15 +68,16 @@ foreach $Genome(@gcontentsort){#for each file in the genomes folder
 	if($Genome=~/.fna/){#if its an fna file
 		$GenomeName=$Genome;
 		$GenomeName=~s/.fna//;#remove extension
+        print "Working on $GenomeName of ".join " ",@dcontentsort."\n";
 		chdir("$opt_d");#change to the DB file
 		foreach $DFile(@dcontentsort){#leave out the current genome to be annotated
 			if($DFile=~/$GenomeName/){
-				if($DFile=~/.goa/){
-					$status=system("mv ./$DFile ./$GenomeName".".g");
-					if($status !=0){
-						die "could not rename $DFile\n";
-					}
-				}#close if goa
+                #if($DFile=~/.goa/){
+                #	$status=system("mv ./$DFile ./$GenomeName".".g");
+                #	if($status !=0){
+                #		die "could not rename $DFile\n";
+                #	}
+                #}#close if goa
 				if($DFile=~/.fasta/){
 					$status=system("mv ./$DFile ./$GenomeName".".fe");
 					if($status !=0){
@@ -90,12 +90,12 @@ foreach $Genome(@gcontentsort){#for each file in the genomes folder
 						die "could not rename $DFile\n";
 					}
 				}#close if faa
-				if($DFile=~/.ptt/){
-					$status=system("mv ./$DFile ./$GenomeName".".p");
-					if($status !=0){
-						die "could not rename $DFile\n";
-					}
-				}#close if ptt
+                #if($DFile=~/.ptt/){
+                #	$status=system("mv ./$DFile ./$GenomeName".".p");
+                #	if($status !=0){
+                #		die "could not rename $DFile\n";
+                #	}
+                #}#close if ptt
 			}
 		}
 		chdir("$CDir"); #change back to orig wd
@@ -111,7 +111,10 @@ foreach $Genome(@gcontentsort){#for each file in the genomes folder
 			}
 		}
 
-		$RunCommand="$MainScript -g $GenomeFolder"."/$Genome -d $DBFolder -m $MinSize -h $BHits -k $GenomeName -b $SpecialFolder";
+		$RunCommand="$MainScript -g $GenomeFolder"."/$Genome -d $DBFolder -m $MinSize -h $BHits -k $GenomeName";
+        if(defined $opt_z){
+            $RunCommand=$RunCommand."-b $opt_z";
+        }
 		if($UseGO==1){
 			$RunCommand=$RunCommand." -y $opt_y";
 		}
@@ -124,17 +127,18 @@ foreach $Genome(@gcontentsort){#for each file in the genomes folder
 		if($status !=0){
 				die "failed on $RunCommand\n";
 			}
+        print "finished genome $GenomeName\n";
 		
 		chdir("$opt_d");#change to the DB file
 
 		foreach $DFile(@dcontentsort){#change the filenames back
 			if($DFile=~/$GenomeName/){
-				if($DFile=~/.goa/){
-					$status=system("mv ./$GenomeName".".g ./$DFile" );
-					if($status !=0){
-						die "could not rename $DFile\n";
-					}
-				}#close if goa
+                #if($DFile=~/.goa/){
+                #	$status=system("mv ./$GenomeName".".g ./$DFile" );
+                #	if($status !=0){
+                #		die "could not rename $DFile\n";
+                #	}
+                #}#close if goa
 				if($DFile=~/.fasta/){
 					$status=system("mv ./$GenomeName".".fe ./$DFile ");
 					if($status !=0){
@@ -147,12 +151,12 @@ foreach $Genome(@gcontentsort){#for each file in the genomes folder
 						die "could not rename $DFile\n";
 					}
 				}#close if faa
-				if($DFile=~/.ptt/){
-					$status=system("mv ./$GenomeName".".p ./$DFile");
-					if($status !=0){
-						die "could not rename $DFile\n";
-					}
-				}#close if ptt
+                #if($DFile=~/.ptt/){
+                #	$status=system("mv ./$GenomeName".".p ./$DFile");
+                #	if($status !=0){
+                #		die "could not rename $DFile\n";
+                #	}
+                #}#close if ptt
 			}
 		}
 		chdir("$CDir"); #change back to orig wd

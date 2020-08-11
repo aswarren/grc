@@ -59,7 +59,8 @@ int main(int argc, char* argv[]) {   //  Main is open
     string GenomeFile= Options.find("-g")->second;//the name of the fna file
     string Matrix=Options.find("-m")->second;//the matrix used for blast
     string TransFile=Options.find("-t")->second;//file used for translating sequences in entropy calculations
-    int TableNum=stoi(Options.find("-n")->second);
+    string sTableNum=Options.find("-n")->second;
+    int TableNum=stoi(sTableNum);
     string StartFile=Options.find("-s")->second;//file used to specify which stops are used
     string GOFile="none";
     stringstream Convert;
@@ -99,7 +100,8 @@ int main(int argc, char* argv[]) {   //  Main is open
         }
         Oit=Options.find("-d");
         if(Oit!=Options.end()){
-            MinDepth=stoi(Oit->second);
+            string sOit = Oit->second;
+            MinDepth=stoi(sOit);
         }
         ifstream GOIn;
         GOIn.open(GOFile.c_str());
@@ -119,7 +121,8 @@ int main(int argc, char* argv[]) {   //  Main is open
     
     Oit=Options.find("-x");
     if(Oit!=Options.end()){
-        sbj_cutoff=stod(Oit->second);
+        string sOit = Oit->second;
+        sbj_cutoff=stod(sOit);
     }
     
     

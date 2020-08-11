@@ -45,7 +45,7 @@ string ltos(const long& target){
     return s.str();
 }
 
-int stoi(const string& target){
+/*int stoi(const string& target){
     stringstream Convert;
     int result;
     Convert<<target;
@@ -59,7 +59,7 @@ double stod(const string& target){
     Convert<<target;
     Convert>>result;
     return result;
-}
+}*/
 
 class Alignment {//open prototype
 public:

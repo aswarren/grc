@@ -54,7 +54,6 @@ int main(int argc, char* argv[]) {   //  Main is open
         cerr<<"Usage: grc_annotate -b [blast results file] -o [output name] -g [genome file] -m [blast matrix file] -t [translation tables file] -n [trans. table num.] -s [start codon file] -l [min. gene length] OPTIONAL -y [Gene Ontology file] -a [Use Ontology MF, BP, CC (e.g. 'mbc')] -f [Filter evidence codes (e.g. 'IEA ND')] -p [N or A (nucleotide or amino acid fasta)] -x [% subject aligned cutoff] -c (create consensus annotations) -d [minimum depth of GO term]\n";
         return -1;
     }
-    string BlastFile = Options.find("-b")->second; //get the name of the blast test results file
     string GenomeName= Options.find("-o")->second;//the name of the target genome
     string GenomeFile= Options.find("-g")->second;//the name of the fna file
     string Matrix=Options.find("-m")->second;//the matrix used for blast
@@ -75,6 +74,7 @@ int main(int argc, char* argv[]) {   //  Main is open
     double sbj_cutoff=0;
     
     SSMap::iterator Oit=Options.end();
+
     if(Options.find("-y")!=Options.end()){//if GO.obo specified
         GOFile=Options.find("-y")->second;
         bool MFunc, BProc, CComp;
@@ -152,10 +152,12 @@ int main(int argc, char* argv[]) {   //  Main is open
     Negatives+=Neg;//create false/true negatives filename
     Positives+=Pos;//create fasle/treu positives filename
     
-    
-    
-    GetBlastResults(BlastFile, RecordList, HitList, InfoPack );
-    
+    if(Options.find("-b")!=Options.end()){//if blast file specified
+        string BlastFile = Options.find("-b")->second; //get the name of the blast test results file
+        GetBlastResults(BlastFile, RecordList, HitList, InfoPack );
+
+    }   
+
     //create position map
     //and switch the start site to the one with the highest conservation
     //and calculate entropy
@@ -166,6 +168,7 @@ int main(int argc, char* argv[]) {   //  Main is open
         }
         PositionMap.insert(RecordMap::value_type(PosIt->GlobalLowBase(), &(*PosIt))); //Add to position map
     }//close for loop
+    
     
     //DumpList(InitList);//print out the orfs from initlist
     

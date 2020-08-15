@@ -155,8 +155,12 @@ int main(int argc, char* argv[]) {   //  Main is open
     if(Options.find("-b")!=Options.end()){//if blast file specified
         string BlastFile = Options.find("-b")->second; //get the name of the blast test results file
         GetBlastResults(BlastFile, RecordList, HitList, InfoPack );
-
     }   
+    if(Options.find("-i")!=Options.end()){//get coding potential from translation output
+        string BlastFile = Options.find("-i")->second; //get the name of the blast test results file
+        GetFFResults(BlastFile, RecordList, HitList, InfoPack );
+    }   
+
 
     //create position map
     //and switch the start site to the one with the highest conservation
@@ -343,6 +347,69 @@ SSMap ParseCommandLine(const int& ac, char* const av[]){
     return(Result);
 }
 
+
+
+//Reads in the FreezeFrame results file and initializes:
+//RecordList stores Records of ORFs and their XGBoost results
+//HitList hashes Pointers to those Records that are genes according to XGBoost
+//This function uses InfoPack which contains the genomic sequence and other useful functions
+int GetFFResults(string FFFile, list<AARecord>& RecordList, map<string, AARecord*> & HitList, CalcPack& InfoPack){
+    FastaRead Reader;//object for reading in fasta files
+    ifstream In; //input for the 
+    In.open(InFile); //open the input file
+	string ID;
+    string Description;
+	string Sequence;
+	string is_coding="is_coding=1";
+	string coding_conf="coding_conf=";
+	string frame_conf="six_frame_conf=[";
+	while(Reader.ReadFasta(ID,Sequence)){
+		std::vector<std::string> result; 
+		std::regex ws_re("[\\s,;]+"); 
+		std::vector<std::string> result{ 
+			std::sregex_token_iterator(s.begin(), s.end(), ws_re, -1), {} 
+		};
+		bool HasHit= false;
+		double Bit = 0;
+		double PercentIdent = 0;
+		
+		for(vector<string>::iterator It=Terms.begin(); It!=Terms.end(); It++){
+			if (It == result.begin()){
+				ID = *It;
+			}
+			else if ((*It).rfind(is_coding, 0) == 0){
+				HasHit = true;
+			}
+			else if ((*It).rfind(coding_conf, 0) == 0){
+				string BitStr=*It;
+				BitStr.erase(0, conding_conf.length());
+				Bit =stof(BitStr);
+			}
+			else if ((*It).rfind(frame_conf, 0) == 0){
+				string BitStr=*It;
+				BitStr.erase(0, frame_conf.length());
+				PercentIdent =stof(BitStr);
+			}
+		}
+        if (!HasHit){//open consq.
+            RecordList.push_back(AARecord());//add record to the list
+            RecordList.back().InitRecord(InfoPack, ID, Start, Stop, HitID, Offset);
+            //EditList.push_back(&((MapIt.first)->second));//add a pointer to the location of the record
+        }//close consq.
+		else {
+			RecordList.push_back(AARecord());
+			RecordList.back().InitRecord(InfoPack, ID, Start, Stop, HitID, Offset, HitGeneName, HitSynonym, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, Function, HitOrg);
+			HitList.insert(IDMap::value_type(ID, &RecordList.back()));//add pointer to the record to the hit list
+			//place holder add primary for alt_start look. need a way to mark detect if alternative starts should be explored...
+			IDMap::iterator FindID;
+			FindID=HitList.find(ID);
+            FindID->second->AddPrimary(InfoPack, Start, Stop, HitID, HitGeneName, HitSynonym, Bit, ES, SubjectLen, ALength, QAlignStart, QAlignStop, Function, HitOrg);
+		}
+
+    }// close read input
+    In.close();
+    return 0;
+}
 //Reads in the BLAST results file and initializes:
 //RecordList stores Records of ORFs and their blast results
 //HitList hashes Pointers to those Records that have hits according to ORF ID.

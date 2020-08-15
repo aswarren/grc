@@ -307,7 +307,8 @@ if ($status != 0){
 #run grc_translate to translate ORFs to AA
 #default table 11: bacterial translation table (see resources/GCode.txt)
 print "\nTranslating sequences.\n";
-$status = system("./grc_translate $resourcedir$TransFile $TransNum $tempdir$orfsout $tempdir$transeqout");
+#$status = system("./grc_translate $resourcedir$TransFile $TransNum $tempdir$orfsout $tempdir$transeqout");
+$status = system("python /home/user/projects/git_repos/ndssl/fungcat/FreezeFrame/fclassifier_wrapper.py --predict_coding --fix_frame 1 --alt_start $tempdir$orfsout > $tempdir$transeqout");
 
 if ($status != 0){
 	die "grc_translate did not run successfully";
